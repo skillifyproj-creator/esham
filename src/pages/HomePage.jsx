@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import Header from "../components/Header";
 import Icon from "../components/Icon";
 import CourseCard from "../components/CourseCard";
@@ -28,12 +29,7 @@ export default function HomePage() {
     setResult(false);
     setModal({ type: "quiz" });
   };
-  const title =
-    modal?.type === "account"
-      ? c[modal.mode]
-      : modal?.type === "course"
-        ? c.courseCopy[modal.course.id - 1][0]
-        : c.quizTitle;
+  const title = modal?.type === "account" ? c[modal.mode] : c.quizTitle;
   return (
     <>
       <Header onAccount={account} />
@@ -53,9 +49,9 @@ export default function HomePage() {
                   ←
                 </span>
               </button>
-              <a className="button button-outline" href="#courses">
+              <Link className="button button-outline" to="/courses">
                 {c.discover}
-              </a>
+              </Link>
             </div>
             <span className="hero-note">
               <Icon name="leaf" size={16} />
@@ -134,7 +130,6 @@ export default function HomePage() {
               <CourseCard
                 key={course.id}
                 course={course}
-                onSelect={(course) => setModal({ type: "course", course })}
               />
             ))}
           </div>
@@ -194,7 +189,7 @@ export default function HomePage() {
         <p>{c.footerText}</p>
         <nav aria-label={c.footerLinks}>
           <a href="#home">{c.home}</a>
-          <a href="#courses">{c.courses}</a>
+          <Link to="/courses">{c.courses}</Link>
           <a href="#how">{c.how}</a>
           <a href="#why">{c.why}</a>
         </nav>
@@ -210,25 +205,6 @@ export default function HomePage() {
               <p>{c.accountNote}</p>
               <button className="button" onClick={() => setModal(null)}>
                 {c.okay}
-              </button>
-            </>
-          )}
-          {modal.type === "course" && (
-            <>
-              <span className="tag">{categoryName(modal.course.category)}</span>
-              <p>{c.courseCopy[modal.course.id - 1][1]}</p>
-              <div className="detail-stats">
-                <span>
-                  {modal.course.lessons} {c.lessons}
-                </span>
-                <span>
-                  {modal.course.points} {c.points}
-                </span>
-                <span>★ {modal.course.rating}</span>
-              </div>
-              <p className="demo-note">{c.courseNote}</p>
-              <button className="button" onClick={() => account("signup")}>
-                {c.learnSignup}
               </button>
             </>
           )}
