@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#32191e" />
+    <meta
+      name="description"
+      content="إسهام — تعلّم مهارة، شارك خبرتك، واصنع فرقًا"
+    />
+    <title>إسهام | تعلّم وشارك</title>
+    <script>
+      try {
+        const theme = localStorage.getItem("esham-theme");
+        const lang = localStorage.getItem("esham-language");
+        if (theme === "dark") document.documentElement.dataset.theme = "dark";
+        if (lang === "en") {
+          document.documentElement.lang = "en";
+          document.documentElement.dir = "ltr";
+        }
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
