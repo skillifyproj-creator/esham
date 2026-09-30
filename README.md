@@ -126,3 +126,4 @@ npm install
 ## 9. صفحات المستقبل
 
 راجعي `DESIGN_SYSTEM.md`. استخدمي نفس `Header` و`PreferencesProvider` ونفس متغيرات CSS. ضعي نصوص أي صفحة جديدة داخل ملف الترجمات في اللغتين. لا تثبتي `direction: rtl` على العناصر لأن الاتجاه يأتي من `html` ويتغير مع اللغة.
+# esham
