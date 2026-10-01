@@ -73,7 +73,8 @@ const courseRecords = [
               "en": "Introduction to web development"
             },
             "minutes": 10,
-            "preview": true
+            "preview": true,
+             videoUrl: "/videos/photography-intro.mp4",
           },
           {
             "id": "1-0-1",
@@ -91,7 +92,8 @@ const courseRecords = [
               "en": "Variables & data"
             },
             "minutes": 16,
-            "preview": false
+            "preview": false,
+             videoUrl: "/videos/photography-intro.mp4",
           },
           {
             "id": "1-0-3",
@@ -100,7 +102,9 @@ const courseRecords = [
               "en": "Step-by-step practice"
             },
             "minutes": 19,
-            "preview": false
+            "preview": false,
+            videoUrl: "/videos/photography-intro.mp4",
+
           },
           {
             "id": "1-0-4",
@@ -109,7 +113,8 @@ const courseRecords = [
               "en": "Practical exercise"
             },
             "minutes": 22,
-            "preview": false
+            "preview": false,
+            videoUrl: "/videos/photography-intro.mp4",
           }
         ]
       },
@@ -127,7 +132,8 @@ const courseRecords = [
               "en": "Introduction to web development"
             },
             "minutes": 12,
-            "preview": false
+            "preview": false,
+            videoUrl: "/videos/photography-intro.mp4",
           },
           {
             "id": "1-1-1",
@@ -136,7 +142,8 @@ const courseRecords = [
               "en": "Setting up your workspace"
             },
             "minutes": 15,
-            "preview": false
+            "preview": false,
+            videoUrl: "/videos/photography-intro.mp4",
           },
           {
             "id": "1-1-2",
@@ -145,7 +152,8 @@ const courseRecords = [
               "en": "Variables & data"
             },
             "minutes": 18,
-            "preview": false
+            "preview": false,
+            videoUrl: "/videos/photography-intro.mp4",
           },
           {
             "id": "1-1-3",
