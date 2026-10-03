@@ -57,7 +57,7 @@
 
 .learner-stat strong {
   font-size: 34px;
-  color: var(--green);
+  color: var(--secondary-200);
 }
 
 .learner-stat span {
@@ -102,7 +102,7 @@
   border: 1px solid var(--line);
   border-radius: 20px;
   background: var(--tint);
-  color: var(--green);
+  color: var(--secondary-200);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -114,12 +114,12 @@
   height: 30px;
   border-radius: 8px;
   background: var(--tint);
-  color: var(--green);
+  color: var(--secondary-200);
   font-size: 13px;
 }
 
 .learner-resume {
-  border-top: 4px solid var(--rose);
+  border-top: 4px solid var(--primary-100);
 }
 
 .learner-resume > h3 {
@@ -153,7 +153,7 @@
 }
 
 .learner-progress-label strong {
-  color: var(--green);
+  color: var(--secondary-200);
 }
 
 .learner-progress progress {
@@ -173,12 +173,12 @@
 }
 
 .learner-progress progress::-webkit-progress-value {
-  background: var(--green);
+  background: var(--secondary-200);
   border-radius: 20px;
 }
 
 .learner-progress progress::-moz-progress-bar {
-  background: var(--green);
+  background: var(--secondary-200);
   border-radius: 20px;
 }
 
@@ -218,7 +218,7 @@
 }
 
 .learner-course-row-content h3 a:hover {
-  color: var(--green);
+  color: var(--secondary-200);
 }
 
 .learner-course-row-content > p {
@@ -271,8 +271,8 @@
 }
 
 .learner-task-status.inProgress {
-  color: var(--green);
-  border-color: var(--green);
+  color: var(--secondary-200);
+  border-color: var(--secondary-200);
 }
 
 .learner-task h3 {
@@ -303,7 +303,7 @@
 }
 
 .learner-points-value strong {
-  color: var(--green);
+  color: var(--secondary-200);
   font-size: 45px;
   line-height: 1.2;
 }
@@ -439,6 +439,7 @@
     font-size: 10px;
   }
 }
+
 /* Navigation shared by learner pages */
 .learner-navigation {
   display: flex;
@@ -458,14 +459,14 @@
 }
 
 .learner-navigation-link:hover {
-  color: var(--green);
-  border-color: var(--green);
+  color: var(--primary-200);
+  border-color: var(--primary-100);
 }
 
 .learner-navigation-link.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--on-primary);
+  background: var(--primary-300);
+  border-color: var(--primary-300);
+  color: var(--white-00);
 }
 
 /* Course filters */
@@ -501,9 +502,9 @@
 }
 
 .learner-course-filter.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--on-primary);
+  background: var(--primary-300);
+  border-color: var(--primary-300);
+  color: var(--white-00);
 }
 
 .learner-course-filter.active > span {
@@ -564,8 +565,8 @@
 }
 
 .enrolled-course-status.completed {
-  color: var(--green);
-  border-color: var(--green);
+  color: var(--secondary-200);
+  border-color: var(--secondary-200);
 }
 
 .enrolled-course-instructor {
@@ -579,7 +580,7 @@
 }
 
 .enrolled-course-content h2 a:hover {
-  color: var(--green);
+  color: var(--secondary-200);
 }
 
 .enrolled-course-next {
@@ -651,6 +652,7 @@
     padding: 20px;
   }
 }
+
 .lesson-page-heading {
   display: flex;
   align-items: center;
@@ -735,15 +737,15 @@
 
 .lesson-select-button.selected {
   background: var(--tint);
-  box-shadow: inset -3px 0 var(--rose);
+  box-shadow: inset -3px 0 var(--primary-100);
 }
 
 html[dir="ltr"] .lesson-select-button.selected {
-  box-shadow: inset 3px 0 var(--rose);
+  box-shadow: inset 3px 0 var(--primary-100);
 }
 
 .lesson-status-icon {
-  color: var(--green);
+  color: var(--secondary-200);
   flex-shrink: 0;
 }
 
@@ -758,7 +760,6 @@ html[dir="ltr"] .lesson-select-button.selected {
   font-size: 11px;
   margin-top: 5px;
 }
-
 .lesson-main-content {
   display: flex;
   flex-direction: column;
@@ -777,7 +778,7 @@ html[dir="ltr"] .lesson-select-button.selected {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #171215;
+  background: var(--black-00);
   object-fit: contain;
 }
 
@@ -803,7 +804,11 @@ html[dir="ltr"] .lesson-select-button.selected {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(25 17 21 / 78%);
+  background: color-mix(
+    in srgb,
+    var(--primary-00) 78%,
+    transparent
+  );
 }
 
 .lesson-video-placeholder > div {
@@ -813,13 +818,13 @@ html[dir="ltr"] .lesson-select-button.selected {
 }
 
 .lesson-video-placeholder strong {
-  color: #fff;
+  color: var(--white-00);
   font-size: 21px;
   line-height: 1.7;
 }
 
 .lesson-video-placeholder p {
-  color: #eee6e8;
+  color: var(--white-300);
   font-size: 14px;
   margin-top: 10px;
 }
@@ -949,4 +954,494 @@ html[dir="ltr"] .lesson-select-button.selected {
   .lesson-step-buttons > .button {
     flex: 1;
   }
+}
+
+/* ========================================
+   Learner Top Navigation
+======================================== */
+
+.learner-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.learner-header-inner {
+  width: min(1440px, calc(100% - 64px));
+  min-height: 76px;
+
+  margin-inline: auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 28px;
+}
+
+/* ========================================
+   Learner Logo
+======================================== */
+
+.learner-brand {
+  display: flex;
+  align-items: center;
+
+  flex-shrink: 0;
+
+  text-decoration: none;
+}
+
+.learner-logo {
+  width: 105px;
+  height: 48px;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+/* ========================================
+   Top Navigation
+======================================== */
+
+/*
+  مهم:
+  نستخدم learner-top-navigation
+  لأن learner-navigation موجودة أصلًا
+  داخل صفحات المتعلم.
+*/
+.learner-top-navigation {
+  display: flex;
+  align-items: center;
+
+  gap: 30px;
+
+  margin-inline: auto;
+}
+
+.learner-top-nav-link {
+  position: relative;
+
+  padding: 28px 0 25px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  text-decoration: none;
+
+  transition: color 0.2s ease;
+}
+
+.learner-top-nav-link:hover {
+  color: var(--primary-200);
+}
+
+.learner-top-nav-link.active {
+  color: var(--primary-300);
+}
+
+.learner-top-nav-link.active::after {
+  content: "";
+
+  position: absolute;
+
+  right: 0;
+  left: 0;
+  bottom: -1px;
+
+  height: 2px;
+
+  background: var(--primary-300);
+}
+
+
+/* ========================================
+   Header Actions
+======================================== */
+
+.learner-header-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  flex-shrink: 0;
+}
+
+
+/* ========================================
+   Switch Role
+======================================== */
+
+.learner-switch-role {
+  min-height: 39px;
+
+  padding-inline: 12px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  color: var(--primary-300);
+
+  background: var(--surface);
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.learner-switch-role:hover {
+  background: var(--hover-bg);
+}
+
+
+/* ========================================
+   Points
+======================================== */
+
+/* ========================================
+   Header Points
+======================================== */
+
+.learner-header-actions .learner-points {
+  min-height: 39px;
+
+  padding-inline: 11px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  color: var(--primary-300);
+
+  background: var(--surface);
+
+  font-size: 11px;
+
+  text-decoration: none;
+}
+
+.learner-header-actions .learner-points strong {
+  font-size: 12px;
+}
+
+.learner-header-actions .learner-points span {
+  color: var(--muted);
+}
+
+
+/* ========================================
+   Profile
+======================================== */
+
+.learner-profile {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding-inline-start: 10px;
+  margin-inline-start: 2px;
+
+  border-inline-start: 1px solid var(--line);
+
+  text-decoration: none;
+}
+
+.learner-profile-avatar {
+  width: 39px;
+  height: 39px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: var(--tint);
+
+  border: 1px solid var(--border);
+
+  color: var(--primary-300);
+}
+
+.learner-profile-copy {
+  display: flex;
+  flex-direction: column;
+
+  gap: 1px;
+}
+
+.learner-profile-copy strong {
+  color: var(--text);
+
+  font-size: 12px;
+}
+
+.learner-profile-copy small {
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+
+/* ========================================
+   Mobile Menu
+======================================== */
+
+.learner-menu-button {
+  display: none;
+
+  border: 0;
+
+  background: transparent;
+
+  color: var(--primary-300);
+
+  cursor: pointer;
+}
+
+
+/* ========================================
+   Learner Footer
+======================================== */
+
+.learner-footer {
+  margin-top: 10px;
+
+  border-top: 1px solid var(--border);
+
+  background: var(--tint);
+}
+
+.learner-footer-inner {
+  width: min(
+    1280px,
+    calc(100% - 72px)
+  );
+
+  min-height: 100px;
+
+  margin-inline: auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 25px;
+}
+
+.learner-footer-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.learner-footer-brand strong {
+  color: var(--primary-300);
+
+  font-size: 20px;
+}
+
+.learner-footer-brand span {
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+.learner-footer-links {
+  display: flex;
+
+  gap: 18px;
+}
+
+.learner-footer-links a {
+  color: var(--muted);
+
+  font-size: 10px;
+
+  text-decoration: none;
+}
+.learner-footer-links a:hover {
+  color: var(--primary-200);
+}
+
+.learner-footer-inner p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+
+/* ========================================
+   Responsive - Top Navigation
+======================================== */
+
+@media (max-width: 1180px) {
+
+  .learner-header-inner {
+    width: min(
+      100% - 35px,
+      1280px
+    );
+
+    gap: 18px;
+  }
+
+  .learner-top-navigation {
+    gap: 18px;
+  }
+
+  .learner-profile-copy {
+    display: none;
+  }
+
+}
+
+
+@media (max-width: 950px) {
+
+  .learner-header-inner {
+    min-height: 68px;
+  }
+
+  .learner-menu-button {
+    display: grid;
+
+    place-items: center;
+
+    margin-inline-start: auto;
+  }
+
+  .learner-top-navigation {
+    display: none;
+
+    position: absolute;
+
+    top: 68px;
+
+    right: 18px;
+    left: 18px;
+
+    padding: 12px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    background: var(--surface);
+
+    box-shadow:
+      0 15px 40px color-mix(
+        in srgb,
+        var(--black-00) 7%,
+        transparent
+      );
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0;
+  }
+
+  .learner-top-navigation.open {
+    display: flex;
+  }
+
+  .learner-top-nav-link {
+    padding: 12px;
+  }
+
+  .learner-top-nav-link.active::after {
+    display: none;
+  }
+
+}
+
+.learner-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  color: var(--text);
+}
+
+.learner-main {
+  flex: 1;
+  min-height: calc(100vh - 76px);
+  background: var(--background);
+}
+
+@media (max-width: 650px) {
+
+  .learner-header-actions {
+    gap: 5px;
+  }
+
+  .learner-switch-role span {
+    display: none;
+  }
+
+  .learner-profile-copy {
+    display: none;
+  }
+
+}
+
+
+@media (max-width: 480px) {
+
+  .learner-header-actions {
+    display: none;
+  }
+
+  .learner-header-inner {
+    width: calc(100% - 30px);
+  }
+
+  .learner-logo {
+    width: 92px;
+    height: 43px;
+  }
+
+  .learner-footer-inner {
+    width: calc(100% - 30px);
+
+    padding-block: 25px;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+  .learner-footer-links {
+    flex-wrap: wrap;
+  }
+
 }

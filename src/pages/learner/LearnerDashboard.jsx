@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { Link } from "react-router";
 
 import { courses } from "../../data/courses";
@@ -15,9 +16,9 @@ import "../../styles/learner.css";
 // نربط بيانات تسجيل المتعلّم بالكورس الأصلي.
 // لا ننسخ عنوان الكورس أو صورته إلى learnerDemo.
 import { getEnrollmentDetails } from "../../data/learnerHelpers";
-import LearnerNavigation from "../../components/learner/LearnerNavigation";
 
 import { useLearner } from "../../context/LearnerContext";
+
 function LearningProgress({ value, label }) {
   return (
     <div className="learner-progress">
@@ -47,15 +48,18 @@ export default function LearnerDashboard() {
 
   const activeCourses = enrollments
     .filter((enrollment) => !enrollment.isComplete)
-    .sort((a, b) => new Date(b.lastOpenedAt) - new Date(a.lastOpenedAt));
+    .sort(
+      (a, b) =>
+        new Date(b.lastOpenedAt) - new Date(a.lastOpenedAt)
+    );
 
   const completedCourses = enrollments.filter(
-    (enrollment) => enrollment.isComplete,
+    (enrollment) => enrollment.isComplete
   );
 
   const completedLessons = enrollments.reduce(
     (total, enrollment) => total + enrollment.completedCount,
-    0,
+    0
   );
 
   const latestCourse = activeCourses[0];
@@ -64,7 +68,7 @@ export default function LearnerDashboard() {
   const otherActiveCourses = activeCourses.slice(1);
 
   const enrolledIds = new Set(
-    enrollments.map((enrollment) => enrollment.courseId),
+    enrollments.map((enrollment) => enrollment.courseId)
   );
 
   const recommendations = courses
@@ -72,7 +76,7 @@ export default function LearnerDashboard() {
     .slice(0, 2);
 
   const tasks = learnerDemo.tasks.filter((task) =>
-    courses.some((course) => course.id === task.courseId),
+    courses.some((course) => course.id === task.courseId)
   );
 
   const stats = [
@@ -93,7 +97,8 @@ export default function LearnerDashboard() {
   return (
     <main className="learner-dashboard">
       <div className="container">
-        <LearnerNavigation />
+        {/* Navbar موجود الآن في LearnerLayout، لذلك لا نضعه هنا */}
+
         <header className="learner-welcome">
           <div>
             <span className="section-kicker">{t.dashboard}</span>
@@ -115,7 +120,10 @@ export default function LearnerDashboard() {
 
         <section className="learner-summary" aria-label={t.summary}>
           {stats.map((stat) => (
-            <article className="learner-panel learner-stat" key={stat.label}>
+            <article
+              className="learner-panel learner-stat"
+              key={stat.label}
+            >
               <strong>{stat.value}</strong>
               <span>{stat.label}</span>
             </article>
@@ -196,7 +204,9 @@ export default function LearnerDashboard() {
                           </Link>
                         </h3>
 
-                        <p>{enrollment.course.instructor[language]}</p>
+                        <p>
+                          {enrollment.course.instructor[language]}
+                        </p>
 
                         <LearningProgress
                           value={enrollment.progress}
@@ -204,11 +214,11 @@ export default function LearnerDashboard() {
                         />
 
                         <Link
-  className="button button-outline button-small"
-  to={`/learner/courses/${enrollment.courseId}/learn`}
->
-  {t.continueLearning}
-</Link>
+                          className="button button-outline button-small"
+                          to={`/learner/courses/${enrollment.courseId}/learn`}
+                        >
+                          {t.continueLearning}
+                        </Link>
                       </div>
                     </article>
                   ))}
@@ -222,38 +232,46 @@ export default function LearnerDashboard() {
                 <span className="learner-count">{tasks.length}</span>
               </div>
 
-              <p className="learner-section-description">{t.tasksIntro}</p>
+              <p className="learner-section-description">
+                {t.tasksIntro}
+              </p>
 
               <div className="learner-task-list">
                 {tasks.map((task) => {
                   const course = courses.find(
-                    (item) => item.id === task.courseId,
+                    (item) => item.id === task.courseId
                   );
 
                   return (
-                    <article className="learner-task" key={task.id}>
+                    <article
+                      className="learner-task"
+                      key={task.id}
+                    >
                       <div>
-                        <span className={`learner-task-status ${task.status}`}>
+                        <span
+                          className={`learner-task-status ${task.status}`}
+                        >
                           {t[task.status]}
                         </span>
 
                         <h3>{task.title[language]}</h3>
+
                         <p>{course.title[language]}</p>
                       </div>
 
                       <button
-  type="button"
-  className="button button-outline button-small"
-  onClick={() =>
-    setModal({
-      title: task.title[language],
-      description: task.description[language],
-      note: t.taskDemo,
-    })
-  }
->
-  {t.taskDetails}
-</button>
+                        type="button"
+                        className="button button-outline button-small"
+                        onClick={() =>
+                          setModal({
+                            title: task.title[language],
+                            description: task.description[language],
+                            note: t.taskDemo,
+                          })
+                        }
+                      >
+                        {t.taskDetails}
+                      </button>
                     </article>
                   );
                 })}
@@ -272,7 +290,10 @@ export default function LearnerDashboard() {
 
                 <div className="learner-recommendations">
                   {recommendations.map((course) => (
-                    <CourseCard key={course.id} course={course} />
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                    />
                   ))}
                 </div>
               </section>
@@ -281,7 +302,9 @@ export default function LearnerDashboard() {
 
           <aside className="learner-side-column">
             <section className="learner-panel learner-points">
-              <span className="section-kicker">{t.pointsTitle}</span>
+              <span className="section-kicker">
+                {t.pointsTitle}
+              </span>
 
               <div className="learner-points-value">
                 <strong>{learnerDemo.points}</strong>
@@ -307,12 +330,20 @@ export default function LearnerDashboard() {
       </div>
 
       {modal && (
-        <Modal title={modal.title} onClose={() => setModal(null)}>
+        <Modal
+          title={modal.title}
+          onClose={() => setModal(null)}
+        >
           <p>{modal.description}</p>
 
-          {modal.note && <p className="demo-note">{modal.note}</p>}
+          {modal.note && (
+            <p className="demo-note">{modal.note}</p>
+          )}
 
-          <button className="button" onClick={() => setModal(null)}>
+          <button
+            className="button"
+            onClick={() => setModal(null)}
+          >
             {t.close}
           </button>
         </Modal>

@@ -6,8 +6,6 @@ import { getEnrollmentDetails } from "../../data/learnerHelpers";
 import { learnerCopy } from "../../i18n/learnerCopy";
 import { usePreferences } from "../../context/PreferencesContext";
 
-import LearnerNavigation from "../../components/learner/LearnerNavigation";
-
 import "../../styles/learner.css";
 import { useLearner } from "../../context/LearnerContext";
 
@@ -167,7 +165,6 @@ const { enrollments: learnerEnrollments } = useLearner();
   return (
     <main className="learner-dashboard">
       <div className="container">
-        <LearnerNavigation />
 
         <header className="learner-welcome">
           <div>

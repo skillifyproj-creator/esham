@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import Icon from "./Icon";
+import logo from "../assets/esham-logo.png";
 import Modal from "./Modal";
 import { usePreferences } from "../context/PreferencesContext";
 export default function Header({ onAccount }) {
@@ -35,13 +36,11 @@ export default function Header({ onAccount }) {
             aria-label={`${c.brand} — ${c.home}`}
             onClick={() => setOpen(false)}
           >
-            <span className="brand-symbol">
-              <Icon name="leaf" />
-            </span>
-            <span>
-              {c.brand}
-              <small>{c.tagline}</small>
-            </span>
+            <img
+  src={logo}
+  alt={c.brand}
+  className="site-logo"
+/>
           </Link>
           <button
             className="menu-toggle"

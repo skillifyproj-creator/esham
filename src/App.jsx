@@ -1,61 +1,167 @@
 import { useLayoutEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation, Link } from "react-router";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  Link,
+} from "react-router";
+
 import {
   PreferencesProvider,
   usePreferences,
 } from "./context/PreferencesContext";
+
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import CourseDetailsPage from "./pages/CourseDetailsPage";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+
 import { coursePagesCopy } from "./i18n/coursePagesCopy";
 import "./styles/course-pages.css";
+
+import { LearnerProvider } from "./context/LearnerContext";
+import LearnerLayout from "./components/learner/LearnerLayout";
 import LearnerDashboard from "./pages/learner/LearnerDashboard";
 import LearnerCoursesPage from "./pages/learner/LearnerCoursesPage";
-import { LearnerProvider } from "./context/LearnerContext";
 import LearnerLessonPage from "./pages/learner/LearnerLessonPage";
+
+import InstructorLayout from "./components/instructor/InstructorLayout";
+import InstructorDashboard from "./pages/instructor/InstructorDashboard";
+import InstructorCoursesPage from "./pages/instructor/InstructorCoursesPage";
+import CreateCoursePage from "./pages/instructor/CreateCoursePage";
+
 function RouteShell() {
   const { pathname, hash } = useLocation();
   const { language } = usePreferences();
+
   const p = coursePagesCopy[language];
+
   useLayoutEffect(() => {
     if (hash) {
       const el = document.getElementById(hash.slice(1));
-      if (el) el.scrollIntoView();
-    } else window.scrollTo(0, 0);
+
+      if (el) {
+        el.scrollIntoView();
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
   }, [pathname, hash]);
-  // HomePage keeps its current Header/Footer so existing Home edits are preserved.
+
+  /*
+   * Each user area has its own Layout:
+   *
+   * Public     → Header + Footer
+   * Learner    → LearnerNavigation + LearnerFooter
+   * Instructor → InstructorNavigation + InstructorFooter
+   */
+
   const isHome = pathname === "/";
+  const isInstructor = pathname.startsWith("/instructor");
+  const isLearner = pathname.startsWith("/learner");
+
   return (
     <>
-      {!isHome && <Header />}
+      {/* Public Header only */}
+      {!isHome && !isInstructor && !isLearner && <Header />}
+
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/courses" element={<CoursesPage />} />
-        <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
-        <Route path="/learner" element={<LearnerDashboard />} />
-        <Route path="/learner/courses" element={<LearnerCoursesPage />} />
+
+        {/* =================================
+            Public Pages
+        ================================= */}
+
         <Route
-          path="/learner/courses/:courseId/learn"
-          element={<LearnerLessonPage />}
+          path="/"
+          element={<HomePage />}
         />
+
+        <Route
+          path="/courses"
+          element={<CoursesPage />}
+        />
+
+        <Route
+          path="/courses/:courseId"
+          element={<CourseDetailsPage />}
+        />
+
+
+        {/* =================================
+            Learner Pages
+        ================================= */}
+
+       <Route path="/learner" element={<LearnerLayout />}>
+  <Route index element={<LearnerDashboard />} />
+
+  <Route
+    path="courses"
+    element={<LearnerCoursesPage />}
+  />
+
+  <Route
+    path="courses/:courseId/learn"
+    element={<LearnerLessonPage />}
+  />
+</Route>
+
+
+        {/* =================================
+            Instructor Pages
+        ================================= */}
+
+        <Route 
+  path="/instructor" 
+  element={<InstructorLayout />} 
+> 
+  <Route 
+    index 
+    element={<InstructorDashboard />} 
+  /> 
+ 
+  <Route 
+    path="courses" 
+    element={<InstructorCoursesPage />} 
+  />
+
+  <Route 
+    path="courses/new" 
+    element={<CreateCoursePage />} 
+  />
+</Route>
+
+        {/* =================================
+            404
+        ================================= */}
+
         <Route
           path="*"
           element={
             <main className="section container empty-state">
               <h1>{p.missing}</h1>
-              <Link className="button" to="/">
+
+              <Link
+                className="button"
+                to="/"
+              >
                 {p.backHome}
               </Link>
             </main>
           }
         />
+
       </Routes>
-      {!isHome && <Footer />}
+
+      {/* Public Footer only */}
+      {!isHome && !isInstructor && !isLearner && <Footer />}
     </>
   );
 }
+
+
 export default function App() {
   return (
     <PreferencesProvider>

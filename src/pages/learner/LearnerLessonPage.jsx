@@ -11,7 +11,6 @@ import { usePreferences } from "../../context/PreferencesContext";
 import { lessonCopy } from "../../i18n/lessonCopy";
 
 import Modal from "../../components/Modal";
-import LearnerNavigation from "../../components/learner/LearnerNavigation";
 
 import "../../styles/learner.css";
 
@@ -116,7 +115,6 @@ export default function LearnerLessonPage() {
   return (
     <main className="learner-dashboard">
       <div className="container">
-        <LearnerNavigation />
 
         <header className="lesson-page-heading">
           <div>
