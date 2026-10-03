@@ -1,0 +1,122 @@
+.reviews-section {
+  display: grid;
+  gap: 18px;
+  margin-block: 28px;
+}
+
+.review-course-row,
+.saved-review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.review-course-row p,
+.saved-review > p,
+.saved-review > small {
+  color: var(--muted);
+}
+
+.reviews-form {
+  display: grid;
+  gap: 16px;
+}
+
+.review-rating {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.review-rating legend {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.review-stars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.review-stars label {
+  position: relative;
+  cursor: pointer;
+}
+
+.review-stars input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.review-stars label > span[aria-hidden] {
+  display: inline-block;
+  padding: 4px;
+  font-size: 36px;
+  color: var(--border);
+}
+
+.review-stars label > span.filled {
+  color: var(--green);
+}
+
+.review-stars input:focus-visible + span {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.review-text-label {
+  display: grid;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.review-text-label textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  font: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--tint);
+  resize: vertical;
+}
+
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.saved-review-rating {
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.saved-review blockquote {
+  margin: 18px 0;
+  padding: 18px;
+  background: var(--tint);
+  border-radius: 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reviews-policy {
+  background: var(--tint);
+}
+
+@media (max-width: 600px) {
+  .review-course-row,
+  .saved-review-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

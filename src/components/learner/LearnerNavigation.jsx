@@ -29,6 +29,14 @@ export default function LearnerNavigation() {
       language === "ar" ? "تقدّم التعلّم" : "Learning progress",
     ],
     ["/learner/points", language === "ar" ? "النقاط" : "Points"],
+    [
+      "/learner/reviews",
+      language === "ar" ? "التقييمات" : "Reviews",
+    ],
+    [
+      "/learner/notifications",
+      language === "ar" ? "الإشعارات" : "Notifications",
+    ],
   ];
 
   const { balance } = useLearnerWallet();

@@ -36,6 +36,8 @@ import InstructorTaskPage from "./pages/instructor/InstructorTaskPage";
 import LearnerTasksPage from "./pages/learner/LearnerTasksPage";
 import LearnerProgressPage from "./pages/learner/LearnerProgressPage";
 import LearnerPointsPage from "./pages/learner/LearnerPointsPage";
+import LearnerReviewsPage from "./pages/learner/LearnerReviewsPage";
+import LearnerNotificationsPage from "./pages/learner/LearnerNotificationsPage";
 function RouteShell() {
   const { pathname, hash } = useLocation();
   const { language } = usePreferences();
@@ -99,6 +101,11 @@ function RouteShell() {
 
           <Route path="progress" element={<LearnerProgressPage />} />
           <Route path="points" element={<LearnerPointsPage />} />
+          <Route path="reviews" element={<LearnerReviewsPage />} />
+          <Route
+            path="notifications"
+            element={<LearnerNotificationsPage />}
+          />
         </Route>
 
         {/* =================================

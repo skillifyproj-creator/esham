@@ -28,8 +28,6 @@ export default function LearnerLessonPage() {
     return (
       <main className="learner-dashboard">
         <div className="container">
-          <LearnerNavigation />
-
           <section className="learner-panel learner-courses-empty">
             <h1>{t.unavailable}</h1>
 
@@ -55,8 +53,6 @@ export default function LearnerLessonPage() {
     return (
       <main className="learner-dashboard">
         <div className="container">
-          <LearnerNavigation />
-
           <section className="learner-panel learner-courses-empty">
             <h1>{t.empty}</h1>
 

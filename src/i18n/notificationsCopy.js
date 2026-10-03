@@ -59,3 +59,4 @@ export const notificationsCopy = {
     filters: "Filter notifications",
   },
 };
+

@@ -8,6 +8,7 @@ import { useLearnerReviews } from "../../hooks/useLearnerReviews";
 
 import { getEnrollmentDetails } from "../../data/learnerHelpers";
 import { reviewsCopy } from "../../i18n/reviewsCopy";
+import "../../styles/learner-reviews.css";
 
 function ReviewForm({
   course,
