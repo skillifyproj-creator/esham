@@ -141,7 +141,7 @@ export default function InstructorNavigation() {
             onClick={() => setOpen(false)}
           >
             <Icon name="swap" size={17} />
-            <span>{navigationCopy.switchRole}</span>
+            <span>{c.switchToLearner}</span>
           </Link>
 
           {/* Points */}

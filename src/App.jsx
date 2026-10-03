@@ -38,6 +38,8 @@ import LearnerProgressPage from "./pages/learner/LearnerProgressPage";
 import LearnerPointsPage from "./pages/learner/LearnerPointsPage";
 import LearnerReviewsPage from "./pages/learner/LearnerReviewsPage";
 import LearnerNotificationsPage from "./pages/learner/LearnerNotificationsPage";
+import EshamChatbot from "./components/chatbot/EshamChatbot";
+
 function RouteShell() {
   const { pathname, hash } = useLocation();
   const { language } = usePreferences();
@@ -67,6 +69,12 @@ function RouteShell() {
   const isHome = pathname === "/";
   const isInstructor = pathname.startsWith("/instructor");
   const isLearner = pathname.startsWith("/learner");
+  const assistantPath = isLearner
+    ? "/learner/assistant"
+    : isInstructor
+      ? "/instructor/assistant"
+      : "/assistant";
+  const isAssistantPage = pathname === assistantPath;
 
   return (
     <>
@@ -83,6 +91,8 @@ function RouteShell() {
         <Route path="/courses" element={<CoursesPage />} />
 
         <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
+
+        <Route path="/assistant" element={<EshamChatbot />} />
 
         {/* =================================
             Learner Pages
@@ -106,6 +116,8 @@ function RouteShell() {
             path="notifications"
             element={<LearnerNotificationsPage />}
           />
+
+          <Route path="assistant" element={<EshamChatbot />} />
         </Route>
 
         {/* =================================
@@ -168,6 +180,8 @@ function RouteShell() {
             path="courses/:courseId/sections/:sectionId/tasks/:taskId/edit"
             element={<InstructorTaskPage />}
           />
+
+          <Route path="assistant" element={<EshamChatbot />} />
         </Route>
 
         {/* =================================
@@ -187,6 +201,55 @@ function RouteShell() {
           }
         />
       </Routes>
+
+      {!isAssistantPage && (
+        <Link
+          className="esham-assistant-launcher"
+          to={assistantPath}
+          aria-label={
+            language === "ar"
+              ? "فتح مساعد إسهام"
+              : "Open Esham Assistant"
+          }
+          title={
+            language === "ar"
+              ? "مساعد إسهام"
+              : "Esham Assistant"
+          }
+        >
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3v3" />
+            <circle cx="12" cy="2.5" r="0.5" fill="currentColor" />
+            <rect x="4" y="6" width="16" height="14" rx="4" />
+            <path d="M2 11v4M22 11v4" />
+            <circle
+              cx="8.5"
+              cy="12"
+              r="1"
+              fill="currentColor"
+              stroke="none"
+            />
+            <circle
+              cx="15.5"
+              cy="12"
+              r="1"
+              fill="currentColor"
+              stroke="none"
+            />
+            <path d="M9 16h6" />
+          </svg>
+        </Link>
+      )}
 
       {/* Public Footer only */}
       {!isHome && !isInstructor && !isLearner && <Footer />}

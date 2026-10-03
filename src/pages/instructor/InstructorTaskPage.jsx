@@ -165,15 +165,8 @@ export default function InstructorTaskPage() {
   const saveTask = () => {
     setSaved(true);
 
-    /*
-      لاحقًا يتم استبدال هذا الجزء بطلب API.
-      حاليًا نحافظ على نفس بيانات الـFrontend
-      ونرجع إلى الـCurriculum.
-    */
-
-    navigate(
-      `/instructor/courses/${courseId}/curriculum`
-    );
+    // الحفظ الفعلي للمهمة يُضاف عند الربط بالباك.
+    navigate("/instructor/courses/new/curriculum");
   };
 
   const saveDraft = () => {
@@ -181,9 +174,7 @@ export default function InstructorTaskPage() {
   };
 
   const goBack = () => {
-    navigate(
-      `/instructor/courses/${courseId}/curriculum`
-    );
+    navigate("/instructor/courses/new/curriculum");
   };
 
   return (
