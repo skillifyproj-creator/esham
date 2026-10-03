@@ -3,10 +3,14 @@ import { Link } from "react-router";
 
 import Icon from "../../components/Icon";
 import { instructorDemo } from "../../data/instructorDemo";
+import { usePreferences } from "../../context/PreferencesContext";
+import instructorCopy from "../../i18n/instructorCopy";
 
 import "../../styles/instructor.css";
 
 export default function InstructorCoursesPage() {
+  const { language } = usePreferences();
+  const c = instructorCopy[language];
   const { courses } = instructorDemo;
 
   const [activeFilter, setActiveFilter] = useState("all");
@@ -60,9 +64,9 @@ export default function InstructorCoursesPage() {
     if (searchValue) {
       result = result.filter((course) => {
         const searchableText = `
-          ${course.title}
-          ${course.category}
-          ${course.description}
+          ${course.title[language]}
+          ${course.category[language]}
+          ${course.description[language]}
         `.toLowerCase();
 
         return searchableText.includes(searchValue);
@@ -72,7 +76,10 @@ export default function InstructorCoursesPage() {
     // Sort
     if (sortBy === "title") {
       result.sort((a, b) =>
-        a.title.localeCompare(b.title, "ar")
+        a.title[language].localeCompare(
+          b.title[language],
+          language === "en" ? "en" : "ar"
+        )
       );
     }
 
@@ -87,6 +94,7 @@ export default function InstructorCoursesPage() {
     return result;
   }, [
     courses,
+    language,
     activeFilter,
     search,
     sortBy,
@@ -101,9 +109,8 @@ export default function InstructorCoursesPage() {
   );
 
   const totalLearners = publishedCourses.reduce(
-    (total, course) =>
-      total + (course.learners || 0),
-    0
+    (total, course) => total + (course.learners || 0),
+    0,
   );
 
   const totalPoints = publishedCourses.reduce(
@@ -140,19 +147,18 @@ export default function InstructorCoursesPage() {
           <div>
             <div className="instructor-breadcrumb">
               <Link to="/instructor">
-                لوحة التحكم
+                {c.dashboard}
               </Link>
 
               <span>/</span>
 
-              <span>إدارة الدورات</span>
+              <span>{c.manageCourses}</span>
             </div>
 
-            <h1>دوراتي</h1>
+            <h1>{c.myCourses}</h1>
 
             <p>
-              إدارة دوراتك ومتابعة حالتها وأدائها
-              وتحديث محتواها الأكاديمي والتطبيقي.
+              {c.courseManagementDescription}
             </p>
           </div>
 
@@ -163,7 +169,7 @@ export default function InstructorCoursesPage() {
               className="instructor-create-course-button"
             >
               <Icon name="plus" size={17} />
-              إنشاء دورة جديدة
+              {c.createNewCourse}
             </Link>
 
             <button
@@ -175,7 +181,7 @@ export default function InstructorCoursesPage() {
               }}
             >
               <Icon name="eye" size={17} />
-              تبديل العرض الفارغ
+              {c.emptyPreview}
             </button>
 
           </div>
@@ -195,7 +201,7 @@ export default function InstructorCoursesPage() {
                 setActiveFilter("all")
               }
             >
-              الكل
+              {c.all}
               <span>({counts.all})</span>
             </FilterButton>
 
@@ -207,7 +213,7 @@ export default function InstructorCoursesPage() {
                 setActiveFilter("published")
               }
             >
-              منشورة
+              {c.published}
               <span>({counts.published})</span>
             </FilterButton>
 
@@ -219,7 +225,7 @@ export default function InstructorCoursesPage() {
                 setActiveFilter("pending")
               }
             >
-              قيد المراجعة
+              {c.pendingReview}
               <span>({counts.pending})</span>
             </FilterButton>
 
@@ -231,7 +237,7 @@ export default function InstructorCoursesPage() {
                 setActiveFilter("draft")
               }
             >
-              مسودة
+              {c.draft}
               <span>({counts.draft})</span>
             </FilterButton>
 
@@ -243,7 +249,7 @@ export default function InstructorCoursesPage() {
                 setActiveFilter("rejected")
               }
             >
-              تحتاج تعديل
+              {c.needsEdits}
               <span>({counts.rejected})</span>
             </FilterButton>
 
@@ -264,8 +270,8 @@ export default function InstructorCoursesPage() {
               onChange={(event) =>
                 setSearch(event.target.value)
               }
-              placeholder="ابحث عن دورة بالاسم أو التصنيف..."
-              aria-label="البحث عن دورة"
+              placeholder={c.searchCoursePlaceholder}
+              aria-label={c.searchCourse}
             />
 
           </label>
@@ -274,7 +280,7 @@ export default function InstructorCoursesPage() {
 
           <label className="instructor-course-sort">
 
-            <span>الترتيب حسب:</span>
+            <span>{c.sortBy}</span>
 
             <select
               value={sortBy}
@@ -283,15 +289,15 @@ export default function InstructorCoursesPage() {
               }
             >
               <option value="latest">
-                الأحدث
+                {c.newest}
               </option>
 
               <option value="title">
-                الاسم
+                {c.name}
               </option>
 
               <option value="learners">
-                عدد المتعلمين
+                {c.learnerCount}
               </option>
             </select>
 
@@ -311,6 +317,8 @@ export default function InstructorCoursesPage() {
               <CourseCard
                 key={course.id}
                 course={course}
+                copy={c}
+                language={language}
               />
             ))}
 
@@ -328,11 +336,11 @@ export default function InstructorCoursesPage() {
             </div>
 
             <h2>
-              لا توجد دورات مطابقة
+              {c.noMatchingCourses}
             </h2>
 
             <p>
-              جرّب تغيير الفلتر أو كلمة البحث.
+              {c.changeFilterOrSearch}
             </p>
 
             <button
@@ -343,7 +351,7 @@ export default function InstructorCoursesPage() {
                 setSearch("");
               }}
             >
-              عرض جميع الدورات
+              {c.viewAllCoursesAction}
             </button>
 
           </div>
@@ -357,30 +365,28 @@ export default function InstructorCoursesPage() {
         <section className="instructor-course-summary">
 
           <h2>
-            ملخص مؤشرات المدرب
+            {c.instructorMetricsSummary}
           </h2>
 
           <div className="instructor-course-summary-grid">
 
             <article>
               <span>
-                إجمالي الطلاب المتعلمين
+                {c.totalLearners}
               </span>
 
               <strong>
-                {totalLearners.toLocaleString(
-                  "en-US"
-                )}
+                {totalLearners.toLocaleString("en-US")}
               </strong>
 
               <small>
-                من الدورات المنشورة
+                {c.fromPublishedCourses}
               </small>
             </article>
 
             <article>
               <span>
-                متوسط تقييم الدورات
+                {c.averageCourseRating}
               </span>
 
               <strong>
@@ -388,29 +394,27 @@ export default function InstructorCoursesPage() {
               </strong>
 
               <small>
-                من 5.0 ★
+                {c.outOf} 5.0 ★
               </small>
             </article>
 
             <article>
               <span>
-                نقاط التدريب المكتسبة
+                {c.pointsEarnedFromTeaching}
               </span>
 
               <strong>
-                {totalPoints.toLocaleString(
-                  "en-US"
-                )}
+                {totalPoints.toLocaleString("en-US")}
               </strong>
 
               <small>
-                نقطة
+                {c.points}
               </small>
             </article>
 
             <article>
               <span>
-                عدد الدورات
+                {c.totalCourses}
               </span>
 
               <strong>
@@ -418,7 +422,7 @@ export default function InstructorCoursesPage() {
               </strong>
 
               <small>
-                جميع الحالات
+                {c.allStatuses}
               </small>
             </article>
 
@@ -457,9 +461,8 @@ function FilterButton({
 // COURSE CARD
 // =========================================================
 
-function CourseCard({ course }) {
-  const statusClass =
-    getStatusClass(course.courseStatus);
+function CourseCard({ course, copy: c, language }) {
+  const statusClass = getStatusClass(course.courseStatus);
 
   // ---------------------------------------------------------
   // REVIEW / NEEDS EDIT CARD
@@ -472,7 +475,7 @@ function CourseCard({ course }) {
         <div className="instructor-review-alert">
 
           <span className="instructor-review-alert-badge">
-            تحتاج تعديل
+            {c.needsEdits}
           </span>
 
           <div className="instructor-review-alert-icon">
@@ -480,14 +483,14 @@ function CourseCard({ course }) {
           </div>
 
           <strong>
-            ملاحظات بحاجة إلى استجابة
+            {c.reviewNeedsResponse}
           </strong>
 
           <Link
             to={`/instructor/courses/${course.id}`}
             className="instructor-review-link"
           >
-            التسويق
+            {course.category[language]}
           </Link>
 
         </div>
@@ -495,17 +498,17 @@ function CourseCard({ course }) {
         <div className="instructor-course-card-body">
 
           <h3>
-            {course.title}
+            {course.title[language]}
           </h3>
 
           <div className="instructor-review-note">
 
             <strong>
-              ملاحظة المراجع:
+              {c.reviewerNote}
             </strong>
 
             <p>
-              {course.reviewNote}
+              {course.reviewNote[language]}
             </p>
 
           </div>
@@ -519,14 +522,14 @@ function CourseCard({ course }) {
               size={14}
             />
 
-            تعديل الدورة وإعادة الإرسال
+            {c.editAndResubmit}
           </Link>
 
           <Link
             to={`/instructor/courses/${course.id}/review`}
             className="instructor-review-details"
           >
-            عرض تفاصيل تقرير المراجعة
+            {c.reviewReportDetails}
           </Link>
 
         </div>
@@ -559,7 +562,7 @@ function CourseCard({ course }) {
         {course.image ? (
           <img
             src={course.image}
-            alt={course.title}
+            alt={course.title[language]}
           />
         ) : (
           <div className="instructor-course-image-empty">
@@ -573,11 +576,11 @@ function CourseCard({ course }) {
         <span
           className={`instructor-course-status ${statusClass}`}
         >
-          {course.statusLabel}
+          {getCourseStatusLabel(course.courseStatus, c)}
         </span>
 
         <span className="instructor-course-category">
-          {course.category}
+          {course.category[language]}
         </span>
 
       </div>
@@ -587,11 +590,11 @@ function CourseCard({ course }) {
       <div className="instructor-course-card-body">
 
         <h3>
-          {course.title}
+          {course.title[language]}
         </h3>
 
         <p>
-          {course.description}
+          {course.description[language]}
         </p>
 
         {/* Meta */}
@@ -605,7 +608,7 @@ function CourseCard({ course }) {
               </strong>
 
               <small>
-                متعلم
+                {c.learner}
               </small>
             </span>
 
@@ -625,7 +628,7 @@ function CourseCard({ course }) {
               </strong>
 
               <small>
-                نقطة
+                {c.points}
               </small>
             </span>
 
@@ -640,7 +643,7 @@ function CourseCard({ course }) {
             <div className="instructor-draft-progress-heading">
 
               <span>
-                نسبة الإنجاز
+                {c.completionProgress}
               </span>
 
               <strong>
@@ -672,7 +675,7 @@ function CourseCard({ course }) {
             />
 
             <span>
-              {course.reviewStatus}
+              {course.reviewStatus[language]}
             </span>
           </div>
         )}
@@ -687,7 +690,7 @@ function CourseCard({ course }) {
                 to={`/instructor/courses/${course.id}`}
                 className="instructor-course-button instructor-course-button-primary"
               >
-                إدارة الدورة
+                {c.manageCourseAction}
                 <Icon
                   name="settings"
                   size={14}
@@ -698,11 +701,18 @@ function CourseCard({ course }) {
                 to={`/courses/${course.id}`}
                 className="instructor-course-button instructor-course-button-outline"
               >
-                عرض الدورة
+                {c.viewCourse}
                 <Icon
                   name="eye"
                   size={14}
                 />
+              </Link>
+
+              <Link
+                to={`/instructor/courses/${course.id}/performance`}
+                className="instructor-course-button instructor-course-button-outline"
+              >
+                {c.performance}
               </Link>
             </>
           )}
@@ -713,7 +723,7 @@ function CourseCard({ course }) {
                 to={`/instructor/courses/${course.id}/edit`}
                 className="instructor-course-button green"
               >
-                تعديل
+                {c.edit}
                 <Icon
                   name="edit"
                   size={14}
@@ -724,7 +734,7 @@ function CourseCard({ course }) {
                 to={`/instructor/courses/${course.id}/continue`}
                 className="instructor-course-button instructor-course-button-primary green"
               >
-                متابعة الإنشاء
+                {c.continueCreation}
                 <Icon
                   name="arrow-left"
                   size={14}
@@ -739,7 +749,7 @@ function CourseCard({ course }) {
                 to={`/instructor/courses/${course.id}`}
                 className="instructor-course-button purple-soft"
               >
-                معاينة المسودة
+                {c.previewDraft}
                 <Icon
                   name="eye"
                   size={14}
@@ -750,7 +760,7 @@ function CourseCard({ course }) {
                 type="button"
                 className="instructor-course-button instructor-course-button-primary purple-soft"
               >
-                عرض التفاصيل
+                {c.viewDetails}
                 <Icon
                   name="arrow-left"
                   size={14}
@@ -788,5 +798,20 @@ function getStatusClass(status) {
 
     default:
       return "";
+  }
+}
+
+function getCourseStatusLabel(status, copy) {
+  switch (status) {
+    case "published":
+      return copy.published;
+    case "pending":
+      return copy.pendingReview;
+    case "draft":
+      return copy.draft;
+    case "rejected":
+      return copy.needsEdits;
+    default:
+      return status;
   }
 }

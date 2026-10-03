@@ -1,8 +1,12 @@
 import { Link } from "react-router";
 import Icon from "../../components/Icon";
 import { instructorDemo } from "../../data/instructorDemo";
+import { usePreferences } from "../../context/PreferencesContext";
+import instructorCopy from "../../i18n/instructorCopy";
 
 export default function InstructorDashboard() {
+  const { language } = usePreferences();
+  const c = instructorCopy[language];
   const { instructor, stats, performance, courses, needsAttention, activities } =
     instructorDemo;
 
@@ -21,12 +25,11 @@ export default function InstructorDashboard() {
         <section className="instructor-welcome">
           <div>
             <h1>
-              مرحباً أحمد <span>👋</span>
+              {c.welcome} {instructor.name[language]} <span>👋</span>
             </h1>
 
             <p>
-              إليك نظرة سريعة على أداء دوراتك ونشاط المتعلمين
-              في منصة إسهام.
+              {c.dashboardIntro}
             </p>
           </div>
 
@@ -35,7 +38,7 @@ export default function InstructorDashboard() {
               to="/instructor/courses"
               className="instructor-button instructor-button-outline"
             >
-              عرض دوراتي
+              {c.myCourses}
             </Link>
 
             <Link
@@ -43,7 +46,7 @@ export default function InstructorDashboard() {
               className="instructor-button"
             >
               <span>+</span>
-              إنشاء دورة
+              {c.createCourse}
             </Link>
           </div>
         </section>
@@ -57,11 +60,11 @@ export default function InstructorDashboard() {
             </div>
 
             <div className="instructor-stat-content">
-              <span>دوراتي</span>
+              <span>{c.myCoursesStat}</span>
               <strong>{stats.courses}</strong>
 
               <small>
-                <b>+1</b> هذا الشهر
+                <b>+{stats.coursesAddedThisMonth}</b> {c.thisMonth}
               </small>
             </div>
           </article>
@@ -72,13 +75,13 @@ export default function InstructorDashboard() {
             </div>
 
             <div className="instructor-stat-content">
-              <span>المتعلمون</span>
+              <span>{c.students}</span>
               <strong>
                 {stats.learners.toLocaleString("en-US")}
               </strong>
 
               <small>
-                <b>+14%</b> نمو
+                <b>+{stats.learnerGrowthPercent}%</b> {c.growth}
               </small>
             </div>
           </article>
@@ -89,13 +92,13 @@ export default function InstructorDashboard() {
             </div>
 
             <div className="instructor-stat-content">
-              <span>النقاط المكتسبة</span>
+              <span>{c.earnedPoints}</span>
               <strong>
                 {stats.points.toLocaleString("en-US")}
               </strong>
 
               <small className="green-text">
-                من التعليم ومشاركة المهارات
+                {c.fromTeachingAndSharing}
               </small>
             </div>
           </article>
@@ -106,12 +109,12 @@ export default function InstructorDashboard() {
             </div>
 
             <div className="instructor-stat-content">
-              <span>متوسط التقييم</span>
+              <span>{c.averageRating}</span>
               <strong>{stats.rating}</strong>
 
               <small>
                 <span className="rating-stars">★★★★★</span>
-                من {stats.ratingCount} تقييم للمتعلمين
+                {stats.ratingCount} {c.learnerRatings}
               </small>
             </div>
           </article>
@@ -129,34 +132,32 @@ export default function InstructorDashboard() {
 
               <div className="instructor-panel-heading">
                 <div>
-                  <h2>أداء دوراتك</h2>
-                  <p>
-                    تحليل تفاعل المتعلمين والالتحاقات عبر الفترات الزمنية
-                  </p>
+                  <h2>{c.coursePerformance}</h2>
+                  <p>{c.performanceDescription}</p>
                 </div>
 
                 <div className="instructor-period-tabs">
-                  <button>هذا الشهر</button>
-                  <button>هذا الأسبوع</button>
-                  <button>آخر 6 أشهر</button>
+                  <button>{c.thisMonth}</button>
+                  <button>{c.thisWeek}</button>
+                  <button>{c.lastSixMonths}</button>
                 </div>
               </div>
 
               <div className="instructor-chart-legend">
                 <span>
                   <i className="legend-dot dark" />
-                  المتعلمون الجدد
+                  {c.newLearners}
                 </span>
 
                 <span>
                   <i className="legend-dot green" />
-                  معدل الإكمال
+                  {c.completionRate}
                 </span>
 
                 <div className="chart-filters">
-                  <button className="active">المتعلمون</button>
-                  <button>الالتحاقات</button>
-                  <button>التقييمات</button>
+                  <button className="active">{c.students}</button>
+                  <button>{c.enrollments}</button>
+                  <button>{c.reviews}</button>
                 </div>
               </div>
 
@@ -172,7 +173,7 @@ export default function InstructorDashboard() {
                   {performance.map((item) => (
                     <div
                       className="chart-column"
-                      key={item.label}
+                      key={item.id}
                     >
                       <div className="chart-bar-group">
 
@@ -200,7 +201,7 @@ export default function InstructorDashboard() {
 
                       </div>
 
-                      <small>{item.label}</small>
+                      <small>{item.label[language]}</small>
                     </div>
                   ))}
                 </div>
@@ -208,18 +209,18 @@ export default function InstructorDashboard() {
 
               <div className="instructor-performance-summary">
                 <div>
-                  <span>معدل الانضمام الأسبوعي</span>
-                  <strong>+312 متعلم</strong>
+                  <span>{c.weeklyJoinRate}</span>
+                  <strong>+{stats.weeklyJoinRate} {c.learnersPerWeek}</strong>
                 </div>
 
                 <div>
-                  <span>متوسط ساعات المشاهدة</span>
-                  <strong>4.2 س/متعلم</strong>
+                  <span>{c.averageWatchHours}</span>
+                  <strong>{stats.averageWatchHours} {c.hoursPerLearner}</strong>
                 </div>
 
                 <div>
-                  <span>نسبة الإكمال العامة</span>
-                  <strong className="green-text">78.4%</strong>
+                  <span>{c.overallCompletionRate}</span>
+                  <strong className="green-text">{stats.overallCompletionRate}%</strong>
                 </div>
               </div>
 
@@ -230,17 +231,15 @@ export default function InstructorDashboard() {
 
               <div className="instructor-panel-heading">
                 <div>
-                  <h2>أداء الدورات</h2>
-                  <p>
-                    الدورات الأعلى إقبالاً وتفاعلاً من قبل المتعلمين
-                  </p>
+                  <h2>{c.coursesPerformance}</h2>
+                  <p>{c.popularCoursesDescription}</p>
                 </div>
 
                 <Link
                   to="/instructor/courses"
                   className="instructor-text-link"
                 >
-                  عرض جميع الدورات ←
+                  {c.viewAllCourses} ←
                 </Link>
               </div>
 
@@ -260,15 +259,15 @@ export default function InstructorDashboard() {
                     <div className="instructor-course-info">
                       <div className="instructor-course-top">
                         <span className="instructor-course-category">
-                          {course.category}
+                          {course.category[language]}
                         </span>
 
                         <span className="instructor-course-status">
-                          {course.status}
+                          {getCourseStatusLabel(course.courseStatus, c)}
                         </span>
                       </div>
 
-                      <h3>{course.title}</h3>
+                      <h3>{course.title[language]}</h3>
 
                       <div className="instructor-course-meta">
                         <span>
@@ -284,7 +283,7 @@ export default function InstructorDashboard() {
                         </span>
 
                         <span className="green-text">
-                          {course.points} نقطة مكتسبة
+                          {course.points} {c.pointsEarned}
                         </span>
                       </div>
                     </div>
@@ -293,7 +292,7 @@ export default function InstructorDashboard() {
                       to={`/instructor/courses/${course.id}`}
                       className="instructor-manage-button"
                     >
-                      إدارة الدورة
+                      {c.manageCourse}
                     </Link>
                   </article>
                 ))}
@@ -309,7 +308,7 @@ export default function InstructorDashboard() {
             {/* Attention */}
             <section className="instructor-panel attention-panel">
               <div className="instructor-panel-title">
-                <h2>يحتاج إلى اهتمامك!</h2>
+                <h2>{c.needsAttention}</h2>
               </div>
 
               <div className="attention-list">
@@ -320,10 +319,10 @@ export default function InstructorDashboard() {
                   >
                     <span className={`attention-dot ${item.type}`} />
 
-                    <p>{item.text}</p>
+                    <p>{item.text[language]}</p>
 
                     <Link to="/instructor/courses">
-                      {item.action}
+                      {c[item.actionKey] ?? item.action}
                     </Link>
                   </article>
                 ))}
@@ -333,7 +332,7 @@ export default function InstructorDashboard() {
             {/* Activities */}
             <section className="instructor-panel">
               <div className="instructor-panel-title">
-                <h2>آخر النشاطات</h2>
+                <h2>{c.latestActivities}</h2>
 
                 <Icon name="history" size={18} />
               </div>
@@ -349,8 +348,8 @@ export default function InstructorDashboard() {
                     />
 
                     <div>
-                      <p>{activity.text}</p>
-                      <small>{activity.time}</small>
+                      <p>{activity.text[language]}</p>
+                      <small>{activity.time[language]}</small>
                     </div>
                   </article>
                 ))}
@@ -361,10 +360,8 @@ export default function InstructorDashboard() {
             <section className="instructor-panel quick-actions-panel">
               <div className="instructor-panel-title">
                 <div>
-                  <h2>إجراءات سريعة</h2>
-                  <p>
-                    اختصارات لأهم مهام التدريس اليومية
-                  </p>
+                  <h2>{c.quickActions}</h2>
+                  <p>{c.dailyTeachingShortcuts}</p>
                 </div>
               </div>
 
@@ -372,22 +369,22 @@ export default function InstructorDashboard() {
 
                 <Link to="/instructor/courses/new">
                   <Icon name="plus" size={19} />
-                  <span>إنشاء دورة جديدة</span>
+                  <span>{c.createNewCourse}</span>
                 </Link>
 
                 <Link to="/instructor/courses/new/lesson">
                   <Icon name="lesson" size={19} />
-                  <span>إضافة درس جديد</span>
+                  <span>{c.addNewLesson}</span>
                 </Link>
 
                 <Link to="/instructor/certificates">
                   <Icon name="award" size={19} />
-                  <span>شهادات المتعلمين</span>
+                  <span>{c.learnerCertificates}</span>
                 </Link>
 
                 <Link to="/instructor/feedback">
                   <Icon name="star" size={19} />
-                  <span>استعراض التقييمات</span>
+                  <span>{c.reviewRatings}</span>
                 </Link>
 
               </div>
@@ -399,4 +396,19 @@ export default function InstructorDashboard() {
       </div>
     </section>
   );
+}
+
+function getCourseStatusLabel(status, copy) {
+  switch (status) {
+    case "published":
+      return copy.activeNow;
+    case "pending":
+      return copy.pendingReview;
+    case "draft":
+      return copy.draft;
+    case "rejected":
+      return copy.needsEdits;
+    default:
+      return status;
+  }
 }

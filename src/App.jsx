@@ -1,5 +1,5 @@
 import { useLayoutEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation, Link } from "react-router";
+import { BrowserRouter, Routes, Route, useLocation, Link, Navigate } from "react-router";
 
 import {
   PreferencesProvider,
@@ -26,6 +26,12 @@ import InstructorLayout from "./components/instructor/InstructorLayout";
 import InstructorDashboard from "./pages/instructor/InstructorDashboard";
 import InstructorCoursesPage from "./pages/instructor/InstructorCoursesPage";
 import CreateCoursePage from "./pages/instructor/CreateCoursePage";
+import CourseCurriculumPage from "./pages/instructor/CourseCurriculumPage";
+import CourseReviewPage from "./pages/instructor/CourseReviewPage";
+import InstructorPerformancePage from "./pages/instructor/InstructorPerformancePage";
+import InstructorFeedbackPage from "./pages/instructor/InstructorFeedbackPage";
+import EditLessonPage from "./pages/instructor/EditLessonPage";
+import InstructorTaskPage from "./pages/instructor/InstructorTaskPage";
 
 import LearnerTasksPage from "./pages/learner/LearnerTasksPage";
 import LearnerProgressPage from "./pages/learner/LearnerProgressPage";
@@ -105,6 +111,56 @@ function RouteShell() {
           <Route path="courses" element={<InstructorCoursesPage />} />
 
           <Route path="courses/new" element={<CreateCoursePage />} />
+
+          <Route
+            path="courses/new/curriculum"
+            element={<CourseCurriculumPage />}
+          />
+
+          <Route
+            path="courses/new/review"
+            element={<CourseReviewPage />}
+          />
+
+          <Route
+            path="performance"
+            element={<Navigate to="/instructor/courses" replace />}
+          />
+
+          <Route
+            path="courses/:courseId/performance"
+            element={<InstructorPerformancePage />}
+          />
+
+          <Route
+            path="feedback"
+            element={<InstructorFeedbackPage />}
+          />
+
+          <Route
+            path="courses/:courseId/lessons/:lessonId/edit"
+            element={<EditLessonPage />}
+          />
+
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId"
+            element={<EditLessonPage />}
+          />
+
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId/edit"
+            element={<EditLessonPage />}
+          />
+
+          <Route
+            path="courses/:courseId/sections/:sectionId/tasks/new"
+            element={<InstructorTaskPage />}
+          />
+
+          <Route
+            path="courses/:courseId/sections/:sectionId/tasks/:taskId/edit"
+            element={<InstructorTaskPage />}
+          />
         </Route>
 
         {/* =================================

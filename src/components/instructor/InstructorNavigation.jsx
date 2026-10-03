@@ -1,73 +1,69 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router";
-import Icon from "../Icon";
+import Icon from "../../components/Icon";
+import { usePreferences } from "../../context/PreferencesContext";
+import { instructorDemo } from "../../data/instructorDemo";
+import instructorCopy from "../../i18n/instructorCopy";
 import logo from "../../assets/esham-logo.png";
 
-
 const instructorLinks = [
-  {
-    to: "/instructor",
-    label: "لوحة التحكم",
-    end: true,
-  },
-  {
-    to: "/instructor/courses",
-    label: "دوراتي",
-  },
-  {
-    to: "/instructor/courses/new",
-    label: "إنشاء دورة",
-  },
-  {
-    to: "/instructor/performance",
-    label: "الأداء",
-  },
-  {
-    to: "/instructor/feedback",
-    label: "التقييمات",
-  },
+  { key: "dashboard", to: "/instructor", end: true },
+  { key: "courses", to: "/instructor/courses", end: true },
+  { key: "createCourse", to: "/instructor/courses/new" },
+  { key: "performance", to: "/instructor/performance" },
+  { key: "feedback", to: "/instructor/feedback" },
 ];
-
 
 export default function InstructorNavigation() {
   const [open, setOpen] = useState(false);
 
+  const {
+    language,
+    theme,
+    toggleLanguage,
+    toggleTheme,
+  } = usePreferences();
+
+  const c = instructorCopy[language];
+  const { instructor } = instructorDemo;
+  const isEnglish = language === "en";
+  const navigationCopy = {
+    dashboard: c.dashboard,
+    courses: c.myCourses,
+    createCourse: c.createCourse,
+    performance: c.performance,
+    feedback: c.feedback,
+  };
+
   return (
     <header className="instructor-header">
-
       <div className="container learner-header-inner">
 
-        {/* =================================
-            Logo
-        ================================= */}
-
+        {/* Logo */}
         <Link
           to="/instructor"
           className="instructor-brand"
           onClick={() => setOpen(false)}
-          aria-label="إسهام"
+          aria-label={c.brandName}
         >
           <img
             src={logo}
-            alt="إسهام"
+            alt={c.brandName}
             className="instructor-logo"
           />
         </Link>
 
-
-        {/* =================================
-            Mobile Menu
-        ================================= */}
-
+        {/* Mobile menu */}
         <button
           type="button"
           className="instructor-menu-button"
           onClick={() => setOpen((value) => !value)}
           aria-label={
             open
-              ? "إغلاق القائمة"
-              : "فتح القائمة"
+              ? c.closeMenu
+              : c.openMenu
           }
+          aria-expanded={open}
         >
           <Icon
             name={open ? "close" : "menu"}
@@ -75,11 +71,7 @@ export default function InstructorNavigation() {
           />
         </button>
 
-
-        {/* =================================
-            Navigation
-        ================================= */}
-
+        {/* Navigation */}
         <nav
           className={
             open
@@ -87,10 +79,9 @@ export default function InstructorNavigation() {
               : "instructor-navigation"
           }
         >
-
           {instructorLinks.map((link) => (
             <NavLink
-              key={link.to}
+              key={link.key}
               to={link.to}
               end={link.end}
               onClick={() => setOpen(false)}
@@ -100,89 +91,88 @@ export default function InstructorNavigation() {
                   : "instructor-nav-link"
               }
             >
-              {link.label}
+              {navigationCopy[link.key]}
             </NavLink>
           ))}
-
         </nav>
 
-
-        {/* =================================
-            User Actions
-        ================================= */}
-
+        {/* Right actions */}
         <div className="instructor-header-actions">
 
-          {/* Switch to Learner */}
+          {/* Language */}
+          <button
+            type="button"
+            className="instructor-preference-button"
+            onClick={toggleLanguage}
+            aria-label={
+              isEnglish
+                ? c.switchToArabic
+                : c.switchToEnglish
+            }
+          >
+            {c.languageSwitchLabel}
+          </button>
 
+          {/* Theme */}
+          <button
+            type="button"
+            className="instructor-preference-button"
+            onClick={toggleTheme}
+            aria-label={
+              theme === "light"
+                ? isEnglish
+                  ? c.switchToDarkMode
+                  : c.switchToDarkMode
+                : isEnglish
+                  ? c.switchToLightMode
+                  : c.switchToLightMode
+            }
+          >
+            <Icon
+              name={theme === "light" ? "moon" : "sun"}
+              size={18}
+            />
+          </button>
+
+          {/* Switch role */}
           <Link
             to="/learner"
             className="instructor-switch-role"
+            onClick={() => setOpen(false)}
           >
-            <Icon
-              name="swap"
-              size={17}
-            />
-
-            <span>
-              التبديل إلى المتعلم
-            </span>
+            <Icon name="swap" size={17} />
+            <span>{navigationCopy.switchRole}</span>
           </Link>
 
-
           {/* Points */}
-
           <div className="instructor-points">
-
-            <Icon
-              name="star"
-              size={16}
-            />
-
-            <strong>
-              4,860
-            </strong>
-
-            <span>
-              نقطة
-            </span>
-
+            <Icon name="star" size={16} />
+            <strong>{instructor.points.toLocaleString(isEnglish ? "en-US" : "ar-EG")}</strong>
+            <span>{c.points}</span>
           </div>
 
-
           {/* Profile */}
-
           <Link
             to="/instructor/profile"
             className="instructor-profile"
+            onClick={() => setOpen(false)}
           >
             <span className="instructor-profile-avatar">
-
-              <Icon
-                name="user"
-                size={18}
-              />
-
+              <Icon name="user" size={18} />
             </span>
 
             <span className="instructor-profile-copy">
-
               <strong>
-                أحمد خالد
+                {instructor.name[language]}
               </strong>
 
               <small>
-                مدرب معتمد
+                {instructor.role[language]}
               </small>
-
             </span>
-
           </Link>
-
         </div>
-
       </div>
-
     </header>
   );
 }

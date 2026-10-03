@@ -1,34 +1,51 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import Icon from "../../components/Icon";
+import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
+import { usePreferences } from "../../context/PreferencesContext";
+import { instructorDemo } from "../../data/instructorDemo";
+import instructorCopy from "../../i18n/instructorCopy";
 
 export default function CreateCoursePage() {
+  const { language } = usePreferences();
+  const c = instructorCopy[language];
+  const { instructor, courses, courseDraft } = instructorDemo;
+  const coursePoints = courses[0].coursePoints;
+  const categoryLabels = {
+    photography: c.photographyCategory,
+    "graphic-design": c.graphicDesignCategory,
+    "user-interface": c.userInterfaceCategory,
+    "digital-marketing": c.digitalMarketingCategory,
+    "video-editing": c.videoEditingCategory,
+    "digital-content": c.digitalContentCategory,
+  };
   const fileInputRef = useRef(null);
 
   const [courseImage, setCourseImage] = useState(null);
 
   const [form, setForm] = useState({
-    title: "أساسيات التصوير الفوتوغرافي وإعدادات الإضاءة الاحترافية",
-    category: "التصوير الفوتوغرافي وصناعة الصورة",
-    language: "العربية (Arabic)",
-    description:
-      "دورة تدريبية تطبيقية تأخذك من الصفر لفهم إعدادات الكاميرا اليدوية مثلث التعريض، سرعة الغالق، فتحة العدسة، مع أسرار توزيع الإضاءة الطبيعية والصناعية في الاستوديو للحصول على صور احترافية مميزة.",
-    level: "مبتدئ (افتراضي)",
+    title: courseDraft.title,
+    category: courseDraft.category,
+    language: courseDraft.language,
+    description: courseDraft.description,
+    level: courseDraft.level,
   });
 
-  const [objectives, setObjectives] = useState([
-    "فهم مثلث التعريض للضوء والتحكم اليدوي الكامل بخصائص الكاميرا",
-    "تطبيق قواعد التكوين الفوتوغرافي وقاعدة الأثلاث والخطوط الإرشادية",
-    "إعداد وتوزيع مصادر الإضاءة الأساسية لتصوير البورتريه والمنتجات",
-  ]);
+  const [objectives, setObjectives] = useState(courseDraft.objectives);
 
   const [newObjective, setNewObjective] = useState("");
 
   const updateField = (field, value) => {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) => {
+      const currentValue = current[field];
+      return {
+        ...current,
+        [field]:
+          currentValue && typeof currentValue === "object"
+            ? { ...currentValue, [language]: value }
+            : value,
+      };
+    });
   };
 
   const addObjective = () => {
@@ -36,7 +53,14 @@ export default function CreateCoursePage() {
 
     if (!value) return;
 
-    setObjectives((current) => [...current, value]);
+    setObjectives((current) => [
+      ...current,
+      {
+        id: `objective-${Date.now()}`,
+        ar: language === "ar" ? value : "",
+        en: language === "en" ? value : "",
+      },
+    ]);
     setNewObjective("");
   };
 
@@ -77,11 +101,8 @@ export default function CreateCoursePage() {
         {/* PAGE HEADER */}
         <header className="instructor-create-course-heading">
           <div>
-            <h1>إنشاء دورة جديدة</h1>
-            <p>
-              أنشئ دورة جديدة وشارك مهاراتك وخبرتك مع المتعلمين على منصة
-              إسهام.
-            </p>
+            <h1>{c.createNewCourse}</h1>
+            <p>{c.createCourseDescription}</p>
           </div>
 
           <div className="instructor-create-course-heading-actions">
@@ -91,57 +112,26 @@ export default function CreateCoursePage() {
               onClick={saveDraft}
             >
               <Icon name="save" size={16} />
-              حفظ كمسودة
+              {c.saveAsDraft}
             </button>
 
             <Link
-              to="/instructor/courses"
+              to="/instructor/courses/new/curriculum"
               className="instructor-create-primary-button"
             >
-              متابعة إلى المحتوى
+              {c.continueToContent}
               <Icon name="arrow-left" size={16} />
             </Link>
           </div>
         </header>
 
-        {/* STEPPER */}
-        <section className="instructor-create-stepper">
-          <div className="instructor-create-step active">
-            <span className="step-number">1</span>
-
-            <div>
-              <strong>الخطوة 01: المعلومات الأساسية</strong>
-              <small>عنوان الدورة ووصفها</small>
-            </div>
-          </div>
-
-          <span className="step-line" />
-
-          <div className="instructor-create-step">
-            <span className="step-number">2</span>
-
-            <div>
-              <strong>الخطوة 02: منهاج ومحتوى الدورة</strong>
-              <small>الدروس والأقسام</small>
-            </div>
-          </div>
-
-          <span className="step-line" />
-
-          <div className="instructor-create-step">
-            <span className="step-number">3</span>
-
-            <div>
-              <strong>الخطوة 03: المراجعة والنشر</strong>
-              <small>راجع الدورة قبل نشرها</small>
-            </div>
-          </div>
-
+        <div className="instructor-create-stepper-row">
+          <InstructorCourseStepper currentStep={1} />
           <div className="instructor-create-save-state">
             <Icon name="cloud" size={15} />
-            <span>مسودة محفوظة تلقائياً منذ دقيقتين</span>
+            <span>{c.autoSavedDraft}</span>
           </div>
-        </section>
+        </div>
 
         {/* MAIN CONTENT */}
         <div className="instructor-create-layout">
@@ -153,8 +143,8 @@ export default function CreateCoursePage() {
                 <div className="create-section-number">1</div>
 
                 <div>
-                  <h2>معلومات الدورة</h2>
-                  <p>أدخل المعلومات الأساسية التي ستظهر للمتعلمين.</p>
+                  <h2>{c.courseInformation}</h2>
+                  <p>{c.basicInfoForLearners}</p>
                 </div>
               </div>
 
@@ -164,21 +154,21 @@ export default function CreateCoursePage() {
                 {/* TITLE */}
                 <div className="create-field">
                   <label htmlFor="course-title">
-                    عنوان الدورة <span>*</span>
+                    {c.courseTitle} <span>*</span>
                   </label>
 
                   <input
                     id="course-title"
                     type="text"
-                    value={form.title}
+                    value={form.title[language]}
                     onChange={(event) =>
                       updateField("title", event.target.value)
                     }
-                    placeholder="أدخل عنوان الدورة"
+                    placeholder={c.enterCourseTitle}
                   />
 
                   <small>
-                    اختر عنواناً واضحاً يساعد المتعلمين على فهم محتوى الدورة.
+                    {c.clearTitleHelp}
                   </small>
                 </div>
 
@@ -186,7 +176,7 @@ export default function CreateCoursePage() {
                 <div className="create-field-grid">
                   <div className="create-field">
                     <label htmlFor="course-category">
-                      التصنيف <span>*</span>
+                      {c.category} <span>*</span>
                     </label>
 
                     <div className="create-select-wrapper">
@@ -197,14 +187,14 @@ export default function CreateCoursePage() {
                           updateField("category", event.target.value)
                         }
                       >
-                        <option>
-                          التصوير الفوتوغرافي وصناعة الصورة
+                        <option value="photography">
+                          {c.photographyCategory}
                         </option>
-                        <option>التصميم الجرافيكي</option>
-                        <option>تصميم واجهات المستخدم</option>
-                        <option>التسويق الرقمي</option>
-                        <option>تحرير الفيديو</option>
-                        <option>صناعة المحتوى الرقمي</option>
+                        <option value="graphic-design">{c.graphicDesignCategory}</option>
+                        <option value="user-interface">{c.userInterfaceCategory}</option>
+                        <option value="digital-marketing">{c.digitalMarketingCategory}</option>
+                        <option value="video-editing">{c.videoEditingCategory}</option>
+                        <option value="digital-content">{c.digitalContentCategory}</option>
                       </select>
 
                       <Icon name="chevron-down" size={16} />
@@ -213,7 +203,7 @@ export default function CreateCoursePage() {
 
                   <div className="create-field">
                     <label htmlFor="course-language">
-                      لغة الدورة <span>*</span>
+                      {c.courseLanguage} <span>*</span>
                     </label>
 
                     <div className="create-select-wrapper">
@@ -224,8 +214,8 @@ export default function CreateCoursePage() {
                           updateField("language", event.target.value)
                         }
                       >
-                        <option>العربية (Arabic)</option>
-                        <option>English</option>
+                        <option value="ar">{c.arabicLanguage}</option>
+                        <option value="en">{c.englishLanguage}</option>
                       </select>
 
                       <Icon name="chevron-down" size={16} />
@@ -236,27 +226,26 @@ export default function CreateCoursePage() {
                 {/* DESCRIPTION */}
                 <div className="create-field">
                   <label htmlFor="course-description">
-                    وصف الدورة <span>*</span>
+                    {c.courseDescription} <span>*</span>
                   </label>
 
                   <textarea
                     id="course-description"
                     rows={5}
                     maxLength={500}
-                    value={form.description}
+                    value={form.description[language]}
                     onChange={(event) =>
                       updateField("description", event.target.value)
                     }
-                    placeholder="اكتب وصفاً مختصراً وواضحاً للدورة..."
+                    placeholder={c.courseDescriptionPlaceholder}
                   />
 
                   <div className="create-field-footer">
                     <small>
-                      اكتب وصفاً تعليمياً واضحاً عن محتوى الدورة وما سيكتسبه
-                      المتعلم.
+                      {c.courseDescriptionHelp}
                     </small>
 
-                    <span>{form.description.length} / 500 حرف</span>
+                    <span>{form.description[language].length} / 500 {c.characters}</span>
                   </div>
                 </div>
 
@@ -265,30 +254,30 @@ export default function CreateCoursePage() {
                   <div className="create-objectives-heading">
                     <div>
                       <label>
-                        ماذا سيتعلم المتعلم؟ <span>*</span>
+                        {c.learningObjectives} <span>*</span>
                       </label>
 
                       <small>
-                        أضف أهدافاً تعليمية واضحة لما سيكتسبه المتعلم.
+                        {c.learningObjectivesHelp}
                       </small>
                     </div>
 
-                    <span>{objectives.length} أهداف</span>
+                    <span>{objectives.length} {c.objectives}</span>
                   </div>
 
                   <div className="create-objectives-list">
                     {objectives.map((objective, index) => (
-                      <div className="create-objective-item" key={objective}>
+                      <div className="create-objective-item" key={objective.id || index}>
                         <span className="objective-check">
                           <Icon name="check" size={13} />
                         </span>
 
-                        <span>{objective}</span>
+                        <span>{objective[language]}</span>
 
                         <button
                           type="button"
                           onClick={() => removeObjective(index)}
-                          aria-label="حذف الهدف"
+                          aria-label={c.deleteObjective}
                         >
                           <Icon name="trash" size={15} />
                         </button>
@@ -309,7 +298,7 @@ export default function CreateCoursePage() {
                           addObjective();
                         }
                       }}
-                      placeholder="أضف هدفاً تعليمياً آخر..."
+                      placeholder={c.addAnotherObjectivePlaceholder}
                     />
 
                     <button
@@ -317,7 +306,7 @@ export default function CreateCoursePage() {
                       onClick={addObjective}
                       disabled={!newObjective.trim()}
                     >
-                      + إضافة هدف تعليمي آخر
+                      + {c.addLearningObjective}
                     </button>
                   </div>
                 </div>
@@ -330,8 +319,8 @@ export default function CreateCoursePage() {
                 <div className="create-section-number">2</div>
 
                 <div>
-                  <h2>مستوى الدورة التدريبية</h2>
-                  <p>حدد الفئة المستهدفة والمستوى المناسب للمتعلم.</p>
+                  <h2>{c.courseLevel}</h2>
+                  <p>{c.selectTargetLevel}</p>
                 </div>
               </div>
 
@@ -340,21 +329,19 @@ export default function CreateCoursePage() {
               <div className="create-level-grid">
                 {[
                   {
-                    value: "مبتدئ (افتراضي)",
-                    title: "مبتدئ",
-                    description: "لا يتطلب أي خبرة مسبقة. يبدأ من المفاهيم الأساسية.",
+                    value: "beginner",
+                    title: c.beginner,
+                    description: c.beginnerDescription,
                   },
                   {
-                    value: "متوسط",
-                    title: "متوسط",
-                    description:
-                      "يتطلب معرفة سابقة بالمبادئ والتطبيقات الأساسية.",
+                    value: "intermediate",
+                    title: c.intermediate,
+                    description: c.intermediateDescription,
                   },
                   {
-                    value: "متقدم",
-                    title: "متقدم",
-                    description:
-                      "يركز على تقنيات متقدمة ومهارات احترافية متخصصة.",
+                    value: "advanced",
+                    title: c.advanced,
+                    description: c.advancedDescription,
                   },
                 ].map((level) => (
                   <label
@@ -392,14 +379,12 @@ export default function CreateCoursePage() {
                 <div className="create-section-number">3</div>
 
                 <div>
-                  <h2>صورة غلاف الدورة</h2>
-                  <p>
-                    الصورة الرئيسية التي ستظهر في بطاقة الدورة وصفحتها.
-                  </p>
+                  <h2>{c.courseCoverImage}</h2>
+                  <p>{c.courseCoverDescription}</p>
                 </div>
 
                 <span className="create-image-ratio">
-                  نسبة 16:9 موصى بها
+                  {c.recommendedRatio}
                 </span>
               </div>
 
@@ -419,31 +404,31 @@ export default function CreateCoursePage() {
                     <Icon name="image" size={23} />
                   </div>
 
-                  <strong>اسحب الصورة هنا أو اختر ملفاً من جهازك</strong>
+                  <strong>{c.dropOrChooseImage}</strong>
 
                   <small>
-                    الحجم الموصى به: 1280×720 — JPG أو PNG أو WebP
+                    {c.recommendedImageSize}
                   </small>
 
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    رفع صورة جديدة
+                    {c.uploadNewImage}
                   </button>
                 </div>
 
                 <div className="create-cover-preview">
                   {courseImage ? (
-                    <img src={courseImage} alt="معاينة غلاف الدورة" />
+                    <img src={courseImage} alt={c.courseCoverPreview} />
                   ) : (
                     <div className="create-cover-placeholder">
                       <Icon name="image" size={28} />
-                      <span>معاينة صورة الغلاف</span>
+                      <span>{c.courseCoverPreview}</span>
                     </div>
                   )}
 
-                  <span>معاينة صورة الغلاف</span>
+                  <span>{c.courseCoverPreview}</span>
                 </div>
               </div>
             </section>
@@ -456,35 +441,31 @@ export default function CreateCoursePage() {
                 </div>
 
                 <div>
-                  <h2>نظام نقاط الدورة المعتمد</h2>
-                  <p>
-                    قيمة النقاط التي يحصل عليها المتعلم عند إكمال الدورة.
-                  </p>
+                  <h2>{c.approvedPointsSystem}</h2>
+                  <p>{c.pointsOnCompletion}</p>
                 </div>
               </div>
 
               <div className="instructor-create-divider" />
 
               <div className="create-points-box">
-                <div className="create-points-number">20</div>
+                <div className="create-points-number">{coursePoints}</div>
 
                 <div className="create-points-copy">
-                  <span>20 نقطة معتمدة لكل دورة</span>
+                  <span>{coursePoints} {c.points} {c.approvedPointsLabel}</span>
                   <p>
-                    يحصل المتعلم على 20 نقطة عند إكمال متطلبات الدورة بنجاح.
-                    قيمة النقاط ثابتة لجميع الدورات في المنصة.
+                    {c.pointsCompletionDescription.replace("{points}", coursePoints)}
                   </p>
                 </div>
 
                 <span className="create-points-badge">
                   <Icon name="check" size={13} />
-                  ثابت وفق النظام
+                  {c.fixedBySystem}
                 </span>
               </div>
 
               <p className="create-points-note">
-                * لا تستطيع تغيير قيمة النقاط في هذه المرحلة حتى تبقى منظومة
-                النقاط متسقة بين جميع الدورات.
+                {c.pointsCannotChange}
               </p>
             </section>
 
@@ -496,7 +477,7 @@ export default function CreateCoursePage() {
                 onClick={saveDraft}
               >
                 <Icon name="save" size={16} />
-                حفظ كمسودة
+                {c.saveAsDraft}
               </button>
 
               <button
@@ -504,7 +485,7 @@ export default function CreateCoursePage() {
                 className="instructor-create-primary-button"
                 onClick={continueToCurriculum}
               >
-                متابعة إلى المحتوى
+                {c.continueToContent}
                 <Icon name="arrow-left" size={16} />
               </button>
             </div>
@@ -516,8 +497,8 @@ export default function CreateCoursePage() {
             <section className="create-preview-card">
               <div className="create-preview-heading">
                 <span className="create-live-dot" />
-                <strong>معاينة بطاقة الدورة (مبدئياً)</strong>
-                <small>كما ستظهر للمتعلمين</small>
+                <strong>{c.previewCourseCard}</strong>
+                <small>{c.previewForLearners}</small>
               </div>
 
               <div className="create-preview-image">
@@ -529,34 +510,34 @@ export default function CreateCoursePage() {
                   </div>
                 )}
 
-                <span className="create-preview-points">20 نقطة</span>
+                <span className="create-preview-points">{coursePoints} {c.points}</span>
 
                 <span className="create-preview-category">
-                  {form.category}
+                  {categoryLabels[form.category]}
                 </span>
               </div>
 
               <div className="create-preview-body">
                 <div className="create-preview-meta">
-                  <span>المدرب: أحمد خالد (أنت)</span>
-                  <span>مستوى مبتدئ</span>
+                  <span>{c.instructorLabel} {instructor.name[language]} ({c.you})</span>
+                  <span>{c.beginnerLevel}</span>
                 </div>
 
-                <h3>{form.title || "عنوان الدورة"}</h3>
+                <h3>{form.title[language] || c.courseTitleFallback}</h3>
 
                 <p>
-                  {form.description ||
-                    "سيظهر هنا وصف الدورة الذي أدخلته في النموذج."}
+                  {form.description[language] ||
+                    c.courseDescriptionFallback}
                 </p>
 
                 <div className="create-preview-rating">
-                  <span>★ جديد</span>
-                  <span>(0 تقييم)</span>
+                  <span>★ {c.new}</span>
+                  <span>(0 {c.ratingCount})</span>
                 </div>
 
                 <div className="create-preview-footer">
-                  <span>اللغة: {form.language}</span>
-                  <span>20 نقطة</span>
+                  <span>{c.languageLabel} {form.language === "ar" ? c.arabicLanguage : c.englishLanguage}</span>
+                  <span>{coursePoints} {c.points}</span>
                 </div>
               </div>
             </section>
@@ -568,17 +549,16 @@ export default function CreateCoursePage() {
               </div>
 
               <div>
-                <strong>نصيحة لإعداد دورة مميزة</strong>
+                <strong>{c.courseTipTitle}</strong>
 
                 <p>
-                  كلما كان عنوان الدورة ووصفها أكثر وضوحاً، كانت فرصة جذب
-                  المتعلمين وفهمهم لقيمة الدورة أفضل.
+                  {c.courseTipDescription}
                 </p>
 
                 <ul>
-                  <li>ركز على النتائج التي سيحققها المتعلم.</li>
-                  <li>استخدم وصفاً مختصراً ومباشراً.</li>
-                  <li>أضف أهدافاً تعليمية قابلة للفهم والقياس.</li>
+                  <li>{c.focusOnOutcomes}</li>
+                  <li>{c.useConciseDescription}</li>
+                  <li>{c.measurableObjectives}</li>
                 </ul>
               </div>
             </section>
@@ -588,8 +568,7 @@ export default function CreateCoursePage() {
               <Icon name="shield-check" size={17} />
 
               <p>
-                سيتم حفظ جميع تغييراتك بشكل آمن ومستمر. يمكنك الرجوع والتعديل
-                في أي وقت قبل النشر النهائي.
+                {c.secureSaveNote}
               </p>
             </section>
           </aside>
