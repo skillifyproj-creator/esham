@@ -1,19 +1,12 @@
-import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
-
 import { courses } from "../../data/courses";
-import { learnerDemo } from "../../data/learnerDemo";
 import { getEnrollmentDetails } from "../../data/learnerHelpers";
-
 import { useLearner } from "../../context/LearnerContext";
 import { usePreferences } from "../../context/PreferencesContext";
-
 import { lessonCopy } from "../../i18n/lessonCopy";
 
-import Modal from "../../components/Modal";
-
 import "../../styles/learner.css";
-
+import { useLearnerTasks } from "../../context/LearnerTasksContext";
 export default function LearnerLessonPage() {
   const { courseId } = useParams();
   const [params, setParams] = useSearchParams();
@@ -21,13 +14,11 @@ export default function LearnerLessonPage() {
   const { language } = usePreferences();
   const { enrollments, markLessonComplete } = useLearner();
 
-  const [selectedTask, setSelectedTask] = useState(null);
+  const { tasks: allTasks } = useLearnerTasks();
 
   const t = lessonCopy[language];
 
-  const course = courses.find(
-    (item) => String(item.id) === courseId,
-  );
+  const course = courses.find((item) => String(item.id) === courseId);
 
   const enrollment = enrollments.find(
     (item) => String(item.courseId) === courseId,
@@ -95,9 +86,7 @@ export default function LearnerLessonPage() {
   const completedIds = new Set(enrollment.completedLessonIds);
   const isCompleted = completedIds.has(currentLesson.id);
 
-  const tasks = learnerDemo.tasks.filter(
-    (task) => task.courseId === course.id,
-  );
+  const tasks = allTasks.filter((task) => task.courseId === course.id);
 
   function selectLesson(lesson) {
     if (!lesson) return;
@@ -115,7 +104,6 @@ export default function LearnerLessonPage() {
   return (
     <main className="learner-dashboard">
       <div className="container">
-
         <header className="lesson-page-heading">
           <div>
             <span className="section-kicker">{t.content}</span>
@@ -162,8 +150,7 @@ export default function LearnerLessonPage() {
 
                   <ul>
                     {module.lessons.map((lesson) => {
-                      const selected =
-                        lesson.id === currentLesson.id;
+                      const selected = lesson.id === currentLesson.id;
 
                       const finished = completedIds.has(lesson.id);
 
@@ -235,8 +222,12 @@ export default function LearnerLessonPage() {
 
             <section className="learner-panel lesson-description">
               <div className="lesson-meta">
-                <span>{t.lesson} {currentIndex + 1}</span>
-                <span>{currentLesson.minutes} {t.minutes}</span>
+                <span>
+                  {t.lesson} {currentIndex + 1}
+                </span>
+                <span>
+                  {currentLesson.minutes} {t.minutes}
+                </span>
               </div>
 
               <h2>{currentLesson.title[language]}</h2>
@@ -301,12 +292,12 @@ export default function LearnerLessonPage() {
                         <p>{task.description[language]}</p>
                       </div>
 
-                      <button
+                      <Link
                         className="button button-outline button-small"
-                        onClick={() => setSelectedTask(task)}
+                        to={`/learner/tasks?task=${task.id}`}
                       >
                         {t.taskDetails}
-                      </button>
+                      </Link>
                     </article>
                   ))}
                 </div>
@@ -315,23 +306,6 @@ export default function LearnerLessonPage() {
           </div>
         </div>
       </div>
-
-      {selectedTask && (
-        <Modal
-          title={selectedTask.title[language]}
-          onClose={() => setSelectedTask(null)}
-        >
-          <p>{selectedTask.description[language]}</p>
-          <p className="demo-note">{t.taskHint}</p>
-
-          <button
-            className="button"
-            onClick={() => setSelectedTask(null)}
-          >
-            {t.close}
-          </button>
-        </Modal>
-      )}
     </main>
   );
 }

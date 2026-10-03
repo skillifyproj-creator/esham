@@ -1,11 +1,5 @@
 import { useLayoutEffect } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useLocation,
-  Link,
-} from "react-router";
+import { BrowserRouter, Routes, Route, useLocation, Link } from "react-router";
 
 import {
   PreferencesProvider,
@@ -33,6 +27,9 @@ import InstructorDashboard from "./pages/instructor/InstructorDashboard";
 import InstructorCoursesPage from "./pages/instructor/InstructorCoursesPage";
 import CreateCoursePage from "./pages/instructor/CreateCoursePage";
 
+import LearnerTasksPage from "./pages/learner/LearnerTasksPage";
+import LearnerProgressPage from "./pages/learner/LearnerProgressPage";
+import LearnerPointsPage from "./pages/learner/LearnerPointsPage";
 function RouteShell() {
   const { pathname, hash } = useLocation();
   const { language } = usePreferences();
@@ -69,69 +66,46 @@ function RouteShell() {
       {!isHome && !isInstructor && !isLearner && <Header />}
 
       <Routes>
-
         {/* =================================
             Public Pages
         ================================= */}
 
-        <Route
-          path="/"
-          element={<HomePage />}
-        />
+        <Route path="/" element={<HomePage />} />
 
-        <Route
-          path="/courses"
-          element={<CoursesPage />}
-        />
+        <Route path="/courses" element={<CoursesPage />} />
 
-        <Route
-          path="/courses/:courseId"
-          element={<CourseDetailsPage />}
-        />
-
+        <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
 
         {/* =================================
             Learner Pages
         ================================= */}
+        <Route path="/learner" element={<LearnerLayout />}>
+          <Route index element={<LearnerDashboard />} />
 
-       <Route path="/learner" element={<LearnerLayout />}>
-  <Route index element={<LearnerDashboard />} />
+          <Route path="courses" element={<LearnerCoursesPage />} />
 
-  <Route
-    path="courses"
-    element={<LearnerCoursesPage />}
-  />
+          <Route
+            path="courses/:courseId/learn"
+            element={<LearnerLessonPage />}
+          />
 
-  <Route
-    path="courses/:courseId/learn"
-    element={<LearnerLessonPage />}
-  />
-</Route>
+          <Route path="tasks" element={<LearnerTasksPage />} />
 
+          <Route path="progress" element={<LearnerProgressPage />} />
+          <Route path="points" element={<LearnerPointsPage />} />
+        </Route>
 
         {/* =================================
             Instructor Pages
         ================================= */}
 
-        <Route 
-  path="/instructor" 
-  element={<InstructorLayout />} 
-> 
-  <Route 
-    index 
-    element={<InstructorDashboard />} 
-  /> 
- 
-  <Route 
-    path="courses" 
-    element={<InstructorCoursesPage />} 
-  />
+        <Route path="/instructor" element={<InstructorLayout />}>
+          <Route index element={<InstructorDashboard />} />
 
-  <Route 
-    path="courses/new" 
-    element={<CreateCoursePage />} 
-  />
-</Route>
+          <Route path="courses" element={<InstructorCoursesPage />} />
+
+          <Route path="courses/new" element={<CreateCoursePage />} />
+        </Route>
 
         {/* =================================
             404
@@ -143,16 +117,12 @@ function RouteShell() {
             <main className="section container empty-state">
               <h1>{p.missing}</h1>
 
-              <Link
-                className="button"
-                to="/"
-              >
+              <Link className="button" to="/">
                 {p.backHome}
               </Link>
             </main>
           }
         />
-
       </Routes>
 
       {/* Public Footer only */}
@@ -160,7 +130,6 @@ function RouteShell() {
     </>
   );
 }
-
 
 export default function App() {
   return (

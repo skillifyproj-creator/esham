@@ -3,195 +3,124 @@ import { NavLink, Link } from "react-router";
 
 import { usePreferences } from "../../context/PreferencesContext";
 import { learnerCopy } from "../../i18n/learnerCopy";
+import { learnerDemo } from "../../data/learnerDemo";
 
 import Icon from "../Icon";
 import logo from "../../assets/esham-logo.png";
-
-
+import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 export default function LearnerNavigation() {
-  const { language } = usePreferences();
-  const t = learnerCopy[language];
+  const {
+    language,
+    theme,
+    copy: c,
+    toggleLanguage,
+    toggleTheme,
+  } = usePreferences();
 
+  const t = learnerCopy[language];
   const [open, setOpen] = useState(false);
 
   const links = [
-    {
-      to: "/learner",
-      label: t.dashboard,
-      end: true,
-    },
-    {
-      to: "/learner/courses",
-      label: t.myCourses,
-    },
-    {
-      to: "/courses",
-      label: "اكتشاف الدورات",
-    },
-    {
-      to: "/learner/tasks",
-      label: "المهام",
-    },
-    {
-      to: "/learner/points",
-      label: "النقاط",
-    },
-    {
-      to: "/learner/reviews",
-      label: "التقييمات",
-    },
+    ["/learner", t.dashboard],
+    ["/learner/courses", t.myCourses],
+    ["/learner/tasks", t.tasks],
+    [
+      "/learner/progress",
+      language === "ar" ? "تقدّم التعلّم" : "Learning progress",
+    ],
+    ["/learner/points", language === "ar" ? "النقاط" : "Points"],
   ];
+
+  const { balance } = useLearnerWallet();
 
   return (
     <header className="learner-header">
-
       <div className="container learner-header-inner">
-
-        {/* =========================
-            Logo
-        ========================= */}
-
         <Link
           to="/learner"
           className="learner-brand"
           onClick={() => setOpen(false)}
-          aria-label="إسهام"
         >
-          <img
-            src={logo}
-            alt="إسهام"
-            className="learner-logo"
-          />
+          <img src={logo} alt={c.brand} className="learner-logo" />
         </Link>
-
-
-        {/* =========================
-            Mobile Menu
-        ========================= */}
 
         <button
           type="button"
           className="learner-menu-button"
+          aria-controls="learner-nav"
+          aria-expanded={open}
+          aria-label={open ? c.closeMenu : c.openMenu}
           onClick={() => setOpen((value) => !value)}
-          aria-label={
-            open
-              ? "إغلاق القائمة"
-              : "فتح القائمة"
-          }
         >
-          <Icon
-            name={open ? "close" : "menu"}
-            size={22}
-          />
+          <Icon name={open ? "close" : "menu"} />
         </button>
 
-
-        {/* =========================
-            Navigation
-        ========================= */}
-
         <nav
-          className={
-            open
-              ? "learner-top-navigation open"
-              : "learner-top-navigation"
-          }
-          aria-label={t.dashboard}
+          id="learner-nav"
+          className={`learner-top-navigation${open ? " open" : ""}`}
+          aria-label={c.navigation}
         >
-
-          {links.map((link) => (
+          {links.map(([to, label]) => (
             <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
+              key={to}
+              to={to}
+              end={to === "/learner"}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                isActive
-                  ? "learner-top-nav-link active"
-                  : "learner-top-nav-link"
+                `learner-top-nav-link${isActive ? " active" : ""}`
               }
             >
-              {link.label}
+              {label}
             </NavLink>
           ))}
-
         </nav>
 
+        <div className="preferences">
+          <button
+            className="preference-button"
+            onClick={toggleLanguage}
+            aria-label={
+              language === "ar" ? "Switch to English" : "التبديل إلى العربية"
+            }
+          >
+            {language === "ar" ? "EN" : "عربي"}
+          </button>
 
-        {/* =========================
-            Header Actions
-        ========================= */}
+          <button
+            className="preference-button"
+            onClick={toggleTheme}
+            aria-label={theme === "light" ? c.theme : c.light}
+          >
+            <Icon name={theme === "light" ? "moon" : "sun"} size={19} />
+          </button>
+        </div>
 
         <div className="learner-header-actions">
-
-          {/* Switch to Instructor */}
-
-          <Link
-            to="/instructor"
-            className="learner-switch-role"
-          >
-            <span>
-              التبديل إلى المعلم
-            </span>
-
-            <Icon
-              name="swap"
-              size={16}
-            />
+          <Link className="learner-switch-role" to="/instructor">
+            {language === "ar"
+              ? "معاينة واجهة المعلّم"
+              : "Preview instructor area"}
+            <Icon name="swap" size={16} />
           </Link>
 
-
-          {/* Points */}
-
-          <Link
-            to="/learner/points"
-            className="learner-points"
-          >
-            <strong>
-              200
-            </strong>
-
-            <span>
-              نقطة
-            </span>
-
-            <Icon
-              name="star"
-              size={15}
-            />
+          <Link to="/learner/points" className="learner-balance">
+            {balance} {t.points}
           </Link>
 
-
-          {/* Profile */}
-
-          <Link
-            to="/learner/profile"
-            className="learner-profile"
-          >
+          <span className="learner-profile">
             <span className="learner-profile-avatar">
-              <Icon
-                name="user"
-                size={18}
-              />
+              <Icon name="user" size={18} />
             </span>
 
             <span className="learner-profile-copy">
-
-              <strong>
-                أحمد خالد
-              </strong>
-
+              <strong>{learnerDemo.name[language]}</strong>
               <small>
-                متعلم
+                {language === "ar" ? "متعلّم تجريبي" : "Demo learner"}
               </small>
-
             </span>
-          </Link>
-
+          </span>
         </div>
-
       </div>
-
     </header>
   );
 }

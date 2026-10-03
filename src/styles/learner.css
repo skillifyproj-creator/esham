@@ -1445,3 +1445,415 @@ html[dir="ltr"] .lesson-select-button.selected {
   }
 
 }
+
+/* Shared learner corrections and practical tasks */
+
+.learner-app,
+.learner-main {
+  background: var(--surface);
+}
+
+.learner-balance {
+  white-space: nowrap;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.learner-header-inner {
+  flex-wrap: wrap;
+  padding-block: 12px;
+  gap: 16px;
+}
+
+.tasks-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 20px;
+}
+
+.tasks-toolbar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tasks-toolbar input,
+.tasks-toolbar select,
+.task-editor input,
+.task-editor textarea {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  font: inherit;
+}
+
+.tasks-list {
+  display: grid;
+  gap: 18px;
+}
+
+.task-list-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.task-list-card > div {
+  min-width: 0;
+}
+
+.task-list-card p {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.task-list-card h2 {
+  font-size: 22px;
+}
+
+.task-list-card > button {
+  flex-shrink: 0;
+}
+
+.task-state {
+  display: inline-block;
+  border-radius: 20px;
+  padding: 5px 12px;
+  background: var(--tint);
+  color: var(--text);
+}
+
+.task-state.awaitingReview {
+  border: 1px solid var(--green);
+}
+
+.task-state.completed {
+  color: var(--green);
+}
+
+.task-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.task-editor label {
+  display: grid;
+  gap: 8px;
+}
+
+.task-editor input,
+.task-editor textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.task-editor textarea {
+  resize: vertical;
+}
+
+.task-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .task-list-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tasks-toolbar {
+    flex-direction: column;
+  }
+
+  .learner-header-inner > .preferences {
+    margin-inline-start: auto;
+  }
+}
+.progress-overview {
+  margin-bottom: 28px;
+}
+
+.progress-overview > p {
+  color: var(--muted);
+}
+
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.progress-stats > div {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--tint);
+}
+
+.progress-stats strong {
+  font-size: 25px;
+  color: var(--green);
+}
+
+.progress-stats span {
+  color: var(--muted);
+}
+
+.progress-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 24px;
+}
+
+.progress-course-list,
+.progress-side {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.progress-course h3 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.progress-course > p {
+  color: var(--muted);
+}
+
+.progress-modules {
+  background: var(--tint);
+  border-radius: 10px;
+  padding: 16px;
+  margin-block: 18px;
+}
+
+.progress-modules summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.progress-module {
+  padding-block: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.progress-module:last-child {
+  border-bottom: 0;
+}
+
+.progress-course-tasks {
+  margin-block: 18px;
+}
+
+.progress-course-tasks ul,
+.progress-updates {
+  list-style: none;
+  padding: 0;
+}
+
+.progress-course-tasks li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 10px;
+}
+
+.progress-course-tasks li span {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progress-completed {
+  padding-block: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.progress-completed:last-child {
+  border-bottom: 0;
+}
+
+.progress-completed h3 {
+  margin-block: 10px;
+}
+
+.progress-updates li {
+  display: grid;
+  gap: 6px;
+  padding-block: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.progress-updates time,
+.progress-updates small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progress-course-tasks a,
+.progress-updates a {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1000px) {
+  .progress-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .progress-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .progress-side {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-course-tasks li {
+    flex-direction: column;
+  }
+}
+.wallet-hero {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.wallet-number {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--green);
+}
+
+.wallet-number strong {
+  font-size: clamp(42px, 6vw, 64px);
+}
+
+.wallet-number span {
+  font-size: 20px;
+}
+
+.wallet-policy {
+  background: var(--tint);
+}
+
+.wallet-policy p,
+.wallet-empty {
+  color: var(--muted);
+}
+
+.wallet-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.4fr)
+    minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.wallet-award {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 18px;
+  padding-block: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wallet-award img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.wallet-award h3 {
+  font-size: 21px;
+}
+
+.wallet-award p {
+  margin-block: 8px;
+  color: var(--muted);
+}
+
+.wallet-history {
+  list-style: none;
+  padding: 0;
+}
+
+.wallet-history li {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  background: var(--tint);
+  border-radius: 12px;
+  margin-block: 14px;
+}
+
+.wallet-history strong {
+  color: var(--green);
+}
+
+.wallet-history time {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.wallet-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.wallet-candidates {
+  margin-top: 24px;
+}
+
+.wallet-candidates article {
+  padding-block: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wallet-candidates p {
+  color: var(--muted);
+}
+
+.wallet-award h3,
+.wallet-history a {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 850px) {
+  .wallet-hero,
+  .wallet-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .wallet-award {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-award img {
+    max-width: 170px;
+  }
+}

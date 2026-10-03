@@ -1,15 +1,21 @@
 import { Outlet } from "react-router";
 import LearnerNavigation from "./LearnerNavigation";
+import Footer from "../Footer";
+import { LearnerTasksProvider } from "../../context/LearnerTasksContext";
 import "../../styles/learner.css";
 
 export default function LearnerLayout() {
   return (
-    <div className="learner-app" dir="rtl">
-      <LearnerNavigation />
+    <LearnerTasksProvider>
+      <div className="learner-app">
+        <LearnerNavigation />
 
-      <main className="learner-main">
-        <Outlet />
-      </main>
-    </div>
+        <div className="learner-main">
+          <Outlet />
+        </div>
+
+        <Footer />
+      </div>
+    </LearnerTasksProvider>
   );
 }
