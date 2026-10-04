@@ -179,7 +179,7 @@ export default function InstructorTaskPage() {
 
   return (
     <section
-      className="instructor-task-page"
+      className="instructor-task-page instructor-detail-page"
       dir={language === "en" ? "ltr" : "rtl"}
     >
       <div className="container">

@@ -1,0 +1,53 @@
+.points-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--tint);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.4;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.points-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--secondary-200);
+}
+
+.points-badge-number {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.points-badge-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+a.points-badge:hover {
+  background: var(--hover-bg);
+  border-color: var(--border);
+}
+
+a.points-badge:focus-visible {
+  outline: 2px solid var(--secondary-200);
+  outline-offset: 3px;
+}
+
+html[data-theme="dark"] .points-badge-icon {
+  color: #a5c7ac;
+}
+
+html[data-theme="dark"] a.points-badge:focus-visible {
+  outline-color: #a5c7ac;
+}

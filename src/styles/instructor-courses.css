@@ -1,0 +1,406 @@
+.instructor-courses-page {
+  padding-block: 36px 64px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.instructor-courses-page .container {
+  width: min(1180px, calc(100% - 64px));
+}
+
+/* عنوان الصفحة */
+.instructor-courses-page .instructor-courses-heading {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.instructor-courses-page .instructor-breadcrumb {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.instructor-courses-page .instructor-courses-heading h1 {
+  color: var(--text);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.instructor-courses-page .instructor-courses-heading p {
+  max-width: 680px;
+  margin-top: 12px;
+  font-size: 16px;
+}
+
+.instructor-courses-page .instructor-courses-heading-actions {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.instructor-courses-page :is(
+  .instructor-create-course-button,
+  .instructor-preview-button
+) {
+  min-height: 48px;
+  padding: 10px 18px;
+  font-size: 15px;
+}
+
+.instructor-courses-page .instructor-preview-button {
+  color: var(--text);
+}
+
+/* الفلاتر والبحث */
+.instructor-courses-page .instructor-course-filters {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 28px;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+
+.instructor-courses-page .instructor-filter-tabs {
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow: visible;
+}
+
+.instructor-courses-page .instructor-filter-tabs button {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 14px;
+  white-space: normal;
+}
+
+.instructor-courses-page .instructor-course-search {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 14px;
+}
+
+.instructor-courses-page .instructor-course-search input {
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.instructor-courses-page .instructor-course-search:focus-within {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.instructor-courses-page .instructor-course-sort {
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.instructor-courses-page .instructor-course-sort select {
+  min-height: 48px;
+  max-width: 100%;
+  padding: 10px 14px;
+  font-size: 16px;
+}
+
+/* شبكة البطاقات
+   !important لمطابقة قواعد الشبكة القديمة التي تستخدمها */
+.instructor-courses-page .instructor-courses-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.instructor-courses-page .instructor-courses-grid > .instructor-course-card {
+  min-width: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-image {
+  height: auto;
+  aspect-ratio: 2 / 1;
+  flex: 0 0 auto;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.instructor-courses-page .instructor-courses-grid :is(
+  .instructor-course-status,
+  .instructor-course-category
+) {
+  max-width: calc(100% - 24px);
+  padding: 6px 12px;
+  font-size: 13px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-card-body {
+  min-width: 0;
+  padding: 24px;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-card-body h3 {
+  min-height: 0;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-card-body > p {
+  min-height: 0;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+/* أرقام وتفاصيل الدورة */
+.instructor-courses-page .instructor-courses-grid .instructor-course-meta {
+  margin-top: 20px;
+  padding-block: 16px;
+  gap: 8px;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-meta span {
+  min-width: 0;
+  gap: 6px;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-meta strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.instructor-courses-page .instructor-courses-grid .instructor-course-meta small {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* أزرار كاملة العرض لتجنب ضغط النص */
+.instructor-courses-page .instructor-courses-grid .instructor-course-actions {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding-top: 20px;
+}
+
+.instructor-courses-page .instructor-course-button {
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 15px;
+  text-align: center;
+  white-space: normal;
+}
+
+.instructor-courses-page .instructor-course-button-outline {
+  color: var(--text);
+}
+
+/* المسودة والمراجعة */
+.instructor-courses-page .instructor-draft-progress {
+  margin-top: 20px;
+}
+
+.instructor-courses-page .instructor-draft-progress-heading {
+  gap: 12px;
+  font-size: 14px;
+}
+
+.instructor-courses-page .instructor-draft-progress-bar {
+  height: 8px;
+  margin-top: 12px;
+}
+
+.instructor-courses-page .instructor-waiting-points {
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 10px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.instructor-courses-page .instructor-review-alert {
+  min-height: 200px;
+  padding: 56px 24px 24px;
+}
+
+.instructor-courses-page .instructor-review-alert-badge {
+  font-size: 13px;
+}
+
+.instructor-courses-page .instructor-review-alert strong {
+  font-size: 16px;
+}
+
+.instructor-courses-page .instructor-review-link {
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.instructor-courses-page .instructor-review-note {
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.instructor-courses-page .instructor-review-note strong {
+  font-size: 15px;
+}
+
+.instructor-courses-page .instructor-review-note p {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.instructor-courses-page .instructor-review-submit {
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.instructor-courses-page .instructor-review-details {
+  padding-block: 10px;
+  font-size: 14px;
+}
+
+/* الحالة الفارغة */
+.instructor-courses-page .instructor-courses-empty {
+  min-height: 300px;
+  padding: 32px 24px;
+  border-color: var(--line);
+}
+
+.instructor-courses-page .instructor-courses-empty h2 {
+  font-size: 26px;
+}
+
+.instructor-courses-page .instructor-courses-empty p {
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+/* ملخص الصفحة */
+.instructor-courses-page .instructor-course-summary {
+  margin-top: 40px;
+}
+
+.instructor-courses-page .instructor-course-summary h2 {
+  color: var(--text);
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.instructor-courses-page .instructor-course-summary-grid {
+  gap: 24px;
+}
+
+.instructor-courses-page .instructor-course-summary-grid article {
+  min-height: 140px;
+  padding: 24px;
+  gap: 8px;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+
+.instructor-courses-page .instructor-course-summary-grid span {
+  font-size: 15px;
+}
+
+.instructor-courses-page .instructor-course-summary-grid strong {
+  color: var(--text);
+  font-size: 32px;
+}
+
+.instructor-courses-page .instructor-course-summary-grid small {
+  font-size: 14px;
+}
+
+.instructor-courses-page :is(button, a, select):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* تباين النصوص الملونة في الدارك */
+html[data-theme="dark"] .instructor-courses-page :is(
+  .instructor-draft-progress-heading,
+  .instructor-course-summary-grid small
+) {
+  color: #a5c7ac;
+}
+
+html[data-theme="dark"] .instructor-courses-page
+.instructor-course-button.green:not(.instructor-course-button-primary) {
+  color: #a5c7ac;
+}
+
+html[data-theme="dark"] .instructor-courses-page :is(
+  .instructor-waiting-points,
+  .instructor-course-button.purple-soft:not(.instructor-course-button-primary)
+) {
+  color: #c6bbdf;
+}
+
+/* تابلت */
+@media (max-width: 1100px) {
+  .instructor-courses-page .instructor-courses-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .instructor-courses-page .instructor-course-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* موبايل */
+@media (max-width: 760px) {
+  .instructor-courses-page {
+    padding-block: 24px 40px;
+  }
+
+  .instructor-courses-page .container {
+    width: calc(100% - 32px);
+  }
+
+  .instructor-courses-page .instructor-course-filters {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .instructor-courses-page .instructor-course-sort {
+    width: 100%;
+  }
+
+  .instructor-courses-page .instructor-course-sort select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .instructor-courses-page .instructor-courses-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .instructor-courses-page .instructor-courses-grid .instructor-course-card-body {
+    padding: 20px;
+  }
+
+  .instructor-courses-page .instructor-course-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

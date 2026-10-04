@@ -1,0 +1,440 @@
+/* هذه التعديلات محصورة بلوحة الانستركتر */
+.instructor-dashboard {
+  padding-block: 36px 64px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.instructor-dashboard .instructor-container {
+  width: min(1180px, calc(100% - 64px));
+}
+
+/* عنوان الصفحة */
+.instructor-dashboard .instructor-welcome {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+}
+
+.instructor-dashboard .instructor-welcome h1 {
+  color: var(--text);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.instructor-dashboard .instructor-welcome h1 span {
+  font-size: 26px;
+}
+
+.instructor-dashboard .instructor-welcome p {
+  max-width: 680px;
+  font-size: 16px;
+}
+
+.instructor-dashboard .instructor-welcome-actions {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.instructor-dashboard .instructor-button {
+  min-height: 48px;
+  padding: 10px 18px;
+  font-size: 15px;
+}
+
+/* بطاقات الإحصائيات */
+.instructor-dashboard .instructor-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.instructor-dashboard .instructor-stat-card {
+  min-height: 150px;
+  padding: 24px;
+  gap: 16px;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+
+.instructor-dashboard .instructor-stat-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  background: var(--tint);
+  color: var(--text);
+}
+
+.instructor-dashboard .instructor-stat-content {
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.instructor-dashboard .instructor-stat-content > span {
+  font-size: 15px;
+}
+
+.instructor-dashboard .instructor-stat-content strong {
+  color: var(--text);
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.instructor-dashboard .instructor-stat-content small {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.instructor-dashboard .instructor-stat-content small b {
+  background: var(--tint);
+}
+
+/* توزيع المحتوى */
+.instructor-dashboard .instructor-dashboard-grid {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+}
+
+.instructor-dashboard :is(
+  .instructor-dashboard-main,
+  .instructor-dashboard-sidebar
+) {
+  gap: 28px;
+}
+
+.instructor-dashboard .instructor-panel {
+  padding: 24px;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+
+.instructor-dashboard :is(
+  .instructor-panel-heading,
+  .instructor-panel-title
+) {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.instructor-dashboard :is(
+  .instructor-panel-heading,
+  .instructor-panel-title
+) h2 {
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.instructor-dashboard :is(
+  .instructor-panel-heading,
+  .instructor-panel-title
+) p {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* أدوات الرسم البياني */
+.instructor-dashboard .instructor-period-tabs {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.instructor-dashboard :is(
+  .instructor-period-tabs,
+  .chart-filters
+) button {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.instructor-dashboard .instructor-chart-legend {
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 14px;
+}
+
+.instructor-dashboard .chart-filters {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.instructor-dashboard .instructor-chart {
+  height: 280px;
+  margin-top: 24px;
+}
+
+.instructor-dashboard .chart-bars {
+  inset: 24px 16px 0;
+  gap: 12px;
+}
+
+.instructor-dashboard .chart-bar-group {
+  height: 180px;
+  gap: 6px;
+}
+
+.instructor-dashboard .chart-bar {
+  width: clamp(12px, 2vw, 24px);
+  max-height: 160px;
+}
+
+.instructor-dashboard .chart-bar span {
+  font-size: 13px;
+}
+
+.instructor-dashboard .chart-column small {
+  min-height: 54px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ملخص الأداء */
+.instructor-dashboard .instructor-performance-summary {
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+}
+
+.instructor-dashboard .instructor-performance-summary > div {
+  min-width: 0;
+  gap: 8px;
+  padding-inline: 8px;
+}
+
+.instructor-dashboard .instructor-performance-summary span {
+  font-size: 14px;
+}
+
+.instructor-dashboard .instructor-performance-summary strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.instructor-dashboard .instructor-text-link {
+  color: var(--text);
+  font-size: 14px;
+  white-space: normal;
+}
+
+/* قائمة الدورات */
+.instructor-dashboard .instructor-course-list {
+  margin-top: 20px;
+}
+
+.instructor-dashboard .instructor-course-row {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 18px;
+  padding-block: 22px;
+}
+
+.instructor-dashboard .instructor-course-image {
+  width: 72px;
+  height: 72px;
+  color: var(--text);
+}
+
+.instructor-dashboard .instructor-course-top {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.instructor-dashboard :is(
+  .instructor-course-category,
+  .instructor-course-status
+) {
+  font-size: 13px;
+}
+
+.instructor-dashboard .instructor-course-category {
+  color: var(--text);
+  padding: 5px 10px;
+}
+
+.instructor-dashboard .instructor-course-info h3 {
+  color: var(--text);
+  font-size: 20px;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.instructor-dashboard .instructor-course-meta {
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.instructor-dashboard .instructor-manage-button {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* التنبيهات والنشاط */
+.instructor-dashboard :is(.attention-item, .activity-item) {
+  padding-block: 18px;
+}
+
+.instructor-dashboard .attention-item p {
+  padding-inline: 0 16px;
+  font-size: 15px;
+}
+
+.instructor-dashboard .attention-item > a {
+  min-height: 44px;
+  margin-inline-start: 0;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.instructor-dashboard .activity-item {
+  gap: 12px;
+}
+
+.instructor-dashboard .activity-item > div {
+  min-width: 0;
+}
+
+.instructor-dashboard .activity-item p {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.instructor-dashboard .activity-item small {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* الاختصارات */
+.instructor-dashboard .quick-actions-grid {
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.instructor-dashboard .quick-actions-grid a {
+  min-height: 100px;
+  padding: 16px;
+  gap: 12px;
+  color: var(--text);
+  font-size: 14px;
+  text-align: center;
+}
+
+.instructor-dashboard .quick-actions-grid a svg {
+  color: var(--text);
+}
+
+.instructor-dashboard :is(button, a):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* وضوح اللون الأخضر في الدارك */
+html[data-theme="dark"] .instructor-dashboard .green-text {
+  color: #a5c7ac !important;
+}
+
+html[data-theme="dark"] .instructor-dashboard :is(
+  .instructor-course-status,
+  .instructor-stat-content small b
+) {
+  color: #a5c7ac;
+}
+
+/* تابلت */
+@media (max-width: 1100px) {
+  .instructor-dashboard .instructor-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .instructor-dashboard .instructor-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-dashboard .instructor-dashboard-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .instructor-dashboard .quick-actions-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+/* موبايل */
+@media (max-width: 700px) {
+  .instructor-dashboard {
+    padding-block: 24px 40px;
+  }
+
+  .instructor-dashboard .instructor-container {
+    width: calc(100% - 32px);
+  }
+
+  .instructor-dashboard .instructor-dashboard-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-dashboard .quick-actions-panel {
+    grid-column: auto;
+  }
+
+  .instructor-dashboard .instructor-panel {
+    padding: 20px;
+  }
+
+  .instructor-dashboard .instructor-course-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .instructor-dashboard .instructor-course-image {
+    width: 64px;
+    height: 64px;
+  }
+
+  .instructor-dashboard .instructor-manage-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .instructor-dashboard .chart-filters {
+    margin-inline-start: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .instructor-dashboard .instructor-stats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .instructor-dashboard .instructor-stat-card {
+    min-height: 130px;
+    padding: 20px;
+  }
+
+  .instructor-dashboard .instructor-panel {
+    padding: 16px;
+  }
+
+  .instructor-dashboard .instructor-performance-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-dashboard .instructor-performance-summary > div + div {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+}

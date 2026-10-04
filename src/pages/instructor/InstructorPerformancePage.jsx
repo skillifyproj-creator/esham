@@ -78,7 +78,7 @@ export default function InstructorPerformancePage() {
   const earnedPoints = learners.completed * pointsPerCompletion;
 
   return (
-    <div className="instructor-performance-page">
+    <div className="instructor-performance-page instructor-detail-page">
       <div className="container">
         {/* Header */}
         <header className="instructor-performance-header">

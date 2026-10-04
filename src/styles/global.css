@@ -117,6 +117,11 @@
 
   --on-primary: var(--white-00);
 
+  /* أسماء مشتركة تستخدمها صفحات الموقع */
+  --primary: var(--primary-00);
+  --green: var(--secondary-200);
+  --rose: var(--primary-100);
+
   --success: var(--secondary-200);
 
   --footer-bg: var(--primary-00);
@@ -151,7 +156,13 @@
   --step-border: #6D4A52;
 
   --icon-color: #C99FAA;
-  --on-primary: #FFF8F9;
+
+  --primary: #dcc0c8;
+  --green: #a5c7ac;
+  --rose: #d3a6b2;
+
+  /* تباين النص داخل الأزرار التي تستخدم --primary */
+  --on-primary: #2d1d22;
 
   --success: #659774;
 

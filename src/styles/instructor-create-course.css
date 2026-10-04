@@ -1,0 +1,487 @@
+/* صفحة إنشاء الدورة فقط */
+.instructor-create-course-page {
+  padding-block: 36px 64px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.instructor-create-course-page .container {
+  width: min(1180px, calc(100% - 64px));
+}
+
+/* العنوان والأزرار */
+.instructor-create-course-page .instructor-create-course-heading {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.instructor-create-course-page .instructor-create-course-heading h1 {
+  font-size: clamp(28px, 3vw, 36px);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.instructor-create-course-page .instructor-create-course-heading p {
+  max-width: 680px;
+  font-size: 16px;
+  margin-top: 12px;
+}
+
+.instructor-create-course-page :is(
+  .instructor-create-course-heading-actions,
+  .instructor-create-bottom-actions
+) {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.instructor-create-course-page :is(
+  .instructor-create-primary-button,
+  .instructor-create-secondary-button,
+  .create-upload-box button,
+  .create-add-objective button
+) {
+  min-height: 48px;
+  padding: 10px 16px;
+  font-size: 15px;
+  white-space: normal;
+  text-align: center;
+}
+
+.instructor-create-course-page :is(
+  .instructor-create-secondary-button,
+  .create-add-objective button
+) {
+  color: var(--text);
+}
+
+/* خطوات إنشاء الدورة */
+.instructor-create-course-page .instructor-create-stepper-row {
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.instructor-create-course-page .instructor-course-stepper {
+  width: 100%;
+  padding: 20px;
+  grid-template-columns:
+    minmax(0, 1fr) 24px
+    minmax(0, 1fr) 24px
+    minmax(0, 1fr);
+}
+
+.instructor-create-course-page .instructor-course-step-indicator {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  font-size: 15px;
+}
+
+.instructor-create-course-page .instructor-course-step-copy strong {
+  font-size: 15px;
+}
+
+.instructor-create-course-page .instructor-course-step-copy small,
+.instructor-create-course-page .instructor-create-save-state {
+  font-size: 13px;
+}
+
+/* توزيع النموذج والمعاينة */
+.instructor-create-course-page .instructor-create-layout {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+}
+
+.instructor-create-course-page :is(
+  .instructor-create-main,
+  .instructor-create-sidebar
+) {
+  gap: 28px;
+  min-width: 0;
+}
+
+.instructor-create-course-page .instructor-create-sidebar {
+  position: static;
+}
+
+.instructor-create-course-page .instructor-create-panel {
+  border-radius: var(--radius);
+}
+
+.instructor-create-course-page .instructor-create-panel-heading {
+  flex-wrap: wrap;
+  padding: 24px;
+  gap: 14px;
+}
+
+.instructor-create-course-page .instructor-create-panel-heading h2 {
+  font-size: 24px;
+}
+
+.instructor-create-course-page .instructor-create-panel-heading p {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.instructor-create-course-page .create-section-number {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  font-size: 16px;
+}
+
+.instructor-create-course-page .instructor-create-divider {
+  margin-inline: 24px;
+}
+
+.instructor-create-course-page :is(
+  .instructor-create-form,
+  .create-level-grid,
+  .create-cover-layout
+) {
+  padding: 24px;
+}
+
+/* حقول النموذج */
+.instructor-create-course-page .create-field {
+  margin-bottom: 28px;
+  min-width: 0;
+}
+
+.instructor-create-course-page .create-field:last-child {
+  margin-bottom: 0;
+}
+
+.instructor-create-course-page .create-field label {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.instructor-create-course-page :is(
+  .create-field input,
+  .create-field select,
+  .create-field textarea,
+  .create-add-objective input
+) {
+  font-size: 16px;
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.instructor-create-course-page :is(
+  .create-field input,
+  .create-field select,
+  .create-add-objective input
+) {
+  height: auto;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.instructor-create-course-page .create-select-wrapper select {
+  padding-inline-end: 40px;
+}
+
+.instructor-create-course-page .create-field textarea {
+  min-height: 160px;
+  padding: 14px;
+  line-height: 1.8;
+}
+
+.instructor-create-course-page :is(
+  .create-field > small,
+  .create-field-footer small,
+  .create-field-footer span,
+  .create-objectives-heading small
+) {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.instructor-create-course-page :is(
+  .create-field-footer,
+  .create-objectives-heading
+) {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.instructor-create-course-page .create-field-grid {
+  gap: 20px;
+}
+
+/* أهداف الدورة */
+.instructor-create-course-page .create-objectives-heading > span {
+  font-size: 13px;
+  background: var(--tint);
+}
+
+.instructor-create-course-page .create-objectives-list {
+  gap: 12px;
+}
+
+.instructor-create-course-page .create-objective-item {
+  grid-template-columns: 24px minmax(0, 1fr) 44px;
+  min-height: 60px;
+  padding: 10px 12px;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.instructor-create-course-page .create-objective-item > span:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+
+.instructor-create-course-page .create-objective-item button {
+  width: 44px;
+  height: 44px;
+}
+
+.instructor-create-course-page .create-add-objective {
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* خيارات المستوى */
+.instructor-create-course-page .create-level-grid {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.instructor-create-course-page .create-level-card {
+  min-height: 90px;
+  padding: 20px;
+  gap: 14px;
+}
+
+.instructor-create-course-page .create-level-card.active {
+  background: var(--tint);
+}
+
+.instructor-create-course-page .create-level-copy strong {
+  font-size: 16px;
+}
+
+.instructor-create-course-page .create-level-copy small {
+  font-size: 14px;
+}
+
+.instructor-create-course-page .create-level-card:has(input:focus-visible) {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* رفع صورة الغلاف */
+.instructor-create-course-page .create-cover-layout {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.instructor-create-course-page .create-upload-box {
+  min-height: 200px;
+  padding: 24px;
+  gap: 8px;
+}
+
+.instructor-create-course-page .create-upload-box strong {
+  font-size: 16px;
+}
+
+.instructor-create-course-page .create-upload-box small {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.instructor-create-course-page :is(
+  .create-image-ratio,
+  .create-cover-placeholder span,
+  .create-cover-preview > span
+) {
+  font-size: 13px;
+  white-space: normal;
+}
+
+.instructor-create-course-page .create-cover-preview {
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+}
+
+.instructor-create-course-page .create-cover-preview img {
+  min-height: 0;
+  height: 100%;
+}
+
+.instructor-create-course-page .create-cover-placeholder {
+  height: 100%;
+  min-height: 0;
+}
+
+/* شرح النقاط */
+.instructor-create-course-page .create-points-box {
+  grid-template-columns: 56px minmax(0, 1fr);
+  margin: 24px 24px 12px;
+  padding: 20px;
+  gap: 16px;
+  background: var(--tint);
+}
+
+.instructor-create-course-page .create-points-number {
+  width: 52px;
+  height: 52px;
+  font-size: 24px;
+}
+
+.instructor-create-course-page .create-points-copy > span {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.instructor-create-course-page .create-points-copy p {
+  font-size: 14px;
+}
+
+.instructor-create-course-page .create-points-badge {
+  grid-column: 2;
+  justify-self: start;
+  font-size: 13px;
+  white-space: normal;
+}
+
+.instructor-create-course-page .create-points-note {
+  margin: 0 24px 24px;
+  font-size: 14px;
+}
+
+/* المعاينة والنصائح */
+.instructor-create-course-page :is(
+  .create-preview-heading,
+  .create-preview-body,
+  .create-tip-card,
+  .create-sidebar-note
+) {
+  padding: 20px;
+}
+
+.instructor-create-course-page .create-preview-heading strong {
+  font-size: 16px;
+}
+
+.instructor-create-course-page :is(
+  .create-preview-heading small,
+  .create-preview-meta,
+  .create-preview-rating,
+  .create-preview-footer,
+  .create-preview-points,
+  .create-preview-category
+) {
+  font-size: 13px;
+}
+
+.instructor-create-course-page .create-preview-meta {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.instructor-create-course-page .create-preview-body h3 {
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.instructor-create-course-page .create-preview-body p {
+  font-size: 14px;
+  max-height: none;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.instructor-create-course-page .create-tip-card {
+  background: var(--tint);
+  gap: 12px;
+}
+
+.instructor-create-course-page .create-tip-card strong {
+  font-size: 16px;
+}
+
+.instructor-create-course-page :is(
+  .create-tip-card p,
+  .create-tip-card ul,
+  .create-sidebar-note p
+) {
+  font-size: 14px;
+}
+
+.instructor-create-course-page :is(
+  button, a, input, select, textarea
+):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* تابلت */
+@media (max-width: 1100px) {
+  .instructor-create-course-page .instructor-create-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-create-course-page .instructor-create-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* موبايل */
+@media (max-width: 700px) {
+  .instructor-create-course-page {
+    padding-block: 24px 40px;
+  }
+
+  .instructor-create-course-page .container {
+    width: calc(100% - 32px);
+  }
+
+  .instructor-create-course-page .instructor-create-sidebar,
+  .instructor-create-course-page .create-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-create-course-page .instructor-course-stepper {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .instructor-create-course-page .instructor-course-step-line {
+    display: none;
+  }
+
+  .instructor-create-course-page .create-add-objective {
+    flex-direction: column;
+  }
+
+  .instructor-create-course-page :is(
+    .instructor-create-panel-heading,
+    .instructor-create-form,
+    .create-level-grid,
+    .create-cover-layout
+  ) {
+    padding: 20px;
+  }
+
+  .instructor-create-course-page .instructor-create-divider {
+    margin-inline: 20px;
+  }
+
+  .instructor-create-course-page .create-points-box {
+    margin-inline: 20px;
+    padding: 16px;
+  }
+
+  .instructor-create-course-page .create-points-note {
+    margin-inline: 20px;
+  }
+}

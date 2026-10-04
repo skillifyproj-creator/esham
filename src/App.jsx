@@ -39,6 +39,8 @@ import LearnerPointsPage from "./pages/learner/LearnerPointsPage";
 import LearnerReviewsPage from "./pages/learner/LearnerReviewsPage";
 import LearnerNotificationsPage from "./pages/learner/LearnerNotificationsPage";
 import EshamChatbot from "./components/chatbot/EshamChatbot";
+import "./styles/role-navigation.css";
+import "./styles/instructor-details.css";
 
 function RouteShell() {
   const { pathname, hash } = useLocation();

@@ -48,7 +48,7 @@ const checklist = [
 
 export default function CourseReviewPage() {
   return (
-    <div className="instructor-review-page">
+    <div className="instructor-review-page instructor-detail-page">
       <div className="container">
         <div className="instructor-review-header">
           <div>

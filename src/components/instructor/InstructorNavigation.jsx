@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router";
 import Icon from "../../components/Icon";
+import PointsBadge from "../shared/PointsBadge";
 import { usePreferences } from "../../context/PreferencesContext";
 import { instructorDemo } from "../../data/instructorDemo";
 import instructorCopy from "../../i18n/instructorCopy";
@@ -36,7 +37,7 @@ export default function InstructorNavigation() {
   };
 
   return (
-    <header className="instructor-header">
+    <header className="instructor-header role-header">
       <div className="container learner-header-inner">
 
         {/* Logo */}
@@ -57,6 +58,7 @@ export default function InstructorNavigation() {
         <button
           type="button"
           className="instructor-menu-button"
+          aria-controls="instructor-nav"
           onClick={() => setOpen((value) => !value)}
           aria-label={
             open
@@ -73,6 +75,10 @@ export default function InstructorNavigation() {
 
         {/* Navigation */}
         <nav
+          id="instructor-nav"
+          aria-label={
+            language === "ar" ? "تنقل المعلّم" : "Instructor navigation"
+          }
           className={
             open
               ? "instructor-navigation open"
@@ -145,11 +151,7 @@ export default function InstructorNavigation() {
           </Link>
 
           {/* Points */}
-          <div className="instructor-points">
-            <Icon name="star" size={16} />
-            <strong>{instructor.points.toLocaleString(isEnglish ? "en-US" : "ar-EG")}</strong>
-            <span>{c.points}</span>
-          </div>
+          <PointsBadge amount={instructor.points} />
 
           {/* Profile */}
           <Link

@@ -5,6 +5,7 @@ import InstructorCourseStepper from "../../components/instructor/InstructorCours
 import { usePreferences } from "../../context/PreferencesContext";
 import { instructorDemo } from "../../data/instructorDemo";
 import instructorCopy from "../../i18n/instructorCopy";
+import "../../styles/instructor-create-course.css";
 
 export default function CreateCoursePage() {
   const { language } = usePreferences();

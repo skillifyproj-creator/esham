@@ -495,7 +495,8 @@
 .instructor-main {
   flex: 1 0 auto;
 
-  min-height: calc(100vh - 76px);
+  min-height: 0;
+  min-width: 0;
 
   background: var(--background);
 }

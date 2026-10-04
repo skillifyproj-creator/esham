@@ -1,0 +1,669 @@
+/* الصفحات الموجودة التي تحمل الكلاس المشترك فقط */
+.instructor-detail-page {
+  padding-block: 36px 64px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.instructor-detail-page .container {
+  width: min(1180px, calc(100% - 64px));
+}
+
+/* الخطوط */
+.instructor-detail-page h1 {
+  font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.instructor-detail-page h2 {
+  font-size: 24px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.instructor-detail-page h3 {
+  font-size: 20px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.instructor-detail-page :is(p, li) {
+  font-size: 15px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.instructor-detail-page small {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.instructor-detail-page label {
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* الحقول والأزرار */
+.instructor-detail-page button {
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.instructor-detail-page input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+.instructor-detail-page select,
+.instructor-detail-page textarea {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--text);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+.instructor-detail-page input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+.instructor-detail-page select {
+  height: auto;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.instructor-detail-page textarea {
+  min-height: 160px;
+  padding: 14px;
+  line-height: 1.8;
+}
+
+.instructor-detail-page :is(
+  button, a, input, select, textarea
+):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+/* عناوين الصفحات */
+.instructor-detail-page :is(
+  .curriculum-page-header,
+  .curriculum-content-header,
+  .instructor-edit-lesson-header,
+  .instructor-task-header,
+  .instructor-review-header,
+  .instructor-performance-header,
+  .instructor-feedback-heading
+) {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.instructor-detail-page :is(
+  .curriculum-content-actions,
+  .instructor-edit-lesson-header-actions,
+  .instructor-task-header-actions,
+  .instructor-review-header-actions,
+  .instructor-performance-actions,
+  .instructor-feedback-reply-actions
+) {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.instructor-detail-page :is(
+  .instructor-button,
+  .instructor-course-button,
+  .instructor-review-back-button,
+  .instructor-review-submit-button,
+  .instructor-performance-button,
+  .instructor-feedback-export,
+  .instructor-feedback-add-reply,
+  .instructor-all-reviews
+) {
+  min-height: 48px;
+  padding: 10px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: normal;
+  text-align: center;
+}
+
+.instructor-detail-page :is(
+  .instructor-button-outline,
+  .instructor-course-button-outline,
+  .instructor-review-back-button
+) {
+  color: var(--text);
+}
+
+/* المحتوى الرئيسي والشريط الجانبي */
+.instructor-detail-page :is(
+  .curriculum-layout,
+  .instructor-edit-lesson-layout,
+  .instructor-task-layout,
+  .instructor-review-layout
+) {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+.instructor-detail-page :is(
+  .curriculum-main,
+  .curriculum-sidebar,
+  .instructor-edit-lesson-content,
+  .instructor-edit-lesson-sidebar,
+  .instructor-task-main,
+  .instructor-task-sidebar,
+  .instructor-review-content,
+  .instructor-review-sidebar
+) {
+  min-width: 0;
+  gap: 24px;
+}
+
+.instructor-detail-page :is(
+  .instructor-edit-lesson-sidebar,
+  .instructor-task-sidebar,
+  .instructor-review-sidebar
+) {
+  position: static;
+}
+
+/* البطاقات */
+.instructor-detail-page :is(
+  .instructor-edit-lesson-card,
+  .instructor-edit-lesson-side-card,
+  .instructor-task-card,
+  .instructor-task-side-card,
+  .instructor-task-danger-card,
+  .instructor-review-section,
+  .instructor-readiness-card,
+  .instructor-review-points-card,
+  .instructor-final-submit-card,
+  .instructor-performance-card,
+  .instructor-feedback-card
+) {
+  padding: 24px;
+  border-radius: var(--radius);
+}
+
+.instructor-detail-page :is(
+  .instructor-edit-lesson-card-header,
+  .instructor-task-card-heading,
+  .instructor-review-section-heading,
+  .instructor-performance-card-header,
+  .instructor-feedback-card-header
+) {
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* نموذج الدرس والمهمة */
+.instructor-detail-page :is(
+  .instructor-edit-lesson-form,
+  .instructor-task-fields
+) {
+  gap: 24px;
+}
+
+.instructor-detail-page :is(
+  .instructor-edit-lesson-field,
+  .instructor-task-fields > div
+) {
+  min-width: 0;
+}
+
+.instructor-detail-page :is(
+  .instructor-edit-lesson-form-row,
+  .instructor-task-editor-toolbar,
+  .instructor-task-add-requirement,
+  .instructor-add-objective,
+  .instructor-resource-actions
+) {
+  gap: 12px;
+}
+
+.instructor-detail-page .instructor-task-editor-toolbar {
+  flex-wrap: wrap;
+}
+
+.instructor-detail-page .instructor-task-editor-toolbar button {
+  width: 44px;
+  height: 44px;
+}
+
+.instructor-detail-page :is(
+  .instructor-lesson-type-options,
+  .instructor-submission-options
+) {
+  gap: 16px;
+}
+
+.instructor-detail-page :is(
+  .instructor-lesson-type-options button,
+  .instructor-submission-options button
+) {
+  padding: 16px;
+}
+
+.instructor-detail-page :is(
+  .instructor-lesson-type-options,
+  .instructor-submission-options
+) strong {
+  font-size: 16px;
+}
+
+.instructor-detail-page :is(
+  .instructor-lesson-video-meta,
+  .instructor-resource-item,
+  .instructor-task-resource,
+  .instructor-task-requirement,
+  .instructor-review-lesson-meta,
+  .instructor-preview-stats,
+  .instructor-preview-tags,
+  .curriculum-course-stats,
+  .curriculum-section-kicker,
+  .curriculum-progress,
+  .instructor-feedback-count,
+  .instructor-feedback-user-meta,
+  .instructor-feedback-course,
+  .instructor-feedback-distribution-label,
+  .instructor-feedback-distribution-rating
+) {
+  font-size: 14px;
+}
+
+.instructor-detail-page :is(
+  .instructor-objectives-list,
+  .instructor-task-requirements,
+  .instructor-resource-list,
+  .instructor-readiness-list,
+  .instructor-task-checklist
+) {
+  gap: 12px;
+}
+
+.instructor-detail-page :is(
+  .instructor-objective-item,
+  .instructor-task-requirement,
+  .instructor-resource-item,
+  .instructor-task-resource
+) {
+  padding-block: 12px;
+}
+
+.instructor-detail-page :is(
+  .instructor-lesson-video-details,
+  .instructor-resource-item,
+  .instructor-task-resource
+) strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+/* الأشرطة السفلية */
+.instructor-detail-page :is(
+  .instructor-task-bottom-bar,
+  .instructor-edit-lesson-bottom-bar,
+  .curriculum-bottom-bar
+) {
+  position: static;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 20px;
+}
+
+.instructor-detail-page :is(
+  .curriculum-bottom-info,
+  .curriculum-bottom-actions,
+  .instructor-edit-lesson-bottom-bar > div,
+  .instructor-task-bottom-bar > div
+) {
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+}
+
+/* خطوات الدورة */
+.instructor-detail-page .instructor-course-stepper {
+  padding: 20px;
+  margin-bottom: 28px;
+}
+
+.instructor-detail-page .instructor-course-step-copy strong {
+  font-size: 15px;
+}
+
+.instructor-detail-page .instructor-course-step-copy small {
+  font-size: 13px;
+}
+
+/* صفحة المنهج */
+.instructor-detail-page .curriculum-section-card {
+  margin-bottom: 24px;
+}
+
+.instructor-detail-page .curriculum-section-header {
+  flex-wrap: wrap;
+  padding: 24px;
+  gap: 16px;
+}
+
+.instructor-detail-page .curriculum-section-actions {
+  flex-wrap: wrap;
+}
+
+.instructor-detail-page .curriculum-collapse-button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+}
+
+.instructor-detail-page .curriculum-lesson-row {
+  min-height: 84px;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.instructor-detail-page .curriculum-lesson-info strong {
+  font-size: 16px;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.instructor-detail-page .curriculum-task-row {
+  padding: 16px 20px;
+  gap: 12px;
+}
+
+.instructor-detail-page .curriculum-task-row strong {
+  font-size: 16px;
+}
+
+.instructor-detail-page :is(
+  .curriculum-ready-badge,
+  .curriculum-task-status,
+  .curriculum-status
+) {
+  font-size: 13px;
+}
+
+.instructor-detail-page .curriculum-section-footer {
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+}
+
+.instructor-detail-page :is(
+  .curriculum-course-body,
+  .curriculum-readiness-card,
+  .curriculum-guidance-card,
+  .curriculum-quick-links,
+  .curriculum-points-card
+) {
+  padding: 24px;
+}
+
+.instructor-detail-page .curriculum-guidance-card li {
+  margin-block: 8px;
+}
+
+/* مراجعة الدورة */
+.instructor-detail-page .instructor-course-preview-body {
+  padding: 24px;
+}
+
+.instructor-detail-page :is(
+  .instructor-preview-title-row,
+  .instructor-preview-stats,
+  .instructor-review-lesson,
+  .instructor-review-section-title
+) {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.instructor-detail-page .instructor-review-course-section {
+  margin-top: 20px;
+}
+
+.instructor-detail-page .instructor-review-lesson {
+  padding-block: 14px;
+}
+
+/* الأداء والتقييمات */
+.instructor-detail-page :is(
+  .instructor-performance-metrics,
+  .instructor-feedback-stats
+) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin-block: 28px;
+}
+
+.instructor-detail-page :is(
+  .instructor-performance-metric,
+  .instructor-feedback-stat
+) {
+  min-width: 0;
+  padding: 24px;
+}
+
+.instructor-detail-page :is(
+  .instructor-performance-metric,
+  .instructor-feedback-stat
+) > span {
+  font-size: 14px;
+}
+
+.instructor-detail-page :is(
+  .instructor-performance-metric,
+  .instructor-feedback-stat
+) strong {
+  font-size: 32px;
+  color: var(--text);
+}
+
+.instructor-detail-page .instructor-performance-grid {
+  gap: 28px;
+}
+
+.instructor-detail-page .instructor-feedback-toolbar {
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
+  margin-block: 28px;
+}
+
+.instructor-detail-page .instructor-feedback-toolbar label {
+  flex: 1;
+  min-width: min(200px, 100%);
+}
+
+.instructor-detail-page .instructor-feedback-user {
+  min-width: 0;
+}
+
+.instructor-detail-page .instructor-feedback-user-meta strong {
+  font-size: 16px;
+}
+
+.instructor-detail-page .instructor-feedback-card {
+  margin-bottom: 24px;
+}
+
+.instructor-detail-page :is(
+  .instructor-feedback-comment,
+  .instructor-feedback-existing-reply p
+) {
+  font-size: 16px;
+}
+
+.instructor-detail-page :is(
+  .instructor-feedback-existing-reply,
+  .instructor-feedback-reply-area
+) {
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* تباين الدارك */
+html[data-theme="dark"] .instructor-detail-page :is(
+  .curriculum-progress,
+  .instructor-ready-badge,
+  .instructor-task-readiness-heading strong
+) {
+  color: #a5c7ac;
+}
+
+/* تابلت */
+@media (max-width: 1100px) {
+  .instructor-detail-page :is(
+    .curriculum-layout,
+    .instructor-edit-lesson-layout,
+    .instructor-task-layout,
+    .instructor-review-layout,
+    .instructor-performance-grid
+  ) {
+    grid-template-columns: 1fr;
+  }
+
+  .instructor-detail-page :is(
+    .instructor-performance-metrics,
+    .instructor-feedback-stats
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .instructor-detail-page .curriculum-lesson-row {
+    grid-template-columns: 24px 28px 36px minmax(0, 1fr);
+  }
+
+  .instructor-detail-page .curriculum-ready-badge {
+    display: inline-flex;
+    grid-column: 4;
+    justify-self: start;
+  }
+
+  .instructor-detail-page .curriculum-lesson-row .curriculum-edit-button {
+    grid-column: 4;
+    justify-self: start;
+  }
+
+  .instructor-detail-page .curriculum-task-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .instructor-detail-page .curriculum-task-row :is(
+    .curriculum-task-status,
+    .curriculum-edit-button
+  ) {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .instructor-detail-page :is(
+    .instructor-edit-lesson-form-row,
+    .instructor-lesson-type-options,
+    .instructor-submission-options,
+    .instructor-feedback-rating-summary
+  ) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* موبايل */
+@media (max-width: 600px) {
+  .instructor-detail-page {
+    padding-block: 24px 40px;
+  }
+
+  .instructor-detail-page .container {
+    width: calc(100% - 32px);
+  }
+
+  .instructor-detail-page :is(
+    .instructor-performance-metrics,
+    .instructor-feedback-stats
+  ) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .instructor-detail-page :is(
+    .instructor-edit-lesson-card,
+    .instructor-edit-lesson-side-card,
+    .instructor-task-card,
+    .instructor-task-side-card,
+    .instructor-task-danger-card,
+    .instructor-review-section,
+    .instructor-readiness-card,
+    .instructor-review-points-card,
+    .instructor-final-submit-card,
+    .instructor-performance-card,
+    .instructor-feedback-card,
+    .instructor-course-preview-body,
+    .curriculum-section-header,
+    .curriculum-readiness-card,
+    .curriculum-guidance-card,
+    .curriculum-course-body
+  ) {
+    padding: 16px;
+  }
+
+  .instructor-detail-page .instructor-course-stepper {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .instructor-detail-page .instructor-course-step-line {
+    display: none;
+  }
+
+  .instructor-detail-page :is(
+    .instructor-task-add-requirement,
+    .instructor-add-objective,
+    .instructor-lesson-video-box,
+    .instructor-task-context-card
+  ) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .instructor-detail-page .curriculum-lesson-row {
+    grid-template-columns: 20px 24px minmax(0, 1fr);
+    gap: 8px;
+    padding: 16px 12px;
+  }
+
+  .instructor-detail-page .curriculum-lesson-icon {
+    display: none;
+  }
+
+  .instructor-detail-page .curriculum-lesson-info {
+    grid-column: 3;
+  }
+
+  .instructor-detail-page .curriculum-lesson-row :is(
+    .curriculum-ready-badge,
+    .curriculum-edit-button
+  ) {
+    grid-column: 3;
+  }
+
+  .instructor-detail-page .instructor-preview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

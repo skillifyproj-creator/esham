@@ -165,7 +165,7 @@ export default function EditLessonPage() {
 
   if (!course || !section || (!isNewLesson && !originalLesson)) {
     return (
-      <div className="instructor-edit-lesson-page">
+      <div className="instructor-edit-lesson-page instructor-detail-page">
         <div className="container">
           <section className="instructor-edit-lesson-side-card">
             <h1>لم يتم العثور على الدرس</h1>
@@ -182,7 +182,7 @@ export default function EditLessonPage() {
   }
 
   return (
-    <div className="instructor-edit-lesson-page">
+    <div className="instructor-edit-lesson-page instructor-detail-page">
       <div className="container">
         {/* Breadcrumb */}
         <div className="instructor-edit-lesson-breadcrumb">

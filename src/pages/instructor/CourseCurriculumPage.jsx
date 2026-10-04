@@ -167,7 +167,7 @@ export default function CourseCurriculumPage() {
   };
 
   return (
-    <section className="instructor-curriculum-page">
+    <section className="instructor-curriculum-page instructor-detail-page">
       <div className="container">
 
         {/* Header */}

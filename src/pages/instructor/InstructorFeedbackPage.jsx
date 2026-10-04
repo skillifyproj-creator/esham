@@ -117,7 +117,7 @@ export default function InstructorFeedbackPage() {
   };
 
   return (
-    <main className="instructor-feedback-page">
+    <main className="instructor-feedback-page instructor-detail-page">
       <div className="container">
         <header className="instructor-feedback-heading">
           <div>

@@ -7,6 +7,7 @@ import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
 
 import "../../styles/instructor.css";
+import "../../styles/instructor-courses.css";
 
 export default function InstructorCoursesPage() {
   const { language } = usePreferences();
@@ -449,6 +450,7 @@ function FilterButton({
     <button
       type="button"
       className={active ? "active" : ""}
+      aria-pressed={active}
       onClick={onClick}
     >
       {children}

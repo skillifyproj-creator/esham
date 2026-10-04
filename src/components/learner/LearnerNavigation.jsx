@@ -6,6 +6,7 @@ import { learnerCopy } from "../../i18n/learnerCopy";
 import { learnerDemo } from "../../data/learnerDemo";
 
 import Icon from "../Icon";
+import PointsBadge from "../shared/PointsBadge";
 import logo from "../../assets/esham-logo.png";
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 export default function LearnerNavigation() {
@@ -42,7 +43,7 @@ export default function LearnerNavigation() {
   const { balance } = useLearnerWallet();
 
   return (
-    <header className="learner-header">
+    <header className="learner-header role-header">
       <div className="container learner-header-inner">
         <Link
           to="/learner"
@@ -111,9 +112,11 @@ export default function LearnerNavigation() {
             <Icon name="swap" size={16} />
           </Link>
 
-          <Link to="/learner/points" className="learner-balance">
-            {balance} {t.points}
-          </Link>
+          <PointsBadge
+            amount={balance}
+            to="/learner/points"
+            onClick={() => setOpen(false)}
+          />
 
           <span className="learner-profile">
             <span className="learner-profile-avatar">

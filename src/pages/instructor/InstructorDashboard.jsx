@@ -3,6 +3,7 @@ import Icon from "../../components/Icon";
 import { instructorDemo } from "../../data/instructorDemo";
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
+import "../../styles/instructor-dashboard.css";
 
 export default function InstructorDashboard() {
   const { language } = usePreferences();

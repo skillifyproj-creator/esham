@@ -15,9 +15,9 @@ export default function InstructorLayout() {
     >
       <InstructorNavigation />
 
-      <main className="instructor-main">
+      <div className="instructor-main">
         <Outlet />
-      </main>
+      </div>
 
       <footer className="instructor-footer">
         <div className="instructor-footer-inner">
@@ -33,7 +33,9 @@ export default function InstructorLayout() {
             <a href="#support">{c.academicSupport}</a>
           </div>
 
-          <p>{c.allRightsReserved} © 2025 {c.brandName}</p>
+          <p>
+            {c.allRightsReserved} © {new Date().getFullYear()} {c.brandName}
+          </p>
         </div>
       </footer>
     </div>
