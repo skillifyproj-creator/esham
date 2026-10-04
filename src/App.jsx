@@ -9,6 +9,8 @@ import {
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import CourseDetailsPage from "./pages/CourseDetailsPage";
+import SignupPage from "./pages/auth/SignupPage";
+import LoginPage from "./pages/auth/LoginPage";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -71,6 +73,7 @@ function RouteShell() {
   const isHome = pathname === "/";
   const isInstructor = pathname.startsWith("/instructor");
   const isLearner = pathname.startsWith("/learner");
+  const isAuth = ["/signup", "/login"].includes(pathname);
   const assistantPath = isLearner
     ? "/learner/assistant"
     : isInstructor
@@ -81,7 +84,7 @@ function RouteShell() {
   return (
     <>
       {/* Public Header only */}
-      {!isHome && !isInstructor && !isLearner && <Header />}
+      {!isHome && !isInstructor && !isLearner && !isAuth && <Header />}
 
       <Routes>
         {/* =================================
@@ -95,6 +98,9 @@ function RouteShell() {
         <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
 
         <Route path="/assistant" element={<EshamChatbot />} />
+
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
 
         {/* =================================
             Learner Pages
@@ -204,7 +210,7 @@ function RouteShell() {
         />
       </Routes>
 
-      {!isAssistantPage && (
+      {!isAssistantPage && !isAuth && (
         <Link
           className="esham-assistant-launcher"
           to={assistantPath}
@@ -254,7 +260,7 @@ function RouteShell() {
       )}
 
       {/* Public Footer only */}
-      {!isHome && !isInstructor && !isLearner && <Footer />}
+      {!isHome && !isInstructor && !isLearner && !isAuth && <Footer />}
     </>
   );
 }
