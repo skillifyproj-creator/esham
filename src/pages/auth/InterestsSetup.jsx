@@ -17,12 +17,12 @@ export default function InterestsSetup({ draft, update, mode = "learning" }) {
   const field = teaching ? "teachingAreas" : "interests";
   const [query, setQuery] = useState('');
   const searchCopy = language === 'ar'
-    ? { label: teaching ? 'ابحث عن مجال خبرتك' : 'ابحث عن مجال تتعلّمه', placeholder: 'ابحث باسم المجال أو وصفه…', clear: 'مسح البحث', empty: 'لا توجد مجالات مطابقة. جرّب كلمة أخرى.', results: 'مجالات مطابقة' }
-    : { label: teaching ? 'Search your expertise areas' : 'Search learning areas', placeholder: 'Search by area name or description…', clear: 'Clear search', empty: 'No matching areas. Try another search.', results: 'matching areas' };
+    ? { label: teaching ? 'ابحث عن مجال خبرتك' : 'ابحث عن مجال تتعلّمه', placeholder: 'ابحث عن مجال أو كلمة مفتاحية…', clear: 'مسح البحث', empty: 'لا توجد مجالات مطابقة. جرّب كلمة أخرى.', results: 'مجالات مطابقة' }
+    : { label: teaching ? 'Search your expertise areas' : 'Search learning areas', placeholder: 'Search by area or keyword…', clear: 'Clear search', empty: 'No matching areas. Try another search.', results: 'matching areas' };
   const normalizeSearch = value => value.normalize('NFKD').toLowerCase().replace(/[\u064B-\u065F\u0670]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').trim();
   const words = normalizeSearch(query).split(/\s+/).filter(Boolean);
   const visibleAreas = interestAreas.map((area, index) => ({ area, index })).filter(({ area, index }) => {
-    const text = normalizeSearch([copy.categories[index], index === 5 ? t.business : '', area.description[language], area.category].join(' '));
+    const text = normalizeSearch([copy.categories[index], index === 5 ? t.business : '', area.description[language], area.category, ...(area.keywords || [])].join(' '));
     return words.every(word => text.includes(word));
   });
   const [skill, setSkill] = useState("");
