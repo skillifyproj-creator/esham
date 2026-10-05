@@ -37,6 +37,8 @@ export function PreferencesProvider({ children }) {
       value={{
         language,
         theme,
+        setLanguage,
+        setTheme,
         copy: translations[language],
         toggleLanguage: () =>
           setLanguage((value) => (value === "ar" ? "en" : "ar")),

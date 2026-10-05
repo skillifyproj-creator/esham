@@ -1,3 +1,4 @@
+import useAccountName from "../../hooks/useAccountName";
 import { useState } from "react";
 
 import { Link } from "react-router";
@@ -37,6 +38,7 @@ function LearningProgress({ value, label }) {
 }
 
 export default function LearnerDashboard() {
+  const accountName = useAccountName();
   const { language } = usePreferences();
   const t = learnerCopy[language];
 
@@ -106,7 +108,7 @@ export default function LearnerDashboard() {
             <span className="section-kicker">{t.dashboard}</span>
 
             <h1>
-              {t.greeting}، {learnerDemo.name[language]}
+              {t.greeting}، {(accountName || learnerDemo.name[language])}
               <span aria-hidden="true"> 👋</span>
             </h1>
 

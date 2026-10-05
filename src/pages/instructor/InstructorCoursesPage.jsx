@@ -1,3 +1,5 @@
+import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
+import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
@@ -488,12 +490,11 @@ function CourseCard({ course, copy: c, language }) {
             {c.reviewNeedsResponse}
           </strong>
 
-          <Link
-            to={`/instructor/courses/${course.id}`}
+          <PendingFeature
             className="instructor-review-link"
           >
             {course.category[language]}
-          </Link>
+          </PendingFeature>
 
         </div>
 
@@ -515,8 +516,7 @@ function CourseCard({ course, copy: c, language }) {
 
           </div>
 
-          <Link
-            to={`/instructor/courses/${course.id}/edit`}
+          <PendingFeature
             className="instructor-review-submit"
           >
             <Icon
@@ -525,14 +525,13 @@ function CourseCard({ course, copy: c, language }) {
             />
 
             {c.editAndResubmit}
-          </Link>
+          </PendingFeature>
 
-          <Link
-            to={`/instructor/courses/${course.id}/review`}
+          <PendingFeature
             className="instructor-review-details"
           >
             {c.reviewReportDetails}
-          </Link>
+          </PendingFeature>
 
         </div>
 
@@ -688,8 +687,7 @@ function CourseCard({ course, copy: c, language }) {
 
           {course.courseStatus === "published" && (
             <>
-              <Link
-                to={`/instructor/courses/${course.id}`}
+              <PendingFeature
                 className="instructor-course-button instructor-course-button-primary"
               >
                 {c.manageCourseAction}
@@ -697,10 +695,10 @@ function CourseCard({ course, copy: c, language }) {
                   name="settings"
                   size={14}
                 />
-              </Link>
+              </PendingFeature>
 
-              <Link
-                to={`/courses/${course.id}`}
+              {instructorPublicCourseIds[course.id] && (<Link
+                to={`/courses/${instructorPublicCourseIds[course.id]}`}
                 className="instructor-course-button instructor-course-button-outline"
               >
                 {c.viewCourse}
@@ -708,7 +706,7 @@ function CourseCard({ course, copy: c, language }) {
                   name="eye"
                   size={14}
                 />
-              </Link>
+              </Link>)}
 
               <Link
                 to={`/instructor/courses/${course.id}/performance`}
@@ -721,8 +719,7 @@ function CourseCard({ course, copy: c, language }) {
 
           {course.courseStatus === "draft" && (
             <>
-              <Link
-                to={`/instructor/courses/${course.id}/edit`}
+              <PendingFeature
                 className="instructor-course-button green"
               >
                 {c.edit}
@@ -730,10 +727,9 @@ function CourseCard({ course, copy: c, language }) {
                   name="edit"
                   size={14}
                 />
-              </Link>
+              </PendingFeature>
 
-              <Link
-                to={`/instructor/courses/${course.id}/continue`}
+              <PendingFeature
                 className="instructor-course-button instructor-course-button-primary green"
               >
                 {c.continueCreation}
@@ -741,14 +737,13 @@ function CourseCard({ course, copy: c, language }) {
                   name="arrow-left"
                   size={14}
                 />
-              </Link>
+              </PendingFeature>
             </>
           )}
 
           {course.courseStatus === "pending" && (
             <>
-              <Link
-                to={`/instructor/courses/${course.id}`}
+              <PendingFeature
                 className="instructor-course-button purple-soft"
               >
                 {c.previewDraft}
@@ -756,18 +751,16 @@ function CourseCard({ course, copy: c, language }) {
                   name="eye"
                   size={14}
                 />
-              </Link>
+              </PendingFeature>
 
-              <button
-                type="button"
-                className="instructor-course-button instructor-course-button-primary purple-soft"
+              <PendingFeature className="instructor-course-button instructor-course-button-primary purple-soft"
               >
                 {c.viewDetails}
                 <Icon
                   name="arrow-left"
                   size={14}
                 />
-              </button>
+              </PendingFeature>
             </>
           )}
 

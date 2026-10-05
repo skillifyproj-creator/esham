@@ -1,3 +1,4 @@
+import PendingFeature from "../shared/PendingFeature";
 import { Outlet } from "react-router";
 import InstructorNavigation from "./InstructorNavigation";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -27,10 +28,10 @@ export default function InstructorLayout() {
           </div>
 
           <div className="instructor-footer-links">
-            <a href="#terms">{c.terms}</a>
-            <a href="#privacy">{c.privacy}</a>
-            <a href="#guides">{c.instructorGuidelines}</a>
-            <a href="#support">{c.academicSupport}</a>
+            <PendingFeature>{c.terms}</PendingFeature>
+            <PendingFeature>{c.privacy}</PendingFeature>
+            <PendingFeature>{c.instructorGuidelines}</PendingFeature>
+            <PendingFeature>{c.academicSupport}</PendingFeature>
           </div>
 
           <p>

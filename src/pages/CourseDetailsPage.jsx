@@ -34,8 +34,8 @@ export default function CourseDetailsPage() {
 function CourseDetail({ course, c, p, language }) {
   const [dialog, setDialog] = useState(null);
   const [previewLesson, setPreviewLesson] = useState(null);
-  const [enrolled, setEnrolled] = useState(false);
-  const [balance, setBalance] = useState(50);
+
+
   const [title, description] = getCourseText(course, language);
   const modules = getCurriculum(course, language);
   const duration = modules
@@ -50,14 +50,6 @@ function CourseDetail({ course, c, p, language }) {
         Number(a.category === course.category),
     )
     .slice(0, 3);
-  const sufficient = balance >= course.points;
-  const enroll = () => {
-    if (!enrolled && sufficient) {
-      setBalance((value) => value - course.points);
-      setEnrolled(true);
-      setDialog(null);
-    }
-  };
   return (
     <main className="course-detail-page">
       <div className="container">
@@ -271,27 +263,9 @@ function CourseDetail({ course, c, p, language }) {
                 <small> {c.points}</small>
               </strong>
             </div>
-            <div className="balance-row">
-              <span>{p.balance}</span>
-              <strong>
-                {balance} {c.points}
-              </strong>
-            </div>
-            <button
-              className="button enroll-button"
-              disabled={enrolled || !sufficient}
-              onClick={() => setDialog("enroll")}
-            >
-              {enrolled ? p.enrolled : p.enroll}
-              <span aria-hidden="true">{enrolled ? "✓" : "←"}</span>
-            </button>
-            <p className="enrollment-hint">
-              {enrolled
-                ? p.enrollmentSuccess
-                : !sufficient
-                  ? p.insufficient
-                  : p.enrollmentNote}
-            </p>
+
+<Link className="button enroll-button" to="/login">{language === "ar" ? "سجّل الدخول للالتحاق" : "Log in to enroll"}<span aria-hidden="true">←</span></Link>
+<p className="enrollment-hint">{language === "ar" ? "استكشف محتوى الدورة، ثم أنشئ حسابًا أو سجّل الدخول للمتابعة." : "Explore the course content, then create an account or log in to continue."}</p>
             <ul className="enrollment-perks">
               {p.perks.map((text) => (
                 <li key={text}>
@@ -300,7 +274,7 @@ function CourseDetail({ course, c, p, language }) {
                 </li>
               ))}
             </ul>
-            <small className="simulation-label">{p.enrollmentNote}</small>
+
           </aside>
         </div>
         <section className="detail-related">
@@ -318,22 +292,7 @@ function CourseDetail({ course, c, p, language }) {
           </Link>
         </section>
       </div>
-      {dialog === "enroll" && (
-        <Modal title={p.enrollmentTitle} onClose={() => setDialog(null)}>
-          <p>{p.enrollmentText}</p>
-          <div className="detail-stats">
-            <span>
-              {course.points} {c.points}
-            </span>
-            <span>
-              {p.balance}: {balance}
-            </span>
-          </div>
-          <button className="button" onClick={enroll}>
-            {p.enrollmentConfirm}
-          </button>
-        </Modal>
-      )}
+
       {dialog === "preview" && (
         <Modal title={previewLesson.title} onClose={() => setDialog(null)}>
           <div className="video-placeholder">

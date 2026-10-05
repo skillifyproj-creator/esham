@@ -1,3 +1,4 @@
+import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import Icon from "../../components/Icon";
@@ -197,7 +198,7 @@ export default function InstructorTaskPage() {
               <span>/</span>
 
               <Link
-                to={`/instructor/courses/${courseId}`}
+                to="/instructor/courses/new/curriculum"
               >
                 {courseTitle}
               </Link>
@@ -252,13 +253,13 @@ export default function InstructorTaskPage() {
               العودة إلى المنهج
             </button>
 
-            <button
-              type="button"
+            <PendingFeature
+
               className="instructor-button instructor-button-outline"
             >
               <Icon name="eye" size={15} />
               معاينة الطالب
-            </button>
+            </PendingFeature>
 
             <button
               type="button"
@@ -393,21 +394,21 @@ export default function InstructorTaskPage() {
               </p>
 
               <div className="instructor-task-editor-toolbar">
-                <button type="button">
+                <PendingFeature >
                   <b>B</b>
-                </button>
+                </PendingFeature>
 
-                <button type="button">
+                <PendingFeature >
                   <i>I</i>
-                </button>
+                </PendingFeature>
 
-                <button type="button">
+                <PendingFeature  aria-label={language === "ar" ? "تنسيق النص" : "Text formatting"}>
                   <Icon name="lesson" size={14} />
-                </button>
+                </PendingFeature>
 
-                <button type="button">
+                <PendingFeature  aria-label={language === "ar" ? "معاينة المورد" : "Preview resource"}>
                   <Icon name="arrow-left" size={14} />
-                </button>
+                </PendingFeature>
               </div>
 
               <textarea
@@ -534,9 +535,9 @@ export default function InstructorTaskPage() {
                   • حد أقصى 25 ميغابايت للصورة الواحدة.
                 </span>
 
-                <button type="button">
+                <PendingFeature >
                   تعديل الإعدادات
-                </button>
+                </PendingFeature>
               </div>
             </section>
 
@@ -594,15 +595,15 @@ export default function InstructorTaskPage() {
                         />
                       </button>
 
-                      <button
-                        type="button"
+                      <PendingFeature
+
                         aria-label="تعديل المتطلب"
                       >
                         <Icon
                           name="edit"
                           size={14}
                         />
-                      </button>
+                      </PendingFeature>
                     </div>
                   )
                 )}
@@ -675,23 +676,23 @@ export default function InstructorTaskPage() {
                     </small>
                   </div>
 
-                  <button type="button">
+                  <PendingFeature >
                     معاينة
-                  </button>
+                  </PendingFeature>
 
-                  <button type="button">
+                  <PendingFeature  aria-label={language === "ar" ? "إزالة المورد" : "Remove resource"}>
                     <Icon name="close" size={14} />
-                  </button>
+                  </PendingFeature>
                 </div>
               ))}
 
-              <button
-                type="button"
+              <PendingFeature
+
                 className="instructor-task-resource-add"
               >
                 <Icon name="plus" size={15} />
                 إضافة ملف مساند (PDF، نموذج إرشادي)
-              </button>
+              </PendingFeature>
             </section>
 
             {/* Guidance */}
@@ -706,10 +707,7 @@ export default function InstructorTaskPage() {
                 </strong>
 
                 <p>
-                  تظهر هذه المهمة للطلاب في نهاية القسم.
-                  يستعرض المدرب أعمال الطلاب لاحقًا ويقدم
-                  الملاحظات والتوجيه، بينما يحصل الطالب على
-                  النقاط عند إكمال متطلبات المهمة.
+                  {language === "ar" ? "تظهر المهمة في نهاية القسم. مكافآت إكمال الدورة تتطلب اعتماد الإكمال؛ حفظ المهمة وإرسال الأعمال ومراجعتها يحتاج ربط الخدمة." : "Tasks appear at the end of the section. Course rewards require completion approval; task saving, submissions, and review require the service connection."}
                 </p>
               </div>
             </section>
@@ -771,22 +769,22 @@ export default function InstructorTaskPage() {
                   </div>
                 </div>
 
-                <button type="button">
+                <PendingFeature >
                   تسليم المهمة
                   <Icon
                     name="arrow-left"
                     size={14}
                   />
-                </button>
+                </PendingFeature>
               </div>
 
-              <button
-                type="button"
+              <PendingFeature
+
                 className="instructor-task-preview-action"
               >
                 <Icon name="upload" size={15} />
                 معاينة المهمة كاملة
-              </button>
+              </PendingFeature>
             </section>
 
             {/* Readiness */}
@@ -849,17 +847,17 @@ export default function InstructorTaskPage() {
                 </p>
 
                 <div>
-                  <button type="button">
+                  <button type="button" onClick={goBack}>
                     إلغاء
                   </button>
 
-                  <button type="button">
+                  <PendingFeature >
                     <Icon
                       name="trash"
                       size={14}
                     />
                     حذف المهمة
-                  </button>
+                  </PendingFeature>
                 </div>
               </section>
             )}

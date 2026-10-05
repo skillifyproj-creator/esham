@@ -1,16 +1,16 @@
-import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { usePreferences } from '../context/PreferencesContext';
 import { coursePagesCopy } from '../i18n/coursePagesCopy';
 import { courses, categoryKeys } from '../data/courses';
 import { getCourseText } from '../data/courseHelpers';
 import CourseCard from '../components/CourseCard';
-import Modal from '../components/Modal';
+
 const PAGE_SIZE=8;
 function normalize(text){return text.toLowerCase().normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي');}
 export default function CoursesPage(){
  const {copy:c,language}=usePreferences();const p=coursePagesCopy[language];
- const [params,setParams]=useSearchParams();const [teaching,setTeaching]=useState(false);
+ const [params,setParams]=useSearchParams();
  const query=params.get('q')||'';const category=categoryKeys.includes(params.get('category'))?params.get('category'):'all';
  const level=['beginner','intermediate','advanced'].includes(params.get('level'))?params.get('level'):'';
  const affordable=params.get('points')==='50';const sort=['newest','cheapest'].includes(params.get('sort'))?params.get('sort'):'recommended';
@@ -29,7 +29,7 @@ export default function CoursesPage(){
  <div id="catalog-results" className="results-heading" aria-live="polite"><h2>{p.results}</h2><span>{results.length} {p.count}</span></div><div className="catalog-grid">{shown.map(course=><CourseCard key={course.id} course={course} compact/>)}</div>
  {!results.length&&<div className="empty-state"><span className="empty-symbol" aria-hidden="true">⌕</span><h3>{p.empty}</h3><p>{p.emptyHint}</p><button className="button button-outline" onClick={()=>setParams({})}>{p.clear}</button></div>}
  {pages>1&&<nav className="pagination" aria-label={p.pagination}><button disabled={page===1} onClick={()=>changePage(page-1)}>{p.previous}</button>{Array.from({length:pages},(_,i)=><button key={i} aria-label={`${p.page} ${i+1}`} aria-current={page===i+1?'page':undefined} className={page===i+1?'current':''} onClick={()=>changePage(i+1)}>{i+1}</button>)}<button disabled={page===pages} onClick={()=>changePage(page+1)}>{p.next}</button></nav>}
- <aside className="teach-banner"><div><span className="section-kicker">{c.tagline}</span><h2>{p.skillCta}</h2><p>{p.skillText}</p></div><button className="button teach-button" onClick={()=>setTeaching(true)}>{p.teach}</button></aside><p className="catalog-demo">{p.demo}</p></section>
- {teaching&&<Modal title={p.teachTitle} onClose={()=>setTeaching(false)}><p>{p.teachNote}</p><button className="button" onClick={()=>setTeaching(false)}>{c.okay}</button></Modal>}
+ <aside className="teach-banner"><div><span className="section-kicker">{c.tagline}</span><h2>{p.skillCta}</h2><p>{p.skillText}</p></div><Link className="button teach-button" to="/signup">{p.teach}</Link></aside><p className="catalog-demo">{p.demo}</p></section>
+
  </main>;
 }

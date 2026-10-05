@@ -1,6 +1,7 @@
 export const notificationsCopy = {
   ar: {
     title: "الإشعارات",
+    instructorIntro: "تابع تحديثات دوراتك وأدائها وتفاعلات المتعلّمين.", teaching: "الدورات", performance: "الأداء", viewPerformance: "عرض الأداء", createCourse: "إنشاء دورة",
     intro: "تابع تحديثات تعلّمك وتفاعلاتك في إسهام.",
     demo:
       "الإشعارات المعروضة أمثلة تجريبية، وليست أحداثًا قادمة من حساب أو مدرّب. حالة القراءة تُحفظ في هذا المتصفح.",
@@ -31,6 +32,7 @@ export const notificationsCopy = {
 
   en: {
     title: "Notifications",
+    instructorIntro: "Follow course updates, performance, and learner interactions.", teaching: "Courses", performance: "Performance", viewPerformance: "View performance", createCourse: "Create a course",
     intro: "Follow learning updates and interactions on Esham.",
     demo:
       "These are example notifications, not events from an account or instructor. Read status is saved in this browser.",
@@ -59,4 +61,3 @@ export const notificationsCopy = {
     filters: "Filter notifications",
   },
 };
-

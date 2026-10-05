@@ -1,3 +1,5 @@
+import useAccountName from "../../hooks/useAccountName";
+import NotificationBell from "../shared/NotificationBell";
 import { useState } from "react";
 import { NavLink, Link } from "react-router";
 
@@ -10,6 +12,7 @@ import PointsBadge from "../shared/PointsBadge";
 import logo from "../../assets/esham-logo.png";
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 export default function LearnerNavigation() {
+  const accountName = useAccountName();
   const {
     language,
     theme,
@@ -34,11 +37,7 @@ export default function LearnerNavigation() {
       "/learner/reviews",
       language === "ar" ? "التقييمات" : "Reviews",
     ],
-    [
-      "/learner/notifications",
-      language === "ar" ? "الإشعارات" : "Notifications",
-    ],
-  ];
+];
 
   const { balance } = useLearnerWallet();
 
@@ -105,6 +104,8 @@ export default function LearnerNavigation() {
         </div>
 
         <div className="learner-header-actions">
+<NotificationBell role="learner" onClick={() => setOpen(false)} />
+<Link className="preference-button" to="/learner/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
           <Link className="learner-switch-role" to="/instructor">
             {language === "ar"
               ? "معاينة واجهة المعلّم"
@@ -118,18 +119,18 @@ export default function LearnerNavigation() {
             onClick={() => setOpen(false)}
           />
 
-          <span className="learner-profile">
+          <Link to="/learner/profile" className="learner-profile" aria-label={language === "ar" ? "تعديل الملف الشخصي" : "Edit profile"} onClick={() => setOpen(false)}>
             <span className="learner-profile-avatar">
               <Icon name="user" size={18} />
             </span>
 
             <span className="learner-profile-copy">
-              <strong>{learnerDemo.name[language]}</strong>
+              <strong>{accountName || learnerDemo.name[language]}</strong>
               <small>
                 {language === "ar" ? "متعلّم تجريبي" : "Demo learner"}
               </small>
             </span>
-          </span>
+          </Link>
         </div>
       </div>
     </header>

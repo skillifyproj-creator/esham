@@ -1,3 +1,4 @@
+import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import Icon from "../../components/Icon";
@@ -90,7 +91,7 @@ export default function InstructorPerformancePage() {
               </span>
             </div>
 
-            <p>دورة: {courseTitle}</p>
+            <p>دورة: {courseTitle}</p><p>{language === "ar" ? "الإحصاءات الحالية نموذج تجريبي ثابت، ولا تتغير بتغيير الفترة أو الدورة." : "Current statistics are a fixed demo and do not change with the period or course."}</p>
           </div>
 
           <div className="instructor-performance-actions">
@@ -110,7 +111,7 @@ export default function InstructorPerformancePage() {
             </label>
 
             <Link
-              to={courseId ? `/courses/${courseId}` : "/instructor/courses"}
+              to={instructorPublicCourseIds[courseId] ? `/courses/${instructorPublicCourseIds[courseId]}` : "/instructor/courses"}
               className="instructor-performance-button"
             >
               <Icon name="eye" size={15} />

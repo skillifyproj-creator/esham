@@ -23,16 +23,16 @@ export default function HomePage() {
       ? courses
       : courses.filter((course) => course.category === category);
   const categoryName = (key) => c.categories[categoryKeys.indexOf(key)];
-  const account = (mode) => setModal({ type: "account", mode });
+
   const startQuiz = () => {
     setInterest("");
     setResult(false);
     setModal({ type: "quiz" });
   };
-  const title = modal?.type === "account" ? c[modal.mode] : c.quizTitle;
+  const title = c.quizTitle;
   return (
     <>
-      <Header onAccount={account} />
+      <Header />
       <main id="home">
         <section className="hero container">
           <div className="hero-copy">
@@ -43,12 +43,12 @@ export default function HomePage() {
             <h1>{c.heroTitle}</h1>
             <p>{c.heroText}</p>
             <div className="button-row">
-              <button className="button" onClick={() => account("signup")}>
+              <Link className="button" to="/signup">
                 {c.start}
                 <span className="direction-arrow" aria-hidden="true">
                   ←
                 </span>
-              </button>
+              </Link>
               <Link className="button button-outline" to="/courses">
                 {c.discover}
               </Link>
@@ -173,12 +173,12 @@ export default function HomePage() {
           <h2>{c.ctaTitle}</h2>
           <p>{c.ctaText}</p>
           <div className="button-row">
-            <button className="button" onClick={() => account("signup")}>
+            <Link className="button" to="/signup">
               {c.join}
-            </button>
-            <a className="button button-outline" href="#how">
+            </Link>
+            <Link className="button button-outline" to="/signup">
               {c.contribute}
-            </a>
+            </Link>
           </div>
         </section>
       </main>
@@ -200,14 +200,7 @@ export default function HomePage() {
       </footer>
       {modal && (
         <Modal title={title} onClose={() => setModal(null)}>
-          {modal.type === "account" && (
-            <>
-              <p>{c.accountNote}</p>
-              <button className="button" onClick={() => setModal(null)}>
-                {c.okay}
-              </button>
-            </>
-          )}
+
           {modal.type === "quiz" &&
             (result ? (
               <>

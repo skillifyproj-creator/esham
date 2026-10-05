@@ -1,0 +1,12 @@
+export const interestAreas = [
+ { category: 'programming', icon: 'code', description: { ar: 'تطوير الويب وبناء التطبيقات البرمجية', en: 'Web development and building applications' } },
+ { category: 'design', icon: 'design', description: { ar: 'تصميم الواجهات وتجربة المستخدم والهوية', en: 'Interfaces, user experience, and visual identity' } },
+ { category: 'photography', icon: 'camera', description: { ar: 'أساسيات التصوير والإضاءة والتكوين', en: 'Photography, lighting, and composition' } },
+ { category: 'marketing', icon: 'chart', description: { ar: 'التسويق الرقمي والوصول إلى الجمهور', en: 'Digital marketing and reaching your audience' } },
+ { category: 'crafts', icon: 'leaf', description: { ar: 'التطريز والفنون والحِرف الإبداعية', en: 'Embroidery, arts, and creative crafts' } },
+ { category: 'business', icon: 'book', description: { ar: 'تنظيم الوقت والإنتاجية وتطوير المهارات', en: 'Time management, productivity, and skill development' } },
+];
+export const interestsCopy = {
+ ar: { titles: { learner: 'ما المهارات التي ترغب بتعلّمها؟', instructor: 'ما المجالات التي ترغب بمشاركة خبرتك فيها؟', both: 'ما المجالات التي ترغب بتعلّمها ومشاركتها؟' }, intro: 'اختر المجالات الأقرب إليك. يمكنك اختيار أكثر من مجال وتعديل اختياراتك خلال الإعداد.', multiple: 'اختر مجالًا واحدًا على الأقل، أو اجمع بين عدة مجالات.', selected: 'محددة', choose: 'اختر هذا المجال', chosen: 'مختارة', course: 'دورة في الكتالوج', courses: 'دورات في الكتالوج', business: 'الأعمال وتطوير الذات', available: 'متاحة حاليًا', note: 'كل مجال يضم الدورات المرتبطة به. اختيارك هنا يحدّد اهتماماتك فقط، ولا يسجّلك في دورة أو يخصم نقاطًا.', empty: 'المزيد قريبًا', clear: 'مسح الاختيارات', path: 'مسارك', cost: 'نقطة للتسجيل' },
+ en: { titles: { learner: 'Which skills would you like to learn?', instructor: 'Where would you like to share your expertise?', both: 'What would you like to learn and share?' }, intro: 'Choose the areas closest to your interests. Select more than one and adjust your choices during setup.', multiple: 'Choose at least one area, or combine several interests.', selected: 'selected', choose: 'Choose this area', chosen: 'Selected', course: 'catalog course', courses: 'catalog courses', business: 'Business and personal development', available: 'Currently available', note: 'Each category groups related courses. Your choices here only set your interests; they do not enroll you in a course or spend points.', empty: 'More coming soon', clear: 'Clear selections', path: 'Your path', cost: 'enrollment points' },
+};

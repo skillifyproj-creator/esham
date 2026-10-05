@@ -1,0 +1,28 @@
+export const recoveryCopy = {
+  ar: {
+    resetTitle: 'إعادة تعيين كلمة المرور', resetIntro: 'خطوة جديدة للعودة إلى رحلتك. اختر كلمة مرور قوية يسهل عليك تذكّرها.',
+    forgotTitle: 'نسيت كلمة المرور؟', forgotIntro: 'لا تقلق، يحدث ذلك. أدخل البريد الإلكتروني المرتبط بحسابك لاستعادة الوصول إليه.',
+    eyebrow: 'حسابك في إسهام', password: 'كلمة المرور الجديدة', confirm: 'تأكيد كلمة المرور', email: 'البريد الإلكتروني',
+    passwordPlaceholder: 'أدخل كلمة المرور الجديدة', confirmPlaceholder: 'أعد إدخال كلمة المرور', resetSubmit: 'تعيين كلمة المرور', forgotSubmit: 'إرسال رابط الاستعادة',
+    show: 'إظهار كلمة المرور', hide: 'إخفاء كلمة المرور', login: 'تسجيل الدخول', remembered: 'تذكّرت كلمة المرور؟', home: 'العودة للرئيسية',
+    light: 'تفعيل الوضع الفاتح', dark: 'تفعيل الوضع الداكن', heroTitle: 'عد لتتعلّم، وتشارك، وتُسهم.', heroText: 'معرفة تنمو معك، ومجتمع يرافق خطواتك. رحلتك في إسهام تنتظرك.',
+    secure: 'بداية آمنة لرحلتك', secureText: 'كلمة مرور قوية تحمي فرصك القادمة.', strength: 'قوة كلمة المرور', weak: 'ضعيفة', medium: 'متوسطة', strong: 'قوية',
+    length: '8 أحرف على الأقل', letter: 'حرف واحد على الأقل', number: 'رقم واحد على الأقل', optional: 'إضافة رمز تجعلها أقوى',
+    passwordError: 'استخدم 8 أحرف على الأقل، تتضمن حرفًا ورقمًا.', confirmError: 'كلمتا المرور غير متطابقتين.', confirmRequired: 'يرجى تأكيد كلمة المرور الجديدة.', emailError: 'أدخل بريدًا إلكترونيًا صحيحًا.',
+    resetReady: 'كلمة المرور تستوفي الشروط. تغييرها فعليًا يتطلب رابط استعادة صالحًا وربط خدمة الحسابات.',
+    forgotReady: 'تم التحقق من البريد. إرسال رابط الاستعادة سيتاح عند ربط خدمة الحسابات؛ لم يُرسل بريد الآن.', preview: 'معاينة صفحة تعيين كلمة المرور', editEmail: 'تعديل البريد الإلكتروني',
+  },
+  en: {
+    resetTitle: 'Reset your password', resetIntro: 'A fresh step back to your journey. Choose a strong password that is easy for you to remember.',
+    forgotTitle: 'Forgot your password?', forgotIntro: 'It happens. Enter the email address associated with your account to regain access.',
+    eyebrow: 'Your Esham account', password: 'New password', confirm: 'Confirm password', email: 'Email address',
+    passwordPlaceholder: 'Enter your new password', confirmPlaceholder: 'Re-enter your password', resetSubmit: 'Set password', forgotSubmit: 'Send recovery link',
+    show: 'Show password', hide: 'Hide password', login: 'Log in', remembered: 'Remember your password?', home: 'Back to home',
+    light: 'Use light mode', dark: 'Use dark mode', heroTitle: 'Return to learning, sharing, and contributing.', heroText: 'Knowledge that grows with you, and a community beside you. Your Esham journey awaits.',
+    secure: 'A secure start to your journey', secureText: 'A strong password protects your next opportunities.', strength: 'Password strength', weak: 'Weak', medium: 'Medium', strong: 'Strong',
+    length: 'At least 8 characters', letter: 'At least one letter', number: 'At least one number', optional: 'Add a symbol for extra strength',
+    passwordError: 'Use at least 8 characters, including a letter and a number.', confirmError: 'The passwords do not match.', confirmRequired: 'Confirm your new password.', emailError: 'Enter a valid email address.',
+    resetReady: 'Your password meets the requirements. Updating it requires a valid recovery link and the account service connection.',
+    forgotReady: 'The email format is valid. Recovery email delivery will be available when the account service is connected; no email was sent.', preview: 'Preview the reset password page', editEmail: 'Edit email address',
+  },
+};

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -10,6 +10,8 @@ import "../../styles/instructor-create-course.css";
 export default function CreateCoursePage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
+  const navigate = useNavigate();
+  const [saveStatus, setSaveStatus] = useState("");
   const { instructor, courses, courseDraft } = instructorDemo;
   const coursePoints = courses[0].coursePoints;
   const categoryLabels = {
@@ -81,20 +83,9 @@ export default function CreateCoursePage() {
   };
 
   const saveDraft = () => {
-    console.log("تم حفظ المسودة", {
-      form,
-      objectives,
-      courseImage,
-    });
+    setSaveStatus(language === "ar" ? "البيانات موجودة في معاينة الصفحة فقط؛ حفظ المسودة الدائم يحتاج ربط خدمة الدورات." : "Data remains in this page preview only; persistent draft saving requires the course service.");
   };
-
-  const continueToCurriculum = () => {
-    console.log("الانتقال إلى الخطوة الثانية", {
-      form,
-      objectives,
-      courseImage,
-    });
-  };
+  const continueToCurriculum = () => navigate("/instructor/courses/new/curriculum");
 
   return (
     <section className="instructor-create-course-page">
@@ -126,11 +117,12 @@ export default function CreateCoursePage() {
           </div>
         </header>
 
+        {saveStatus && <p className="account-note" role="status">{saveStatus}</p>}
         <div className="instructor-create-stepper-row">
           <InstructorCourseStepper currentStep={1} />
           <div className="instructor-create-save-state">
             <Icon name="cloud" size={15} />
-            <span>{c.autoSavedDraft}</span>
+            <span>{language === "ar" ? "معاينة تجريبية · دون حفظ دائم" : "Demo preview · No persistent saving"}</span>
           </div>
         </div>
 
@@ -569,7 +561,7 @@ export default function CreateCoursePage() {
               <Icon name="shield-check" size={17} />
 
               <p>
-                {c.secureSaveNote}
+                {language === "ar" ? "معاينة تجريبية: بيانات الإنشاء لا تُحفظ بعد مغادرة الصفحة. الحفظ الدائم وإرسال الدورة يحتاجان ربط خدمة الدورات." : "Demo preview: creation data is not retained after leaving this page. Persistent saving and submission require the course service."}
               </p>
             </section>
           </aside>

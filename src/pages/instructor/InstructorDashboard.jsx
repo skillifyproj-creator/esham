@@ -1,3 +1,5 @@
+import useAccountName from "../../hooks/useAccountName";
+import PendingFeature from "../../components/shared/PendingFeature";
 import { Link } from "react-router";
 import Icon from "../../components/Icon";
 import { instructorDemo } from "../../data/instructorDemo";
@@ -6,6 +8,7 @@ import instructorCopy from "../../i18n/instructorCopy";
 import "../../styles/instructor-dashboard.css";
 
 export default function InstructorDashboard() {
+  const accountName = useAccountName();
   const { language } = usePreferences();
   const c = instructorCopy[language];
   const { instructor, stats, performance, courses, needsAttention, activities } =
@@ -26,7 +29,7 @@ export default function InstructorDashboard() {
         <section className="instructor-welcome">
           <div>
             <h1>
-              {c.welcome} {instructor.name[language]} <span>👋</span>
+              {c.welcome} {(accountName || instructor.name[language])} <span>👋</span>
             </h1>
 
             <p>
@@ -138,9 +141,9 @@ export default function InstructorDashboard() {
                 </div>
 
                 <div className="instructor-period-tabs">
-                  <button>{c.thisMonth}</button>
-                  <button>{c.thisWeek}</button>
-                  <button>{c.lastSixMonths}</button>
+                  <button type="button" disabled title={language === "ar" ? "الإحصاءات الحالية تجريبية وثابتة" : "Current statistics are fixed demo data"}>{c.thisMonth}</button>
+                  <button type="button" disabled title={language === "ar" ? "الإحصاءات الحالية تجريبية وثابتة" : "Current statistics are fixed demo data"}>{c.thisWeek}</button>
+                  <button type="button" disabled title={language === "ar" ? "الإحصاءات الحالية تجريبية وثابتة" : "Current statistics are fixed demo data"}>{c.lastSixMonths}</button>
                 </div>
               </div>
 
@@ -156,9 +159,9 @@ export default function InstructorDashboard() {
                 </span>
 
                 <div className="chart-filters">
-                  <button className="active">{c.students}</button>
-                  <button>{c.enrollments}</button>
-                  <button>{c.reviews}</button>
+                  <button className="active" type="button" disabled title={language === "ar" ? "الإحصاءات الحالية تجريبية وثابتة" : "Current statistics are fixed demo data"}>{c.students}</button>
+                  <button type="button" disabled title={language === "ar" ? "الإحصاءات الحالية تجريبية وثابتة" : "Current statistics are fixed demo data"}>{c.enrollments}</button>
+                  <button type="button" disabled title={language === "ar" ? "الإحصاءات الحالية تجريبية وثابتة" : "Current statistics are fixed demo data"}>{c.reviews}</button>
                 </div>
               </div>
 
@@ -289,12 +292,11 @@ export default function InstructorDashboard() {
                       </div>
                     </div>
 
-                    <Link
-                      to={`/instructor/courses/${course.id}`}
+                    <PendingFeature
                       className="instructor-manage-button"
                     >
                       {c.manageCourse}
-                    </Link>
+                    </PendingFeature>
                   </article>
                 ))}
               </div>
@@ -373,15 +375,15 @@ export default function InstructorDashboard() {
                   <span>{c.createNewCourse}</span>
                 </Link>
 
-                <Link to="/instructor/courses/new/lesson">
+                <Link to="/instructor/courses/new/curriculum">
                   <Icon name="lesson" size={19} />
                   <span>{c.addNewLesson}</span>
                 </Link>
 
-                <Link to="/instructor/certificates">
+                <PendingFeature>
                   <Icon name="award" size={19} />
                   <span>{c.learnerCertificates}</span>
-                </Link>
+                </PendingFeature>
 
                 <Link to="/instructor/feedback">
                   <Icon name="star" size={19} />

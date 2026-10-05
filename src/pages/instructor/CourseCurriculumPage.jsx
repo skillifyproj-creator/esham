@@ -1,3 +1,4 @@
+import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -809,7 +810,7 @@ export default function CourseCurriculumPage() {
                     : "إجراءات سريعة")}
               </h3>
 
-              <button type="button">
+              <PendingFeature >
                 {c.curriculum?.downloadPlan ||
                   (language === "en"
                     ? "Download curriculum plan"
@@ -818,9 +819,9 @@ export default function CourseCurriculumPage() {
                   name="arrow-left"
                   size={15}
                 />
-              </button>
+              </PendingFeature>
 
-              <button type="button">
+              <PendingFeature >
                 {c.curriculum?.support ||
                   (language === "en"
                     ? "Contact academic support"
@@ -829,7 +830,7 @@ export default function CourseCurriculumPage() {
                   name="arrow-left"
                   size={15}
                 />
-              </button>
+              </PendingFeature>
             </section>
           </aside>
         </div>
@@ -839,12 +840,11 @@ export default function CourseCurriculumPage() {
       <div className="curriculum-bottom-bar">
         <div className="container">
           <div className="curriculum-bottom-info">
-            <span>
-              {c.curriculum?.backToBasics ||
+            <Link to="/instructor/courses/new">{c.curriculum?.backToBasics ||
                 (language === "en"
                   ? "Back to Basic Information"
                   : "العودة للمعلومات الأساسية")}
-            </span>
+            </Link>
 
             <span className="curriculum-bottom-dot">
               •
@@ -881,7 +881,7 @@ export default function CourseCurriculumPage() {
               className="instructor-button instructor-button-outline"
               onClick={() =>
                 navigate(
-                  `/instructor/courses/${course.id}`,
+                  "/instructor/courses/new/review",
                 )
               }
             >

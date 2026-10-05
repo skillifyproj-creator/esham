@@ -1,3 +1,6 @@
+import AccountPage from "./pages/shared/AccountPage";
+import { NotificationsProvider } from "./context/NotificationsContext";
+import NotificationsPage from "./pages/shared/NotificationsPage";
 import { useLayoutEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Link, Navigate } from "react-router";
 
@@ -11,6 +14,9 @@ import CoursesPage from "./pages/CoursesPage";
 import CourseDetailsPage from "./pages/CourseDetailsPage";
 import SignupPage from "./pages/auth/SignupPage";
 import LoginPage from "./pages/auth/LoginPage";
+import OnboardingPage from "./pages/auth/OnboardingPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -73,7 +79,7 @@ function RouteShell() {
   const isHome = pathname === "/";
   const isInstructor = pathname.startsWith("/instructor");
   const isLearner = pathname.startsWith("/learner");
-  const isAuth = ["/signup", "/login"].includes(pathname);
+  const isAuth = ["/signup", "/login", "/forgot-password", "/reset-password"].includes(pathname) || pathname.startsWith("/onboarding");
   const assistantPath = isLearner
     ? "/learner/assistant"
     : isInstructor
@@ -100,12 +106,19 @@ function RouteShell() {
         <Route path="/assistant" element={<EshamChatbot />} />
 
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/onboarding" element={<Navigate to="/onboarding/role" replace />} />
+        <Route path="/onboarding/:step" element={<OnboardingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* =================================
             Learner Pages
         ================================= */}
         <Route path="/learner" element={<LearnerLayout />}>
+<Route path="profile" element={<AccountPage role="learner" section="profile" />} />
+<Route path="settings" element={<AccountPage role="learner" section="settings" />} />
+<Route path="settings/security" element={<AccountPage role="learner" section="security" />} />
           <Route index element={<LearnerDashboard />} />
 
           <Route path="courses" element={<LearnerCoursesPage />} />
@@ -133,6 +146,10 @@ function RouteShell() {
         ================================= */}
 
         <Route path="/instructor" element={<InstructorLayout />}>
+<Route path="profile" element={<AccountPage role="instructor" section="profile" />} />
+<Route path="settings" element={<AccountPage role="instructor" section="settings" />} />
+<Route path="settings/security" element={<AccountPage role="instructor" section="security" />} />
+          <Route path="notifications" element={<NotificationsPage role="instructor" />} />
           <Route index element={<InstructorDashboard />} />
 
           <Route path="courses" element={<InstructorCoursesPage />} />
@@ -270,7 +287,7 @@ export default function App() {
     <PreferencesProvider>
       <BrowserRouter>
         <LearnerProvider>
-          <RouteShell />
+          <NotificationsProvider><RouteShell /></NotificationsProvider>
         </LearnerProvider>
       </BrowserRouter>
     </PreferencesProvider>

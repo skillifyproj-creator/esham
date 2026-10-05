@@ -7,6 +7,7 @@ import Icon from "../../components/Icon";
 import logo from "../../assets/esham-logo.png";
 
 import "../../styles/auth.css";
+import "../../styles/auth-recovery.css";
 
 export default function LoginPage() {
   const {
@@ -183,14 +184,7 @@ export default function LoginPage() {
               );
             })}
 
-            <button
-              className="auth-forgot"
-              type="button"
-              disabled
-              title={t.forgotSoon}
-            >
-              {t.forgot}
-            </button>
+            <Link className="auth-forgot" to="/forgot-password">{t.forgot}</Link>
 
             <button className="auth-submit" type="submit">
               {t.submit}
@@ -203,6 +197,7 @@ export default function LoginPage() {
             )}
           </form>
 
+          <p className="auth-existing"><Link to="/learner">{language === "ar" ? "معاينة المنصة بحساب تجريبي" : "Preview with a demo account"}</Link></p>
           <p className="auth-existing">
             {t.noAccount}{" "}
             <Link to="/signup">{t.signup}</Link>

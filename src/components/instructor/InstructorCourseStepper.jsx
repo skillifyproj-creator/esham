@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { Fragment } from "react";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -30,8 +31,7 @@ export default function InstructorCourseStepper({ currentStep }) {
 
         return (
           <Fragment key={stepNumber}>
-            <div
-              className={`instructor-course-step is-${state}`}
+            <Link to={["/instructor/courses/new", "/instructor/courses/new/curriculum", "/instructor/courses/new/review"][index]} className={`instructor-course-step is-${state}`}
               aria-current={isActive ? "step" : undefined}
             >
               <span className="instructor-course-step-indicator">
@@ -46,7 +46,7 @@ export default function InstructorCourseStepper({ currentStep }) {
                 <strong>{step.title}</strong>
                 <small>{step.hint}</small>
               </span>
-            </div>
+            </Link>
 
             {index < steps.length - 1 && (
               <span

@@ -1,0 +1,7 @@
+// Example instructor events; replaced by account API events when connected.
+export const instructorNotifications = [
+ { id: 'instructor-review-1', category: 'interaction', action: 'feedback', createdAt: '2026-10-05T08:00:00Z', read: false, title: { ar: 'تابع تقييمات المتعلّمين', en: 'Review learner feedback' }, body: { ar: 'راجع آراء المتعلّمين حول دوراتك، وأضف ردًا يجيب عن أسئلتهم.', en: 'Read feedback on your courses and respond to learner questions.' } },
+ { id: 'instructor-course-1', category: 'teaching', action: 'courses', createdAt: '2026-10-04T12:00:00Z', read: false, title: { ar: 'تابع حالة دوراتك', en: 'Check your course status' }, body: { ar: 'اطّلع على الدورات المنشورة والمسودات والدورات التي تحتاج إلى تعديل.', en: 'Review published courses, drafts, and courses that need changes.' } },
+ { id: 'instructor-performance-1', category: 'performance', action: 'performance', courseId: 'photography', createdAt: '2026-10-03T10:00:00Z', read: false, title: { ar: 'اطّلع على أداء دورة التصوير', en: 'Explore photography course performance' }, body: { ar: 'تابع أعداد المتعلّمين ومعدّلات الإكمال وتوزيع التقييمات في صفحة الأداء.', en: 'Track learner counts, completion rates, and ratings on the performance page.' } },
+ { id: 'instructor-create-1', category: 'teaching', action: 'create', createdAt: '2026-10-01T09:00:00Z', read: true, title: { ar: 'شارك مهارة جديدة', en: 'Share a new skill' }, body: { ar: 'ابدأ إعداد دورة جديدة، وحدّد أهدافها ومحتواها التعليمي.', en: 'Start a new course and define its objectives and learning content.' } },
+];

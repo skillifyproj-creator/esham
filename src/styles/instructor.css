@@ -571,7 +571,7 @@
   gap: 18px;
 }
 
-.instructor-footer-links a {
+.instructor-footer-links a, .instructor-footer-links > button {
   color: var(--muted);
 
   font-size: 10px;
@@ -582,7 +582,7 @@
   transition: color 0.2s ease;
 }
 
-.instructor-footer-links a:hover {
+.instructor-footer-links a:hover, .instructor-footer-links > button:hover {
   color: var(--primary-300);
 }
 
@@ -689,7 +689,7 @@
     gap: 10px 16px;
   }
 
-  .instructor-footer-links a {
+  .instructor-footer-links a, .instructor-footer-links > button {
     font-size: 9px;
   }
 
@@ -8480,3 +8480,8 @@
     flex: 1;
   }
 }
+.instructor-footer-links > button { border: 0; background: transparent; padding: 0; cursor: pointer; font-family: inherit; }
+
+.instructor-course-step { text-decoration: none; color: inherit; }
+.instructor-course-step:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+.instructor-dashboard button:disabled { opacity: .65; cursor: not-allowed; }

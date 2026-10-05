@@ -1,3 +1,5 @@
+import { pointsPolicy } from "../../data/pointsPolicy";
+import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import Icon from "../../components/Icon";
@@ -56,7 +58,7 @@ export default function EditLessonPage() {
   const [savedMessage, setSavedMessage] = useState(
     isNewLesson
       ? "مسودة جديدة غير محفوظة."
-      : "تم حفظ آخر التغييرات تلقائيًا قبل دقيقة واحدة.",
+      : "معاينة الدرس التجريبية؛ الحفظ محلي داخل جلسة التطبيق.",
   );
 
   const readinessItems = useMemo(
@@ -385,9 +387,9 @@ export default function EditLessonPage() {
 
               <div className="instructor-lesson-video-box">
                 <div className="instructor-lesson-video-preview">
-                  <button type="button" aria-label="تشغيل الفيديو">
+                  <PendingFeature  aria-label="تشغيل الفيديو">
                     <Icon name="video" size={24} />
-                  </button>
+                  </PendingFeature>
 
                   <span>معاينة الفيديو</span>
 
@@ -413,21 +415,21 @@ export default function EditLessonPage() {
                 </div>
 
                 <div className="instructor-lesson-video-actions">
-                  <button
-                    type="button"
+                  <PendingFeature
+
                     className="instructor-course-button instructor-course-button-outline"
                   >
                     <Icon name="video" size={15} />
                     معاينة الفيديو
-                  </button>
+                  </PendingFeature>
 
-                  <button
-                    type="button"
+                  <PendingFeature
+
                     className="instructor-course-button instructor-course-button-outline"
                   >
                     <Icon name="edit" size={15} />
                     تغيير الفيديو
-                  </button>
+                  </PendingFeature>
                 </div>
               </div>
 
@@ -539,25 +541,25 @@ export default function EditLessonPage() {
                     </div>
 
                     <div className="instructor-resource-actions">
-                      <button type="button">
+                      <PendingFeature  aria-label={language === "ar" ? "معاينة المورد" : "Preview resource"}>
                         <Icon name="arrow-left" size={14} />
-                      </button>
+                      </PendingFeature>
 
-                      <button type="button">
+                      <PendingFeature  aria-label={language === "ar" ? "حذف المورد" : "Delete resource"}>
                         <Icon name="trash" size={14} />
-                      </button>
+                      </PendingFeature>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button
-                type="button"
+              <PendingFeature
+
                 className="instructor-resource-add"
               >
                 <Icon name="plus" size={15} />
                 إضافة مورد أو ملف مرفق
-              </button>
+              </PendingFeature>
             </section>
           </main>
 
@@ -569,7 +571,7 @@ export default function EditLessonPage() {
                 <strong>جاهزية الدرس للاعتماد</strong>
 
                 <span className="instructor-ready-badge">
-                  مكتمل وجاهز
+                  {readiness === 100 ? "مكتمل وجاهز" : "يحتاج استكمال"}
                 </span>
               </div>
 
@@ -638,12 +640,11 @@ export default function EditLessonPage() {
               <div className="instructor-points-info">
                 <div>
                   <Icon name="star" size={15} />
-                  <strong>Skillify Points</strong>
+                  <strong>{language === "ar" ? "نقاط إسهام" : "Esham Points"}</strong>
                 </div>
 
                 <p>
-                  يحصل المتعلم على 20 نقطة عند إتمام كافة دروس
-                  هذا القسم بنجاح.
+                  {language === "ar" ? `مكافأة إكمال الدورة ${pointsPolicy.courseReward} نقطة بعد اعتماد الإكمال؛ لا تُمنح تلقائيًا عند إنهاء القسم.` : `The course completion reward is ${pointsPolicy.courseReward} points after approval; completing a section does not award it automatically.`}
                 </p>
               </div>
             </section>
@@ -660,13 +661,13 @@ export default function EditLessonPage() {
                 ينفذها المتعلم ويقدمها للمدرب.
               </p>
 
-              <button
-                type="button"
+              <Link to={section?.task?.id ? `/instructor/courses/${courseId}/sections/${lesson.sectionId}/tasks/${section.task.id}/edit` : `/instructor/courses/${courseId}/sections/${lesson.sectionId}/tasks/new`}
+
                 className="instructor-task-button"
               >
                 إدارة مهمة هذا القسم
                 <Icon name="arrow-left" size={14} />
-              </button>
+              </Link>
             </section>
           </aside>
         </div>

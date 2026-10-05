@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { usePreferences } from "../../context/PreferencesContext";
 import { signupCopy } from "../../i18n/signupCopy";
@@ -9,6 +9,7 @@ import logo from "../../assets/esham-logo.png";
 import "../../styles/auth.css";
 
 export default function SignupPage() {
+  const navigate = useNavigate();
   const {
     language,
     theme,
@@ -77,6 +78,13 @@ export default function SignupPage() {
     const firstError = Object.keys(next)[0];
     inputs.current[firstError]?.focus();
 
+    if (Object.keys(next).length === 0) {
+      // Frontend setup only; never persist passwords or claim account creation.
+      try {
+        sessionStorage.setItem('esham-onboarding-draft-v1', JSON.stringify({ name: values.name.trim(), username: '', bio: '', role: '', interests: [], teachingAreas: [], customSkills: [], goal: null }));
+      } catch { /* Setup is still available without browser storage. */ }
+      navigate('/onboarding/role');
+    }
     // ربط API التسجيل يتم هنا لاحقًا.
     // لا نحفظ كلمات المرور في localStorage.
   }
@@ -228,6 +236,7 @@ export default function SignupPage() {
             {ready && (
               <p className="auth-status" role="status">
                 {t.ready}
+<br /><Link to="/onboarding/role">{language === "ar" ? "متابعة إعداد التجربة" : "Continue experience setup"}</Link>
               </p>
             )}
           </form>
@@ -248,7 +257,7 @@ export default function SignupPage() {
         aria-labelledby="auth-hero-title"
       >
         <img
-          src="\images\auth-learning.jpg"
+          src="/images/auth-learning.jpg"
           alt=""
           onError={(event) => {
             event.currentTarget.hidden = true;

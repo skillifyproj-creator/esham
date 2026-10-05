@@ -1,3 +1,5 @@
+import { courses } from "../../data/courses";
+import PendingFeature from "../../components/shared/PendingFeature";
 import { Link } from "react-router";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
@@ -68,13 +70,13 @@ export default function CourseReviewPage() {
               العودة لتحرير المنهج
             </Link>
 
-            <button
-              type="button"
+            <PendingFeature
+
               className="instructor-review-submit-button"
             >
               إرسال الدورة للمراجعة
               <Icon name="arrow-left" size={15} />
-            </button>
+            </PendingFeature>
           </div>
         </div>
 
@@ -100,7 +102,7 @@ export default function CourseReviewPage() {
             <section className="instructor-course-preview-card">
               <div className="instructor-course-preview-cover">
                 <img
-                  src="/course-photography-cover.jpg"
+                  src={courses.find(course => course.id === 6)?.image}
                   alt="التصوير الفوتوغرافي للمبتدئين"
                 />
 
@@ -128,10 +130,10 @@ export default function CourseReviewPage() {
                     </h3>
                   </div>
 
-                  <button type="button" className="instructor-preview-edit">
+                  <Link to="/instructor/courses/new"  className="instructor-preview-edit">
                     <Icon name="edit" size={14} />
                     تعديل
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="instructor-preview-stats">
@@ -172,10 +174,10 @@ export default function CourseReviewPage() {
                   <h2>عن الدورة التدريبية</h2>
                 </div>
 
-                <button type="button">
+                <Link to="/instructor/courses/new" >
                   <Icon name="edit" size={13} />
                   تعديل الوصف
-                </button>
+                </Link>
               </div>
 
               <p>
@@ -199,10 +201,10 @@ export default function CourseReviewPage() {
                   <h2>ماذا سيتعلم الطالب في هذه الدورة؟</h2>
                 </div>
 
-                <button type="button">
+                <Link to="/instructor/courses/new" >
                   <Icon name="edit" size={13} />
                   تعديل المخرجات
-                </button>
+                </Link>
               </div>
 
               <div className="instructor-learning-outcomes">
@@ -243,10 +245,10 @@ export default function CourseReviewPage() {
                   <h2>منهاج ومحتوى الدورة</h2>
                 </div>
 
-                <button type="button">
+                <Link to="/instructor/courses/new/curriculum" >
                   <Icon name="edit" size={13} />
                   تعديل المنهج
-                </button>
+                </Link>
               </div>
 
               <div className="instructor-curriculum-summary">
@@ -366,10 +368,10 @@ export default function CourseReviewPage() {
                 </div>
               </div>
 
-              <button type="button">
+              <PendingFeature >
                 تأكيد الإرسال للتدقيق
                 <Icon name="arrow-left" size={15} />
-              </button>
+              </PendingFeature>
 
               <Link to="/instructor/courses/new/curriculum">
                 العودة للتعديل

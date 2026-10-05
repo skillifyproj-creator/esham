@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import Icon from "./Icon";
 import logo from "../assets/esham-logo.png";
-import Modal from "./Modal";
+
 import { usePreferences } from "../context/PreferencesContext";
-export default function Header({ onAccount }) {
+export default function Header() {
   const [open, setOpen] = useState(false);
-  const [account, setAccount] = useState(null);
+
   const {
     copy: c,
     language,
@@ -21,11 +21,7 @@ export default function Header({ onAccount }) {
     [c.how, "/#how"],
     [c.why, "/#why"],
   ];
-  const showAccount = (mode) => {
-    setOpen(false);
-    if (onAccount) onAccount(mode);
-    else setAccount(mode);
-  };
+
   return (
     <>
       <header className="site-header">
@@ -92,29 +88,12 @@ export default function Header({ onAccount }) {
             </button>
           </div>
           <div className="header-actions">
-            <button
-              className="button button-outline button-small"
-              onClick={() => showAccount("signup")}
-            >
-              {c.signup}
-            </button>
-            <button
-              className="button button-small"
-              onClick={() => showAccount("login")}
-            >
-              {c.login}
-            </button>
+            <Link className="button button-outline button-small" to="/signup" onClick={() => setOpen(false)}>{c.signup}</Link>
+            <Link className="button button-small" to="/login" onClick={() => setOpen(false)}>{c.login}</Link>
           </div>
         </div>
       </header>
-      {account && (
-        <Modal title={c[account]} onClose={() => setAccount(null)}>
-          <p>{c.accountNote}</p>
-          <button className="button" onClick={() => setAccount(null)}>
-            {c.okay}
-          </button>
-        </Modal>
-      )}
+
     </>
   );
 }

@@ -1,3 +1,5 @@
+import useAccountName from "../../hooks/useAccountName";
+import NotificationBell from "../shared/NotificationBell";
 import { useState } from "react";
 import { Link, NavLink } from "react-router";
 import Icon from "../../components/Icon";
@@ -16,6 +18,7 @@ const instructorLinks = [
 ];
 
 export default function InstructorNavigation() {
+  const accountName = useAccountName();
   const [open, setOpen] = useState(false);
 
   const {
@@ -104,6 +107,8 @@ export default function InstructorNavigation() {
 
         {/* Right actions */}
         <div className="instructor-header-actions">
+<NotificationBell role="instructor" onClick={() => setOpen(false)} />
+<Link className="preference-button" to="/instructor/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
 
           {/* Language */}
           <button
@@ -165,7 +170,7 @@ export default function InstructorNavigation() {
 
             <span className="instructor-profile-copy">
               <strong>
-                {instructor.name[language]}
+                {accountName || instructor.name[language]}
               </strong>
 
               <small>
