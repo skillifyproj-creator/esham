@@ -1,3 +1,4 @@
+import useAccountProfile from '../../hooks/useAccountProfile';
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 
@@ -18,6 +19,7 @@ export default function LoginPage() {
   } = usePreferences();
 
   const t = loginCopy[language];
+  const profile = useAccountProfile();
 
   const [values, setValues] = useState({
     email: "",
@@ -170,7 +172,7 @@ export default function LoginPage() {
                         aria-pressed={visible}
                         onClick={() => setVisible((current) => !current)}
                       >
-                        <Icon name="eye" size={20} />
+                        <Icon name={visible ? "eye-off" : "eye"} size={20} />
                       </button>
                     )}
                   </div>
@@ -197,7 +199,7 @@ export default function LoginPage() {
             )}
           </form>
 
-          <p className="auth-existing"><Link to="/learner">{language === "ar" ? "معاينة المنصة بحساب تجريبي" : "Preview with a demo account"}</Link></p>
+          <p className="auth-existing"><Link to={profile.role === "instructor" ? "/instructor" : "/learner"}>{language === "ar" ? "معاينة المنصة بحساب تجريبي" : "Preview with a demo account"}</Link></p>
           <p className="auth-existing">
             {t.noAccount}{" "}
             <Link to="/signup">{t.signup}</Link>

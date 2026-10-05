@@ -7,7 +7,7 @@ import { profileSetupCopy } from "../../i18n/profileSetupCopy";
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
-import { onboardingCopy } from '../../i18n/onboardingCopy';
+import { onboardingCopy, getOnboardingGoals } from '../../i18n/onboardingCopy';
 import Icon from '../../components/Icon';
 import Modal from '../../components/Modal';
 import logo from '../../assets/esham-logo.png';
@@ -51,7 +51,7 @@ export default function OnboardingPage() {
   const current = steps.indexOf(step);
   const complete = step === 'complete';
   function update(patch) {
-    const next = { ...draft, ...patch };
+    const next = { ...draft, ...patch, ...(patch.role && patch.role !== draft.role ? { goal: null } : {}) };
     setDraft(next); setError('');
     try { sessionStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* The flow also works without storage. */ }
   }
@@ -61,13 +61,18 @@ export default function OnboardingPage() {
     event.preventDefault();
     const invalid = current === 0 && !draft.role ? 'roleError' : current === 1 && draft.name.trim().length < 2 ? 'nameError' : current === 1 && !validUsername(draft.username) ? 'usernameError' : current === 2 && skillRequirement ? skillRequirement : current === 3 && draft.goal === null ? 'goalError' : '';
     if (invalid) { setError(invalid); requestAnimationFrame(() => errorRef.current?.focus()); return; }
+    if (current === 3) {
+      try { localStorage.setItem('esham-account-profile-v1', JSON.stringify(draft)); } catch { /* Session preferences remain available. */ }
+      window.dispatchEvent(new Event('esham-profile-updated'));
+    }
     move(steps[current + 1] || 'complete');
   }
   if (current < 0 && !complete) return <main className="section container empty-state"><h1>{t.title}</h1><Link className="button" to="/onboarding/role">{t.label}</Link></main>;
   const firstIncomplete = !draft.role ? 0 : draft.name.trim().length < 2 || !validUsername(draft.username) ? 1 : skillRequirement ? 2 : draft.goal === null ? 3 : 4;
   if ((complete ? 4 : current) > firstIncomplete) return <Navigate to={`/onboarding/${steps[firstIncomplete]}`} replace />;
-  const title = [t.title, profileSetupCopy[language].title, draft.role === "instructor" ? teachingSkillsCopy[language].title : interestsCopy[language].titles[draft.role], t.goalsTitle][current];
-  const intro = [t.intro, profileSetupCopy[language].intro, draft.role === "instructor" ? teachingSkillsCopy[language].intro : interestsCopy[language].intro, t.goalsIntro][current];
+  const goalCopy = getOnboardingGoals(language, draft.role);
+  const title = [t.title, profileSetupCopy[language].title, draft.role === "instructor" ? teachingSkillsCopy[language].title : interestsCopy[language].titles[draft.role], goalCopy.title][current];
+  const intro = [t.intro, profileSetupCopy[language].intro, draft.role === "instructor" ? teachingSkillsCopy[language].intro : interestsCopy[language].intro, goalCopy.intro][current];
   return <div className="onboarding-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <header className="onboarding-header"><div className="container onboarding-header-inner"><Link to="/" aria-label={t.exit}><img src={logo} alt={language === 'ar' ? 'إسهام' : 'Esham'} /></Link><div className="onboarding-tools"><button type="button" onClick={toggleLanguage}>{language === 'ar' ? 'English' : 'العربية'}</button><button type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? t.light : t.dark}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={19} /></button><button type="button" onClick={() => setHelp(true)} aria-label={t.help}>?</button><Link to="/" aria-label={t.exit}><Icon name="close" size={21} /></Link></div></div></header>
     <main className="container onboarding-main">
@@ -84,7 +89,7 @@ export default function OnboardingPage() {
         {current === 0 && <aside className="onboarding-note"><span aria-hidden="true">ⓘ</span><p>{t.note}</p></aside>}
         {current === 1 && <ProfileSetup draft={draft} update={update} error={error} photo={photo} setPhoto={setPhoto} />}
         {current === 2 && <>{draft.role !== "instructor" && <InterestsSetup key="learning" mode="learning" draft={draft} update={update} />}{draft.role !== "learner" && <InterestsSetup key="teaching" mode="teaching" draft={draft} update={update} />}</>}
-        {current === 3 && <fieldset className="onboarding-choice-grid goals"><legend className="sr-only">{title}</legend>{t.goals.map((goal, index) => <label key={index} className={draft.goal === index ? 'selected' : ''}><input type="radio" name="goal" checked={draft.goal === index} onChange={() => update({ goal: index })} /><span>{goal}</span></label>)}</fieldset>}
+        {current === 3 && <fieldset className="onboarding-choice-grid goals"><legend className="sr-only">{title}</legend>{goalCopy.goals.map((goal, index) => <label key={index} className={draft.goal === index ? 'selected' : ''}><input type="radio" name="goal" checked={draft.goal === index} onChange={() => update({ goal: index })} /><span>{goal}</span></label>)}</fieldset>}
         {error && <p ref={errorRef} tabIndex={-1} role="alert" className="onboarding-error">{error === "teachingError" ? teachingSkillsCopy[language].required : t[error] || profileSetupCopy[language][error]}</p>}
         <div className="onboarding-actions">{current > 0 && <button type="button" className="onboarding-back" onClick={() => move(steps[current - 1])}>{t.back}</button>}<button className="onboarding-next" type="submit">{current === 3 ? t.finish : t.next}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button></div>
       </form>}

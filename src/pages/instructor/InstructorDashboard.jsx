@@ -25,6 +25,7 @@ export default function InstructorDashboard() {
     <section className="instructor-dashboard">
       <div className="instructor-container">
 
+        <p className="account-note">{language === 'ar' ? 'إحصاءات التدريس والنقاط المكتسبة أدناه بيانات تجريبية، ولا تمثل رصيد المحفظة الظاهر في الهيدر.' : 'Teaching statistics and earned points below are demo data and do not represent the wallet balance shown in the header.'}</p>
         {/* Welcome */}
         <section className="instructor-welcome">
           <div>

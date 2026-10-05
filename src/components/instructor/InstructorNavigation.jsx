@@ -1,3 +1,5 @@
+import { useLearnerWallet } from '../../hooks/useLearnerWallet';
+import useAccountProfile from '../../hooks/useAccountProfile';
 import useAccountName from "../../hooks/useAccountName";
 import NotificationBell from "../shared/NotificationBell";
 import { useState } from "react";
@@ -19,6 +21,8 @@ const instructorLinks = [
 
 export default function InstructorNavigation() {
   const accountName = useAccountName();
+  const { balance } = useLearnerWallet();
+  const profile = useAccountProfile();
   const [open, setOpen] = useState(false);
 
   const {
@@ -106,14 +110,14 @@ export default function InstructorNavigation() {
         </nav>
 
         {/* Right actions */}
-        <div className="instructor-header-actions">
+        <div className={`instructor-header-actions${open ? ' tools-open' : ''}`}>
 <NotificationBell role="instructor" onClick={() => setOpen(false)} />
-<Link className="preference-button" to="/instructor/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
+<Link className="preference-button mobile-secondary" to="/instructor/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
 
           {/* Language */}
           <button
             type="button"
-            className="instructor-preference-button"
+            className="instructor-preference-button mobile-secondary"
             onClick={toggleLanguage}
             aria-label={
               isEnglish
@@ -127,7 +131,7 @@ export default function InstructorNavigation() {
           {/* Theme */}
           <button
             type="button"
-            className="instructor-preference-button"
+            className="instructor-preference-button mobile-secondary"
             onClick={toggleTheme}
             aria-label={
               theme === "light"
@@ -146,17 +150,17 @@ export default function InstructorNavigation() {
           </button>
 
           {/* Switch role */}
-          <Link
+          {profile.role === "both" && <Link
             to="/learner"
             className="instructor-switch-role"
             onClick={() => setOpen(false)}
           >
             <Icon name="swap" size={17} />
-            <span>{c.switchToLearner}</span>
-          </Link>
+            <span>{language === "ar" ? "التبديل إلى المتعلّم" : "Switch to learner"}</span>
+          </Link>}
 
           {/* Points */}
-          <PointsBadge amount={instructor.points} />
+          <PointsBadge amount={balance} />
 
           {/* Profile */}
           <Link

@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { usePreferences } from "../../context/PreferencesContext";
-import Icon from "../Icon";
+
 import "../../styles/points-badge.css";
 
 export default function PointsBadge({ amount, to, onClick }) {
@@ -19,9 +19,6 @@ export default function PointsBadge({ amount, to, onClick }) {
 
   const content = (
     <>
-      <span className="points-badge-icon" aria-hidden="true">
-        <Icon name="coins" size={20} />
-      </span>
 
       <strong className="points-badge-number" dir="ltr">
         {formatted}

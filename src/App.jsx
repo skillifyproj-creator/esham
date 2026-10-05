@@ -1,3 +1,4 @@
+import RoleArea from './components/shared/RoleArea';
 import AccountPage from "./pages/shared/AccountPage";
 import { NotificationsProvider } from "./context/NotificationsContext";
 import NotificationsPage from "./pages/shared/NotificationsPage";
@@ -115,7 +116,7 @@ function RouteShell() {
         {/* =================================
             Learner Pages
         ================================= */}
-        <Route path="/learner" element={<LearnerLayout />}>
+        <Route path="/learner" element={<RoleArea role="learner"><LearnerLayout /></RoleArea>}>
 <Route path="profile" element={<AccountPage role="learner" section="profile" />} />
 <Route path="settings" element={<AccountPage role="learner" section="settings" />} />
 <Route path="settings/security" element={<AccountPage role="learner" section="security" />} />
@@ -145,7 +146,7 @@ function RouteShell() {
             Instructor Pages
         ================================= */}
 
-        <Route path="/instructor" element={<InstructorLayout />}>
+        <Route path="/instructor" element={<RoleArea role="instructor"><InstructorLayout /></RoleArea>}>
 <Route path="profile" element={<AccountPage role="instructor" section="profile" />} />
 <Route path="settings" element={<AccountPage role="instructor" section="settings" />} />
 <Route path="settings/security" element={<AccountPage role="instructor" section="security" />} />

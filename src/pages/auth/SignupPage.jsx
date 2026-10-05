@@ -211,7 +211,7 @@ export default function SignupPage() {
                           }))
                         }
                       >
-                        <Icon name="eye" size={20} />
+                        <Icon name={visible[name] ? "eye-off" : "eye"} size={20} />
                       </button>
                     )}
                   </div>

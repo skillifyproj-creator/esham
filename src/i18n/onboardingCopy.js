@@ -22,3 +22,19 @@ export const onboardingCopy = {
   goalsTitle: 'What are you aiming for?', goalsIntro: 'Choose your main goal. Every small step brings you closer to the difference you want to make.', goals: ['Learn a new skill', 'Develop my career', 'Share my experience', 'Learn and contribute to the community'], goalError: 'Choose a goal to continue.', finish: 'Complete setup', completeTitle: 'Your journey is taking shape', completeText: 'Your preferences are saved for this browser session. Account creation and permission activation require the account service connection.', learner: 'Explore the learner interface', instructor: 'Explore the instructor interface', change: 'Edit my choices', demo: 'Experience setup · does not create an account', footer: 'Esham · Knowledge we share. A difference we make.', progress: 'Experience setup steps', light: 'Light mode', dark: 'Dark mode',
  },
 };
+
+export function getOnboardingGoals(language, role) {
+ const copy = {
+  ar: {
+   learner: { title: 'ما الذي ترغب بتحقيقه من التعلّم؟', intro: 'اختر هدفك الأساسي لنساعدك على بناء رحلة تعلّم مناسبة لك.', goals: ['تعلّم مهارة جديدة', 'تطوير مهاراتي للعمل', 'تطبيق ما أتعلّمه في مشروع', 'استكشاف مجالات جديدة'] },
+   instructor: { title: 'ما الذي ترغب بتحقيقه كمعلّم؟', intro: 'اختر هدفك الأساسي من التدريس ومشاركة خبرتك مع مجتمع إسهام.', goals: ['مشاركة خبرتي ومساعدة الآخرين', 'إنشاء أول دورة أو ورشة عمل', 'تطوير مهاراتي في الشرح والتدريس', 'بناء حضور مهني كمعلّم'] },
+   both: { title: 'ما هدفك من التعلّم والتعليم؟', intro: 'اختر الهدف الأقرب لك في رحلة تجمع اكتساب المهارات ومشاركة الخبرة.', goals: ['تعلّم مهارات جديدة ومشاركة خبرتي', 'تطوير مساري المهني من خلال التعلّم والتدريس', 'تطبيق ما أتعلّمه وتقديم ورش عملية', 'تبادل المعرفة والمساهمة في المجتمع'] },
+  },
+  en: {
+   learner: { title: 'What would you like to achieve through learning?', intro: 'Choose your main goal to shape a learning journey that suits you.', goals: ['Learn a new skill', 'Develop skills for work', 'Apply my learning to a project', 'Explore new fields'] },
+   instructor: { title: 'What would you like to achieve as an instructor?', intro: 'Choose your main goal for teaching and sharing your expertise with Esham.', goals: ['Share my expertise and help others', 'Create my first course or workshop', 'Improve my teaching and explanation skills', 'Build my professional presence as an instructor'] },
+   both: { title: 'What is your goal for learning and teaching?', intro: 'Choose a goal for a journey that combines building skills and sharing expertise.', goals: ['Learn new skills and share my expertise', 'Develop my career through learning and teaching', 'Apply my learning and run practical workshops', 'Exchange knowledge and contribute to the community'] },
+  },
+ };
+ return copy[language][role] || copy[language].learner;
+}

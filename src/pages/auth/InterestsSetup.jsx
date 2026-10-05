@@ -15,6 +15,16 @@ export default function InterestsSetup({ draft, update, mode = "learning" }) {
   const s = teachingSkillsCopy[language];
   const selectedAreas = teaching ? draft.teachingAreas : draft.interests;
   const field = teaching ? "teachingAreas" : "interests";
+  const [query, setQuery] = useState('');
+  const searchCopy = language === 'ar'
+    ? { label: teaching ? 'ابحث عن مجال خبرتك' : 'ابحث عن مجال تتعلّمه', placeholder: 'ابحث باسم المجال أو وصفه…', clear: 'مسح البحث', empty: 'لا توجد مجالات مطابقة. جرّب كلمة أخرى.', results: 'مجالات مطابقة' }
+    : { label: teaching ? 'Search your expertise areas' : 'Search learning areas', placeholder: 'Search by area name or description…', clear: 'Clear search', empty: 'No matching areas. Try another search.', results: 'matching areas' };
+  const normalizeSearch = value => value.normalize('NFKD').toLowerCase().replace(/[\u064B-\u065F\u0670]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').trim();
+  const words = normalizeSearch(query).split(/\s+/).filter(Boolean);
+  const visibleAreas = interestAreas.map((area, index) => ({ area, index })).filter(({ area, index }) => {
+    const text = normalizeSearch([copy.categories[index], index === 5 ? t.business : '', area.description[language], area.category].join(' '));
+    return words.every(word => text.includes(word));
+  });
   const [skill, setSkill] = useState("");
   const [skillError, setSkillError] = useState("");
   const selectedCount = selectedAreas.length + (teaching ? draft.customSkills.length : 0);
@@ -33,7 +43,13 @@ export default function InterestsSetup({ draft, update, mode = "learning" }) {
     <h2 className="skills-section-heading">{teaching ? s.heading : s.learningHeading}</h2>
     <div className="interests-path"><Icon name={draft.role === 'instructor' ? 'user' : draft.role === 'both' ? 'swap' : 'book'} size={18} /><span>{t.path}: {role?.title}</span></div>
     <div className="interests-selection-bar"><p><Icon name="grid" size={20} />{teaching ? s.multiple : t.multiple}</p><div><span className="interests-count" role="status">{selectedCount} {teaching ? s.count : t.selected}</span>{selectedCount > 0 && <button type="button" onClick={() => update(teaching ? { teachingAreas: [], customSkills: [] } : { interests: [] })}>{t.clear}</button>}</div></div>
-    <fieldset className="interests-card-grid"><legend className="sr-only">{teaching ? s.heading : s.learningHeading}</legend>{interestAreas.map((area, index) => {
+    <div className="interests-search">
+      <label htmlFor={`areas-search-${mode}`}>{searchCopy.label}</label>
+      <div className="interests-search-input"><Icon name="search" size={21} /><input id={`areas-search-${mode}`} type="search" value={query} placeholder={searchCopy.placeholder} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} />{query && <button type="button" aria-label={searchCopy.clear} onClick={() => setQuery('')}><Icon name="close" size={19} /></button>}</div>
+      <p role="status">{visibleAreas.length} {searchCopy.results}</p>
+    </div>
+    {!visibleAreas.length && <p className="interests-search-empty">{searchCopy.empty}</p>}
+    <fieldset className="interests-card-grid"><legend className="sr-only">{teaching ? s.heading : s.learningHeading}</legend>{visibleAreas.map(({ area, index }) => {
       const selected = selectedAreas.includes(index);
       const title = index === 5 ? t.business : copy.categories[index];
       const matching = courses.filter(course => course.category === area.category);

@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
         <label htmlFor={`reset-${name}`}>{t[name]}</label>
         <div className={`auth-input-wrap${errors[name] ? ' has-error' : ''}`}>
           <input id={`reset-${name}`} name={name} value={values[name]} onChange={change} ref={node => { inputs.current[name] = node; }} type={visible[name] ? 'text' : 'password'} autoComplete="new-password" placeholder={t[`${name}Placeholder`]} required aria-invalid={Boolean(errors[name])} aria-describedby={[name === 'password' ? 'password-requirements' : '', errors[name] ? `reset-${name}-error` : ''].filter(Boolean).join(' ') || undefined} />
-          <button type="button" className="auth-password-toggle" aria-label={visible[name] ? t.hide : t.show} aria-pressed={visible[name]} aria-controls={`reset-${name}`} onClick={() => setVisible(current => ({ ...current, [name]: !current[name] }))}><Icon name="eye" size={21} /></button>
+          <button type="button" className="auth-password-toggle" aria-label={visible[name] ? t.hide : t.show} aria-pressed={visible[name]} aria-controls={`reset-${name}`} onClick={() => setVisible(current => ({ ...current, [name]: !current[name] }))}><Icon name={visible[name] ? "eye-off" : "eye"} size={21} /></button>
         </div>
         {errors[name] && <p className="auth-error" id={`reset-${name}-error`}>{t[errors[name]]}</p>}
         {name === 'password' && <div className="recovery-password-guide" id="password-requirements">

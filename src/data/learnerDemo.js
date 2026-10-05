@@ -1,3 +1,4 @@
+import { pointsPolicy } from './pointsPolicy';
 import { courses } from "./courses";
 
 function createEnrollment(courseId, completedCount, lastOpenedAt) {
@@ -24,7 +25,7 @@ export const learnerDemo = {
   },
 
   // رصيد تجريبي؛ لاحقًا يأتي من الباك.
-  points: 50,
+  points: pointsPolicy.openingBalance,
 
   enrollments: [
     createEnrollment(6, 4, "2026-10-01T10:00:00Z"),

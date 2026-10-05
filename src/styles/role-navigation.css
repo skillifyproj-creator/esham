@@ -491,3 +491,16 @@
     padding: 28px 16px;
   }
 }
+
+/* Keep the mobile header compact; secondary tools expand with the menu. */
+@media (max-width:600px){
+ .role-header .learner-header-inner{gap:8px;padding-block:8px;min-height:64px}
+ .role-header :is(.learner-header-actions,.instructor-header-actions){gap:8px;flex-wrap:nowrap}
+ .role-header .mobile-secondary,.role-header :is(.learner-switch-role,.instructor-switch-role){display:none}
+ .role-header .preferences.tools-open{display:flex}
+ .role-header .tools-open .mobile-secondary{display:inline-flex}
+ .role-header .tools-open :is(.learner-switch-role,.instructor-switch-role){display:inline-flex;flex-basis:100%;justify-content:center}
+ .role-header :is(.learner-header-actions,.instructor-header-actions).tools-open{flex-wrap:wrap}
+ .role-header .points-badge{min-height:44px;padding:6px 12px}
+ .role-header :is(.learner-profile,.instructor-profile){padding-inline:0;border-inline-start:0}
+}

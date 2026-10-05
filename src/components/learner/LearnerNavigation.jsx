@@ -1,3 +1,4 @@
+import useAccountProfile from '../../hooks/useAccountProfile';
 import useAccountName from "../../hooks/useAccountName";
 import NotificationBell from "../shared/NotificationBell";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import logo from "../../assets/esham-logo.png";
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 export default function LearnerNavigation() {
   const accountName = useAccountName();
+  const profile = useAccountProfile();
   const {
     language,
     theme,
@@ -83,7 +85,7 @@ export default function LearnerNavigation() {
           ))}
         </nav>
 
-        <div className="preferences">
+        <div className={`preferences mobile-secondary${open ? " tools-open" : ""}`}>
           <button
             className="preference-button"
             onClick={toggleLanguage}
@@ -103,15 +105,15 @@ export default function LearnerNavigation() {
           </button>
         </div>
 
-        <div className="learner-header-actions">
+        <div className={`learner-header-actions${open ? ' tools-open' : ''}`}>
 <NotificationBell role="learner" onClick={() => setOpen(false)} />
-<Link className="preference-button" to="/learner/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
-          <Link className="learner-switch-role" to="/instructor">
+<Link className="preference-button mobile-secondary" to="/learner/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
+          {profile.role === "both" && <Link className="learner-switch-role" to="/instructor">
             {language === "ar"
-              ? "معاينة واجهة المعلّم"
-              : "Preview instructor area"}
+              ? "التبديل إلى المعلّم"
+              : "Switch to instructor"}
             <Icon name="swap" size={16} />
-          </Link>
+          </Link>}
 
           <PointsBadge
             amount={balance}
