@@ -11,7 +11,7 @@ export default function InstructorDashboard() {
   const accountName = useAccountName();
   const { language } = usePreferences();
   const c = instructorCopy[language];
-  const { instructor, stats, performance, courses, needsAttention, activities } =
+  const { instructor, stats, performance, needsAttention, activities } =
     instructorDemo;
 
   const maxPerformance = Math.max(
@@ -231,85 +231,7 @@ export default function InstructorDashboard() {
 
             </section>
 
-            {/* Courses */}
-            <section className="instructor-panel">
-
-              <div className="instructor-panel-heading">
-                <div>
-                  <h2>{c.coursesPerformance}</h2>
-                  <p>{c.popularCoursesDescription}</p>
-                </div>
-
-                <Link
-                  to="/instructor/courses"
-                  className="instructor-text-link"
-                >
-                  {c.viewAllCourses} ←
-                </Link>
-              </div>
-
-              <div className="instructor-course-list">
-                {courses.map((course) => (
-                  <article
-                    className="instructor-course-row"
-                    key={course.id}
-                  >
-                    <div className="instructor-course-image">
-                      <Icon
-                        name={course.icon}
-                        size={27}
-                      />
-                    </div>
-
-                    <div className="instructor-course-info">
-                      <div className="instructor-course-top">
-                        <span className="instructor-course-category">
-                          {course.category[language]}
-                        </span>
-
-                        <span className="instructor-course-status">
-                          {getCourseStatusLabel(course.courseStatus, c)}
-                        </span>
-                      </div>
-
-                      <h3>{course.title[language]}</h3>
-
-                      <div className="instructor-course-meta">
-                        <span>
-                          <Icon name="users" size={14} />
-                          {course.learners}
-                        </span>
-
-                        <span>
-                          <span className="rating-stars">
-                            ★
-                          </span>
-                          {course.rating}
-                        </span>
-
-                        <span className="green-text">
-                          {course.points} {c.pointsEarned}
-                        </span>
-                      </div>
-                    </div>
-
-                    <PendingFeature
-                      className="instructor-manage-button"
-                    >
-                      {c.manageCourse}
-                    </PendingFeature>
-                  </article>
-                ))}
-              </div>
-
-            </section>
-
-          </div>
-
-          {/* Sidebar */}
-          <aside className="instructor-dashboard-sidebar">
-
-            {/* Attention */}
+            <div className="instructor-dashboard-overview-grid">
             <section className="instructor-panel attention-panel">
               <div className="instructor-panel-title">
                 <h2>{c.needsAttention}</h2>
@@ -332,69 +254,47 @@ export default function InstructorDashboard() {
                 ))}
               </div>
             </section>
-
-            {/* Activities */}
-            <section className="instructor-panel">
-              <div className="instructor-panel-title">
-                <h2>{c.latestActivities}</h2>
-
-                <Icon name="history" size={18} />
-              </div>
-
-              <div className="activity-list">
-                {activities.map((activity) => (
-                  <article
-                    className="activity-item"
-                    key={activity.id}
-                  >
-                    <span
-                      className={`activity-dot ${activity.type}`}
-                    />
-
-                    <div>
-                      <p>{activity.text[language]}</p>
-                      <small>{activity.time[language]}</small>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            {/* Quick actions */}
-            <section className="instructor-panel quick-actions-panel">
-              <div className="instructor-panel-title">
-                <div>
-                  <h2>{c.quickActions}</h2>
-                  <p>{c.dailyTeachingShortcuts}</p>
+              <section className="instructor-panel">
+                <div className="instructor-panel-title">
+                  <h2>{c.latestActivities}</h2>
+                  <Icon name="history" size={18} />
                 </div>
-              </div>
 
-              <div className="quick-actions-grid">
+                <div className="activity-list">
+                  {activities.map((activity) => (
+                    <article className="activity-item" key={activity.id}>
+                      <span className={`activity-dot ${activity.type}`} />
+                      <div>
+                        <p>{activity.text[language]}</p>
+                        <small>{activity.time[language]}</small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
 
-                <Link to="/instructor/courses/new">
-                  <Icon name="plus" size={19} />
-                  <span>{c.createNewCourse}</span>
-                </Link>
+              <section className="instructor-panel quick-actions-panel">
+                <div className="instructor-panel-title">
+                  <div>
+                    <h2>{c.quickActions}</h2>
+                    <p>{c.dailyTeachingShortcuts}</p>
+                  </div>
+                </div>
 
-                <Link to="/instructor/courses/new/curriculum">
-                  <Icon name="lesson" size={19} />
-                  <span>{c.addNewLesson}</span>
-                </Link>
+                <div className="quick-actions-grid">
+                  <Link to="/instructor/courses/new">
+                    <Icon name="plus" size={19} />
+                    <span>{c.createNewCourse}</span>
+                  </Link>
+                  <PendingFeature>
+                    <Icon name="award" size={19} />
+                    <span>{c.learnerCertificates}</span>
+                  </PendingFeature>
+                </div>
+              </section>
+            </div>
 
-                <PendingFeature>
-                  <Icon name="award" size={19} />
-                  <span>{c.learnerCertificates}</span>
-                </PendingFeature>
-
-                <Link to="/instructor/feedback">
-                  <Icon name="star" size={19} />
-                  <span>{c.reviewRatings}</span>
-                </Link>
-
-              </div>
-            </section>
-
-          </aside>
+          </div>
 
         </div>
       </div>

@@ -95,14 +95,11 @@
 
 /* توزيع المحتوى */
 .instructor-dashboard .instructor-dashboard-grid {
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: 1fr;
   gap: 28px;
 }
 
-.instructor-dashboard :is(
-  .instructor-dashboard-main,
-  .instructor-dashboard-sidebar
-) {
+.instructor-dashboard .instructor-dashboard-main {
   gap: 28px;
 }
 
@@ -361,15 +358,6 @@ html[data-theme="dark"] .instructor-dashboard :is(
   .instructor-dashboard .instructor-dashboard-grid {
     grid-template-columns: 1fr;
   }
-
-  .instructor-dashboard .instructor-dashboard-sidebar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .instructor-dashboard .quick-actions-panel {
-    grid-column: 1 / -1;
-  }
 }
 
 /* موبايل */
@@ -380,14 +368,6 @@ html[data-theme="dark"] .instructor-dashboard :is(
 
   .instructor-dashboard .instructor-container {
     width: calc(100% - 32px);
-  }
-
-  .instructor-dashboard .instructor-dashboard-sidebar {
-    grid-template-columns: 1fr;
-  }
-
-  .instructor-dashboard .quick-actions-panel {
-    grid-column: auto;
   }
 
   .instructor-dashboard .instructor-panel {
@@ -436,5 +416,30 @@ html[data-theme="dark"] .instructor-dashboard :is(
     border-inline-start: 0;
     border-top: 1px solid var(--line);
     padding-top: 16px;
+  }
+}
+
+/* Dashboard activity and quick action cards */
+.instructor-dashboard .instructor-dashboard-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 28px;
+}
+
+.instructor-dashboard .instructor-dashboard-overview-grid > .instructor-panel {
+  min-width: 0;
+  height: 100%;
+}
+
+.instructor-dashboard .instructor-dashboard-overview-grid .quick-actions-grid {
+  grid-template-columns: 1fr;
+  align-content: start;
+}
+
+@media (max-width: 700px) {
+  .instructor-dashboard .instructor-dashboard-overview-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 }

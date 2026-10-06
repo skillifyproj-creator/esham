@@ -40,6 +40,11 @@ import CourseReviewPage from "./pages/instructor/CourseReviewPage";
 import InstructorPerformancePage from "./pages/instructor/InstructorPerformancePage";
 import InstructorFeedbackPage from "./pages/instructor/InstructorFeedbackPage";
 import EditLessonPage from "./pages/instructor/EditLessonPage";
+import InstructorVideoSourcePage from "./pages/instructor/InstructorVideoSourcePage";
+import InstructorVideoRecordingSetupPage from "./pages/instructor/InstructorVideoRecordingSetupPage";
+import InstructorVideoRecordingPage from "./pages/instructor/InstructorVideoRecordingPage";
+import InstructorVideoPreviewPage from "./pages/instructor/InstructorVideoPreviewPage";
+import InstructorVideoEditorPage from "./pages/instructor/InstructorVideoEditorPage";
 import InstructorTaskPage from "./pages/instructor/InstructorTaskPage";
 
 import LearnerTasksPage from "./pages/learner/LearnerTasksPage";
@@ -156,25 +161,32 @@ function RouteShell() {
           <Route path="courses" element={<InstructorCoursesPage />} />
 
           <Route path="courses/new" element={<CreateCoursePage />} />
+          <Route path="courses/:courseId/edit" element={<CreateCoursePage />} />
 
           <Route
             path="courses/new/curriculum"
             element={<CourseCurriculumPage />}
           />
+          <Route path="courses/:courseId/curriculum" element={<CourseCurriculumPage />} />
 
           <Route
             path="courses/new/review"
             element={<CourseReviewPage />}
           />
+          <Route path="courses/:courseId/review" element={<CourseReviewPage />} />
 
           <Route
             path="performance"
-            element={<Navigate to="/instructor/courses" replace />}
+            element={<InstructorPerformancePage />}
           />
 
           <Route
             path="courses/:courseId/performance"
             element={<InstructorPerformancePage />}
+          />
+          <Route
+            path="courses/:courseId/feedback"
+            element={<InstructorFeedbackPage />}
           />
 
           <Route
@@ -195,6 +207,26 @@ function RouteShell() {
           <Route
             path="courses/:courseId/sections/:sectionId/lessons/:lessonId/edit"
             element={<EditLessonPage />}
+          />
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId/video"
+            element={<InstructorVideoSourcePage />}
+          />
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId/video/record"
+            element={<InstructorVideoRecordingSetupPage />}
+          />
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId/video/recording"
+            element={<InstructorVideoRecordingPage />}
+          />
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId/video/preview"
+            element={<InstructorVideoPreviewPage />}
+          />
+          <Route
+            path="courses/:courseId/sections/:sectionId/lessons/:lessonId/video/edit"
+            element={<InstructorVideoEditorPage />}
           />
 
           <Route

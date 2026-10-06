@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
 import { instructorDemo } from "../../data/instructorDemo";
+import instructorCopy from "../../i18n/instructorCopy";
 
 const performanceData = {
   learners: {
@@ -26,9 +27,9 @@ const performanceData = {
   },
 
   sections: [
-    { id: "section-1", title: "أساسيات التصوير", completionRate: 92 },
-    { id: "section-2", title: "الإضاءة والتكوين", completionRate: 78 },
-    { id: "section-3", title: "التطبيق العملي", completionRate: 64 },
+    { id: "section-1", completionRate: 92 },
+    { id: "section-2", completionRate: 78 },
+    { id: "section-3", completionRate: 64 },
   ],
 
   pointsPerCompletion: 20,
@@ -36,40 +37,43 @@ const performanceData = {
   reviews: [
     {
       id: 1,
-      name: "سارة",
       rating: 5,
-      comment: "الدروس واضحة والمهام ساعدتني كثيرًا في التطبيق.",
-      date: "منذ يومين",
     },
     {
       id: 2,
-      name: "محمد",
       rating: 5,
-      comment: "المحتوى ممتاز وأحببت الجانب العملي.",
-      date: "منذ 5 أيام",
     },
   ],
 };
 
-const periods = [
-  { value: "7d", label: "آخر 7 أيام" },
-  { value: "30d", label: "آخر 30 يومًا" },
-  { value: "3m", label: "آخر 3 أشهر" },
-  { value: "all", label: "كل الوقت" },
-];
+const periodValues = ["7d", "30d", "3m", "all"];
 
 export default function InstructorPerformancePage() {
   const [period, setPeriod] = useState("30d");
   const { courseId } = useParams();
   const { language } = usePreferences();
+  const t = instructorCopy[language].performancePage;
 
   const course = instructorDemo.courses.find(
     (item) => item.id === courseId,
   );
-  const courseTitle = course?.title?.[language] || courseId || "—";
+  const courseTitle = course?.title?.[language] || "—";
   const courseStatus = course?.status?.[language] || "—";
-  const { learners, ratings, sections, pointsPerCompletion, reviews } =
-    performanceData;
+  const scopedData = courseId && course
+    ? {
+        learners: {
+          enrolled: course.learners,
+          started: course.learners,
+          completed: Math.round(course.learners * performanceData.learners.completed / performanceData.learners.enrolled),
+          inProgress: course.learners - Math.round(course.learners * performanceData.learners.completed / performanceData.learners.enrolled),
+        },
+        ratings: { ...performanceData.ratings, average: course.rating, total: course.ratingCount },
+        sections: course.id === "photography" ? performanceData.sections : [],
+        pointsPerCompletion: course.coursePoints || performanceData.pointsPerCompletion,
+        reviews: course.id === "photography" ? performanceData.reviews : [],
+      }
+    : performanceData;
+  const { learners, ratings, sections, pointsPerCompletion, reviews } = scopedData;
 
   const completionRate =
     learners.enrolled > 0
@@ -85,45 +89,42 @@ export default function InstructorPerformancePage() {
         <header className="instructor-performance-header">
           <div>
             <div className="instructor-performance-title-row">
-              <h1>أداء الدورة</h1>
-              <span className="instructor-performance-status">
-                {courseStatus}
-              </span>
+              <h1>{courseId ? t.titleCourse : t.titleGeneral}</h1>
+              {courseId && <span className="instructor-performance-status">{courseStatus}</span>}
             </div>
 
-            <p>دورة: {courseTitle}</p><p>{language === "ar" ? "الإحصاءات الحالية نموذج تجريبي ثابت، ولا تتغير بتغيير الفترة أو الدورة." : "Current statistics are a fixed demo and do not change with the period or course."}</p>
+            <p>{courseId ? t.coursePrefix.replace("{course}", courseTitle) : t.generalDescription}</p>
           </div>
 
           <div className="instructor-performance-actions">
             <label className="instructor-performance-period">
-              <span>الفترة:</span>
+              <span>{t.period}</span>
 
               <select
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
               >
-                {periods.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
+                {periodValues.map((value) => (
+                  <option key={value} value={value}>{t.periods[value]}</option>
                 ))}
               </select>
             </label>
 
-            <Link
+            {courseId && (<Link
               to={instructorPublicCourseIds[courseId] ? `/courses/${instructorPublicCourseIds[courseId]}` : "/instructor/courses"}
               className="instructor-performance-button"
             >
               <Icon name="eye" size={15} />
-              عرض الدورة
+              {t.viewCourse}
             </Link>
+            )}
 
             <Link
               to="/instructor/courses"
               className="instructor-performance-button primary"
             >
               <Icon name="settings" size={15} />
-              إدارة الدورة
+              {t.manageCourses}
             </Link>
           </div>
         </header>
@@ -132,30 +133,30 @@ export default function InstructorPerformancePage() {
         <section className="instructor-performance-metrics">
           <article className="instructor-performance-metric">
             <Icon name="users" size={18} />
-            <span>المتعلمون</span>
+            <span>{t.learners}</span>
             <strong>{learners.enrolled.toLocaleString("en-US")}</strong>
-            <small>إجمالي المتعلمين</small>
+            <small>{t.totalLearners}</small>
           </article>
 
           <article className="instructor-performance-metric">
             <Icon name="check" size={18} />
-            <span>أكملوا الدورة</span>
+            <span>{t.completed}</span>
             <strong>{learners.completed.toLocaleString("en-US")}</strong>
-            <small>{completionRate}% من المتعلمين</small>
+            <small>{t.completionRate.replace("{percent}", completionRate)}</small>
           </article>
 
           <article className="instructor-performance-metric">
             <Icon name="star" size={18} />
-            <span>التقييم</span>
+            <span>{t.rating}</span>
             <strong>{ratings.average}</strong>
-            <small>{ratings.total} تقييمًا</small>
+            <small>{t.ratingCount.replace("{count}", ratings.total)}</small>
           </article>
 
           <article className="instructor-performance-metric">
             <Icon name="award" size={18} />
-            <span>النقاط الممنوحة</span>
+            <span>{t.pointsAwarded}</span>
             <strong>{earnedPoints.toLocaleString("en-US")}</strong>
-            <small>{pointsPerCompletion} نقطة لكل إكمال</small>
+            <small>{t.pointsPerCompletion.replace("{count}", pointsPerCompletion)}</small>
           </article>
         </section>
 
@@ -165,29 +166,28 @@ export default function InstructorPerformancePage() {
           <article className="instructor-performance-card">
             <div className="instructor-performance-card-header">
               <div>
-                <h2>تقدم المتعلمين</h2>
+                <h2>{t.learnerProgress}</h2>
                 <p>
-                  {learners.completed} من أصل {learners.enrolled} متعلمًا
-                  أكملوا الدورة
+                  {t.completionSummary.replace("{completed}", learners.completed).replace("{total}", learners.enrolled)}
                 </p>
               </div>
             </div>
 
             <div className="instructor-progress-list">
               <ProgressRow
-                label="بدأوا الدورة"
+                label={t.started} t={t}
                 value={learners.started}
                 total={learners.enrolled}
               />
 
               <ProgressRow
-                label="في طور التعلم"
+                label={t.inProgress} t={t}
                 value={learners.inProgress}
                 total={learners.enrolled}
               />
 
               <ProgressRow
-                label="أكملوا الدورة"
+                label={t.completedLabel} t={t}
                 value={learners.completed}
                 total={learners.enrolled}
               />
@@ -198,8 +198,8 @@ export default function InstructorPerformancePage() {
           <article className="instructor-performance-card">
             <div className="instructor-performance-card-header">
               <div>
-                <h2>تفاعل المتعلمين مع المحتوى</h2>
-                <p>نسبة إكمال كل قسم من أقسام الدورة</p>
+                <h2>{t.sectionEngagement}</h2>
+                <p>{t.sectionCompletion}</p>
               </div>
             </div>
 
@@ -210,7 +210,7 @@ export default function InstructorPerformancePage() {
                   key={section.id}
                 >
                   <div>
-                    <strong>{section.title}</strong>
+                    <strong>{t.sections[section.id]}</strong>
                     <span>{section.completionRate}%</span>
                   </div>
 
@@ -223,6 +223,7 @@ export default function InstructorPerformancePage() {
                   </div>
                 </div>
               ))}
+              {!sections.length && <p>{t.noSections}</p>}
             </div>
           </article>
         </section>
@@ -232,8 +233,8 @@ export default function InstructorPerformancePage() {
           <article className="instructor-performance-card">
             <div className="instructor-performance-card-header">
               <div>
-                <h2>تقييمات المتعلمين</h2>
-                <p>متوسط تقييم الدورة وتوزيع التقييمات</p>
+                <h2>{t.learnerRatings}</h2>
+                <p>{t.ratingSummary}</p>
               </div>
             </div>
 
@@ -242,7 +243,7 @@ export default function InstructorPerformancePage() {
 
               <div>
                 <div className="instructor-stars">★★★★★</div>
-                <span>متوسط من {ratings.total} تقييمًا</span>
+                <span>{t.averageFrom.replace("{count}", ratings.total)}</span>
               </div>
             </div>
 
@@ -254,7 +255,7 @@ export default function InstructorPerformancePage() {
 
                 return (
                   <div key={star}>
-                    <span>{star} نجوم</span>
+                    <span>{t.stars.replace("{count}", star)}</span>
 
                     <div className="instructor-performance-bar">
                       <span style={{ width: `${width}%` }} />
@@ -270,8 +271,8 @@ export default function InstructorPerformancePage() {
           <article className="instructor-performance-card">
             <div className="instructor-performance-card-header">
               <div>
-                <h2>آخر التقييمات</h2>
-                <p>أحدث ملاحظات المتعلمين</p>
+                <h2>{t.latestReviews}</h2>
+                <p>{t.latestReviewsDescription}</p>
               </div>
             </div>
 
@@ -282,21 +283,22 @@ export default function InstructorPerformancePage() {
                   key={review.id}
                 >
                   <div className="instructor-latest-review-top">
-                    <strong>{review.name}</strong>
+                    <strong>{t.reviewSamples[review.id].name}</strong>
                     <span>★★★★★</span>
                   </div>
 
-                  <p>«{review.comment}»</p>
-                  <small>{review.date}</small>
+                  <p>«{t.reviewSamples[review.id].comment}»</p>
+                  <small>{t.reviewSamples[review.id].date}</small>
                 </div>
               ))}
+              {!reviews.length && <p>{t.noReviews}</p>}
             </div>
 
             <Link
               to="/instructor/feedback"
               className="instructor-all-reviews"
             >
-              عرض جميع التقييمات
+              {t.allReviews}
               <Icon name="arrow-left" size={14} />
             </Link>
           </article>
@@ -308,22 +310,21 @@ export default function InstructorPerformancePage() {
             <Icon name="award" size={21} />
 
             <div>
-              <span>نظام النقاط المعتمدة في الدورة</span>
+              <span>{t.pointsSystem}</span>
               <p>
-                يحصل المتعلم على {pointsPerCompletion} نقطة عند إكمال الدورة
-                واستيفاء المهام العملية.
+                {t.pointsDescription.replace("{points}", pointsPerCompletion)}
               </p>
             </div>
           </div>
 
-          <strong>{earnedPoints.toLocaleString("en-US")} نقطة</strong>
+          <strong>{earnedPoints.toLocaleString(language === "ar" ? "ar" : "en-US")} {t.pointUnit}</strong>
         </section>
       </div>
     </div>
   );
 }
 
-function ProgressRow({ label, value, total }) {
+function ProgressRow({ label, value, total, t }) {
   const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
 
   return (
@@ -331,7 +332,7 @@ function ProgressRow({ label, value, total }) {
       <div>
         <span>{label}</span>
         <strong>
-          {value} متعلمًا ({percentage}%)
+          {t.learnerCount.replace("{count}", value).replace("{percent}", percentage)}
         </strong>
       </div>
 

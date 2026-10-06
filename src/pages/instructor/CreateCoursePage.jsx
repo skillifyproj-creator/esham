@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -11,9 +11,22 @@ export default function CreateCoursePage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
   const navigate = useNavigate();
+  const { courseId } = useParams();
   const [saveStatus, setSaveStatus] = useState("");
-  const { instructor, courses, courseDraft } = instructorDemo;
-  const coursePoints = courses[0].coursePoints;
+  const { instructor } = instructorDemo;
+  const isEditMode = Boolean(courseId);
+  const editCourse = isEditMode
+    ? instructorDemo.courses.find((course) => String(course.id) === String(courseId))
+    : null;
+  const coursePoints = editCourse?.coursePoints ?? 20;
+  const categoryCopyKeys = {
+    photography: "photographyCategory",
+    "graphic-design": "graphicDesignCategory",
+    "user-interface": "userInterfaceCategory",
+    "digital-marketing": "digitalMarketingCategory",
+    "video-editing": "videoEditingCategory",
+    "digital-content": "digitalContentCategory",
+  };
   const categoryLabels = {
     photography: c.photographyCategory,
     "graphic-design": c.graphicDesignCategory,
@@ -23,18 +36,21 @@ export default function CreateCoursePage() {
     "digital-content": c.digitalContentCategory,
   };
   const fileInputRef = useRef(null);
+  const courseCategory = Object.entries(categoryCopyKeys).find(([, key]) =>
+    ["ar", "en"].some((locale) => editCourse?.category?.[locale] === instructorCopy[locale][key]),
+  )?.[0];
 
-  const [courseImage, setCourseImage] = useState(null);
+  const [courseImage, setCourseImage] = useState(editCourse?.image || null);
 
   const [form, setForm] = useState({
-    title: courseDraft.title,
-    category: courseDraft.category,
-    language: courseDraft.language,
-    description: courseDraft.description,
-    level: courseDraft.level,
+    title: editCourse?.title || { ar: "", en: "" },
+    category: editCourse?.categoryKey || courseCategory || "",
+    language: editCourse?.language || "ar",
+    description: editCourse?.description || { ar: "", en: "" },
+    level: editCourse?.level || "",
   });
 
-  const [objectives, setObjectives] = useState(courseDraft.objectives);
+  const [objectives, setObjectives] = useState(editCourse?.objectives || []);
 
   const [newObjective, setNewObjective] = useState("");
 
@@ -82,10 +98,41 @@ export default function CreateCoursePage() {
     setCourseImage(previewUrl);
   };
 
+  const saveCourseChanges = () => {
+    if (!editCourse) return;
+
+    const categoryKey = categoryCopyKeys[form.category];
+    Object.assign(editCourse, {
+      title: form.title,
+      description: form.description,
+      category: {
+        ar: instructorCopy.ar[categoryKey],
+        en: instructorCopy.en[categoryKey],
+      },
+      categoryKey: form.category,
+      language: form.language,
+      level: form.level,
+      objectives,
+      image: courseImage || editCourse.image,
+    });
+
+    navigate(`/instructor/courses/${courseId}/curriculum`);
+  };
+
   const saveDraft = () => {
+    if (isEditMode) {
+      saveCourseChanges();
+      return;
+    }
     setSaveStatus(language === "ar" ? "البيانات موجودة في معاينة الصفحة فقط؛ حفظ المسودة الدائم يحتاج ربط خدمة الدورات." : "Data remains in this page preview only; persistent draft saving requires the course service.");
   };
-  const continueToCurriculum = () => navigate("/instructor/courses/new/curriculum");
+  const continueToCurriculum = () => {
+    if (isEditMode) {
+      saveCourseChanges();
+      return;
+    }
+    navigate("/instructor/courses/new/curriculum");
+  };
 
   return (
     <section className="instructor-create-course-page">
@@ -93,8 +140,8 @@ export default function CreateCoursePage() {
         {/* PAGE HEADER */}
         <header className="instructor-create-course-heading">
           <div>
-            <h1>{c.createNewCourse}</h1>
-            <p>{c.createCourseDescription}</p>
+            <h1>{isEditMode ? c.editCourseTitle : c.createNewCourse}</h1>
+            <p>{isEditMode ? c.editCourseDescription : c.createCourseDescription}</p>
           </div>
 
           <div className="instructor-create-course-heading-actions">
@@ -104,32 +151,33 @@ export default function CreateCoursePage() {
               onClick={saveDraft}
             >
               <Icon name="save" size={16} />
-              {c.saveAsDraft}
+              {isEditMode ? c.saveChanges : c.saveAsDraft}
             </button>
 
-            <Link
-              to="/instructor/courses/new/curriculum"
-              className="instructor-create-primary-button"
-            >
-              {c.continueToContent}
-              <Icon name="arrow-left" size={16} />
-            </Link>
+            {isEditMode ? (
+              <button type="button" className="instructor-create-primary-button" onClick={saveCourseChanges}>
+                {c.saveChanges}
+                <Icon name="arrow-left" size={16} />
+              </button>
+            ) : (
+              <Link to="/instructor/courses/new/curriculum" className="instructor-create-primary-button">
+                {c.continueToContent}
+                <Icon name="arrow-left" size={16} />
+              </Link>
+            )}
           </div>
         </header>
 
         {saveStatus && <p className="account-note" role="status">{saveStatus}</p>}
         <div className="instructor-create-stepper-row">
           <InstructorCourseStepper currentStep={1} />
-          <div className="instructor-create-save-state">
-            <Icon name="cloud" size={15} />
-            <span>{language === "ar" ? "معاينة تجريبية · دون حفظ دائم" : "Demo preview · No persistent saving"}</span>
-          </div>
         </div>
 
         {/* MAIN CONTENT */}
         <div className="instructor-create-layout">
           {/* MAIN FORM */}
           <main className="instructor-create-main">
+            <div className="create-information-preview-grid">
             {/* BASIC INFORMATION */}
             <section className="instructor-create-panel">
               <div className="instructor-create-panel-heading">
@@ -180,6 +228,7 @@ export default function CreateCoursePage() {
                           updateField("category", event.target.value)
                         }
                       >
+                        <option value="" disabled>{c.category}</option>
                         <option value="photography">
                           {c.photographyCategory}
                         </option>
@@ -306,186 +355,7 @@ export default function CreateCoursePage() {
               </div>
             </section>
 
-            {/* LEVEL */}
-            <section className="instructor-create-panel">
-              <div className="instructor-create-panel-heading">
-                <div className="create-section-number">2</div>
-
-                <div>
-                  <h2>{c.courseLevel}</h2>
-                  <p>{c.selectTargetLevel}</p>
-                </div>
-              </div>
-
-              <div className="instructor-create-divider" />
-
-              <div className="create-level-grid">
-                {[
-                  {
-                    value: "beginner",
-                    title: c.beginner,
-                    description: c.beginnerDescription,
-                  },
-                  {
-                    value: "intermediate",
-                    title: c.intermediate,
-                    description: c.intermediateDescription,
-                  },
-                  {
-                    value: "advanced",
-                    title: c.advanced,
-                    description: c.advancedDescription,
-                  },
-                ].map((level) => (
-                  <label
-                    className={
-                      form.level === level.value
-                        ? "create-level-card active"
-                        : "create-level-card"
-                    }
-                    key={level.value}
-                  >
-                    <input
-                      type="radio"
-                      name="course-level"
-                      value={level.value}
-                      checked={form.level === level.value}
-                      onChange={(event) =>
-                        updateField("level", event.target.value)
-                      }
-                    />
-
-                    <span className="create-radio" />
-
-                    <span className="create-level-copy">
-                      <strong>{level.title}</strong>
-                      <small>{level.description}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </section>
-
-            {/* COVER IMAGE */}
-            <section className="instructor-create-panel">
-              <div className="instructor-create-panel-heading">
-                <div className="create-section-number">3</div>
-
-                <div>
-                  <h2>{c.courseCoverImage}</h2>
-                  <p>{c.courseCoverDescription}</p>
-                </div>
-
-                <span className="create-image-ratio">
-                  {c.recommendedRatio}
-                </span>
-              </div>
-
-              <div className="instructor-create-divider" />
-
-              <div className="create-cover-layout">
-                <div className="create-upload-box">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={handleImageChange}
-                    hidden
-                  />
-
-                  <div className="create-upload-icon">
-                    <Icon name="image" size={23} />
-                  </div>
-
-                  <strong>{c.dropOrChooseImage}</strong>
-
-                  <small>
-                    {c.recommendedImageSize}
-                  </small>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {c.uploadNewImage}
-                  </button>
-                </div>
-
-                <div className="create-cover-preview">
-                  {courseImage ? (
-                    <img src={courseImage} alt={c.courseCoverPreview} />
-                  ) : (
-                    <div className="create-cover-placeholder">
-                      <Icon name="image" size={28} />
-                      <span>{c.courseCoverPreview}</span>
-                    </div>
-                  )}
-
-                  <span>{c.courseCoverPreview}</span>
-                </div>
-              </div>
-            </section>
-
-            {/* POINT SYSTEM */}
-            <section className="instructor-create-panel">
-              <div className="instructor-create-panel-heading">
-                <div className="create-section-number green">
-                  <Icon name="check" size={15} />
-                </div>
-
-                <div>
-                  <h2>{c.approvedPointsSystem}</h2>
-                  <p>{c.pointsOnCompletion}</p>
-                </div>
-              </div>
-
-              <div className="instructor-create-divider" />
-
-              <div className="create-points-box">
-                <div className="create-points-number">{coursePoints}</div>
-
-                <div className="create-points-copy">
-                  <span>{coursePoints} {c.points} {c.approvedPointsLabel}</span>
-                  <p>
-                    {c.pointsCompletionDescription.replace("{points}", coursePoints)}
-                  </p>
-                </div>
-
-                <span className="create-points-badge">
-                  <Icon name="check" size={13} />
-                  {c.fixedBySystem}
-                </span>
-              </div>
-
-              <p className="create-points-note">
-                {c.pointsCannotChange}
-              </p>
-            </section>
-
-            {/* BOTTOM ACTIONS */}
-            <div className="instructor-create-bottom-actions">
-              <button
-                type="button"
-                className="instructor-create-secondary-button"
-                onClick={saveDraft}
-              >
-                <Icon name="save" size={16} />
-                {c.saveAsDraft}
-              </button>
-
-              <button
-                type="button"
-                className="instructor-create-primary-button"
-                onClick={continueToCurriculum}
-              >
-                {c.continueToContent}
-                <Icon name="arrow-left" size={16} />
-              </button>
-            </div>
-          </main>
-
-          {/* SIDEBAR */}
-          <aside className="instructor-create-sidebar">
+<aside className="instructor-create-sidebar">
             {/* PREVIEW */}
             <section className="create-preview-card">
               <div className="create-preview-heading">
@@ -555,16 +425,173 @@ export default function CreateCoursePage() {
                 </ul>
               </div>
             </section>
+          </aside>
+            </div>
 
-            {/* SAVE NOTE */}
-            <section className="create-sidebar-note">
-              <Icon name="shield-check" size={17} />
+            {/* LEVEL */}
+            <section className="instructor-create-panel">
+              <div className="instructor-create-panel-heading">
+                <div className="create-section-number">2</div>
 
-              <p>
-                {language === "ar" ? "معاينة تجريبية: بيانات الإنشاء لا تُحفظ بعد مغادرة الصفحة. الحفظ الدائم وإرسال الدورة يحتاجان ربط خدمة الدورات." : "Demo preview: creation data is not retained after leaving this page. Persistent saving and submission require the course service."}
+                <div>
+                  <h2>{c.courseLevel}</h2>
+                  <p>{c.selectTargetLevel}</p>
+                </div>
+              </div>
+
+              <div className="instructor-create-divider" />
+
+              <div className="create-level-grid">
+                {[
+                  {
+                    value: "beginner",
+                    title: c.beginner,
+                    description: c.beginnerDescription,
+                  },
+                  {
+                    value: "intermediate",
+                    title: c.intermediate,
+                    description: c.intermediateDescription,
+                  },
+                  {
+                    value: "advanced",
+                    title: c.advanced,
+                    description: c.advancedDescription,
+                  },
+                ].map((level) => (
+                  <label
+                    className={
+                      form.level === level.value
+                        ? "create-level-card active"
+                        : "create-level-card"
+                    }
+                    key={level.value}
+                  >
+                    <input
+                      type="radio"
+                      name="course-level"
+                      value={level.value}
+                      checked={form.level === level.value}
+                      onChange={(event) =>
+                        updateField("level", event.target.value)
+                      }
+                    />
+
+                    <span className="create-radio" />
+
+                    <span className="create-level-copy">
+                      <strong>{level.title}</strong>
+                      <small>{level.description}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <div className="create-cover-points-grid">
+            {/* COVER IMAGE */}
+            <section className="instructor-create-panel">
+              <div className="instructor-create-panel-heading">
+                <div className="create-section-number">3</div>
+                <div>
+                  <h2>{c.courseCoverImage}</h2>
+                  <p>{c.courseCoverDescription}</p>
+                </div>
+                <span className="create-image-ratio">{c.recommendedRatio}</span>
+              </div>
+
+              <div className="instructor-create-divider" />
+
+              <div className="create-cover-layout">
+                <div className="create-cover-preview">
+                  {courseImage ? (
+                    <img src={courseImage} alt={c.courseCoverPreview} />
+                  ) : (
+                    <div className="create-cover-placeholder">
+                      <Icon name="image" size={28} />
+                      <span>{c.courseCoverPreview}</span>
+                    </div>
+                  )}
+                  <span>{c.courseCoverPreview}</span>
+                </div>
+
+                <div className="create-upload-box">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleImageChange}
+                    hidden
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {c.uploadNewImage}
+                  </button>
+                  <small>{c.recommendedImageSize}</small>
+                </div>
+              </div>
+            </section>
+            {/* POINT SYSTEM */}
+            <section className="instructor-create-panel">
+              <div className="instructor-create-panel-heading">
+                <div className="create-section-number green">
+                  <Icon name="check" size={15} />
+                </div>
+
+                <div>
+                  <h2>{c.approvedPointsSystem}</h2>
+                  <p>{c.pointsOnCompletion}</p>
+                </div>
+              </div>
+
+              <div className="instructor-create-divider" />
+
+              <div className="create-points-box">
+                <div className="create-points-number">{coursePoints}</div>
+
+                <div className="create-points-copy">
+                  <span>{coursePoints} {c.points} {c.approvedPointsLabel}</span>
+                  <p>
+                    {c.pointsCompletionDescription.replace("{points}", coursePoints)}
+                  </p>
+                </div>
+
+                <span className="create-points-badge">
+                  <Icon name="check" size={13} />
+                  {c.fixedBySystem}
+                </span>
+              </div>
+
+              <p className="create-points-note">
+                {c.pointsCannotChange}
               </p>
             </section>
-          </aside>
+
+            </div>
+
+            {/* BOTTOM ACTIONS */}
+            <div className="instructor-create-bottom-actions">
+              <button
+                type="button"
+                className="instructor-create-secondary-button"
+                onClick={saveDraft}
+              >
+                <Icon name="save" size={16} />
+                {isEditMode ? c.saveChanges : c.saveAsDraft}
+              </button>
+
+              <button
+                type="button"
+                className="instructor-create-primary-button"
+                onClick={continueToCurriculum}
+              >
+                {isEditMode ? c.saveChanges : c.continueToContent}
+                <Icon name="arrow-left" size={16} />
+              </button>
+            </div>
+          </main>
         </div>
       </div>
     </section>

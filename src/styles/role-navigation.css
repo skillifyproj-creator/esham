@@ -132,6 +132,31 @@
   background: var(--tint);
 }
 
+/* Keep Learner navigation links in the desktop header row. */
+.learner-header.role-header > .learner-header-inner {
+  flex-wrap: nowrap;
+}
+
+.learner-header.role-header .learner-brand {
+  order: 1;
+}
+
+.learner-header.role-header .learner-top-navigation {
+  order: 2;
+  flex: 1 1 0;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: clamp(2px, 0.45vw, 8px);
+  margin-inline: 0;
+  white-space: nowrap;
+}
+
+.learner-header.role-header .learner-header-actions {
+  order: 3;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
 /* تبديل الدور */
 .role-header :is(
   .learner-switch-role,
@@ -503,4 +528,84 @@
  .role-header :is(.learner-header-actions,.instructor-header-actions).tools-open{flex-wrap:wrap}
  .role-header .points-badge{min-height:44px;padding:6px 12px}
  .role-header :is(.learner-profile,.instructor-profile){padding-inline:0;border-inline-start:0}
+}
+
+/* Unified Instructor and Learner navigation layout */
+.role-header .learner-header-inner { flex-wrap: nowrap; gap: clamp(6px, 1vw, 16px); }
+.role-header :is(.learner-brand, .instructor-brand) { order: 1; flex: 0 0 auto; }
+.role-header :is(.learner-top-navigation, .instructor-navigation) { order: 2; flex: 1 1 auto; width: auto; min-width: 0; flex-wrap: nowrap; justify-content: center; gap: clamp(0px, .35vw, 7px); margin: 0; white-space: nowrap; }
+.role-header :is(.learner-header-actions, .instructor-header-actions) { order: 4; flex: 0 0 auto; flex-wrap: nowrap; gap: 7px; margin-inline-start: 0; }
+.role-header > .learner-header-inner > .preferences { order: 3; margin-inline-start: 0; }
+.role-header :is(.learner-menu-button, .instructor-menu-button, .role-mobile-profile, .role-mobile-menu-extras) { display: none; }
+.role-header .instructor-nav-link, .role-header .learner-top-nav-link { padding-inline: 7px; font-size: 12px; }
+.role-header .preferences { display: flex; align-items: center; gap: 7px; }
+.role-header .instructor-switch-role { border-color: var(--line); }
+.role-header :is(.learner-switch-role, .instructor-switch-role):hover { background: var(--tint); }
+.role-header .points-badge { flex: 0 0 auto; }
+@media (min-width:761px) and (max-width:1100px) {
+ .role-header :is(.learner-menu-button,.instructor-menu-button) { display:none!important; }
+ .role-header :is(.learner-top-navigation,.instructor-navigation) { display:flex!important; position:static; max-height:none; overflow:visible; padding:0; border:0; background:transparent; box-shadow:none; flex-direction:row; align-items:center; }
+ .role-header .learner-header-inner { width:calc(100% - 32px); gap:5px; }
+ .role-header :is(.learner-logo,.instructor-logo) { width:74px; height:42px; }
+ .role-header :is(.learner-top-navigation,.instructor-navigation) { gap:0; }
+ .role-header :is(.learner-top-nav-link,.instructor-nav-link) { padding-inline:4px; font-size:11px; }
+ .role-header :is(.notification-bell,a[href$='/settings']) { display:none!important; }
+ .role-header :is(.learner-switch-role,.instructor-switch-role) { width:38px; min-width:38px; padding-inline:0; }
+ .role-header .instructor-switch-role span:not([aria-hidden="true"]) { display:none; }
+ .role-header .points-badge { padding-inline:7px; }
+}
+@media (max-width:760px) {
+ .role-header .learner-header-inner { position:relative; width:calc(100% - 30px); min-height:64px; padding-block:8px; flex-wrap:wrap; gap:8px; }
+ .role-header :is(.learner-brand,.instructor-brand) { order:1; }
+ .role-header .role-mobile-profile { order:2; display:inline-flex; margin-inline-start:auto; }
+ .role-header :is(.learner-menu-button,.instructor-menu-button) { order:3; display:inline-flex; margin:0; }
+ .role-header :is(.learner-header-actions,.instructor-header-actions) { display:none; }
+ .role-header :is(.learner-profile,.instructor-profile) { display:none; }
+ .role-header .preferences { display:none; }
+ .role-header :is(.learner-top-navigation,.instructor-navigation) { display:none; position:absolute; top:calc(100% + 6px); inset-inline:0; z-index:55; width:auto; max-height:min(75dvh,620px); overflow-y:auto; flex-direction:column; align-items:stretch; justify-content:flex-start; gap:2px; padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 12px 30px #0002; }
+ .role-header :is(.learner-top-navigation,.instructor-navigation).open { display:flex; }
+ .role-header .role-mobile-menu-extras { display:flex; flex-direction:column; gap:10px; padding:2px 2px 12px; margin-bottom:4px; border-bottom:1px solid var(--line); }
+ .role-header .role-mobile-account { display:flex; align-items:center; gap:10px; }
+ .role-header .role-mobile-edit-profile,.role-header .role-mobile-switch { display:flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text); text-decoration:none; font:inherit; font-weight:600; }
+ .role-header .role-mobile-switch { color:var(--primary-300); }
+ .role-header .role-mobile-utilities { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+ .role-header :is(.learner-top-nav-link,.instructor-nav-link) { justify-content:flex-start; min-height:42px; padding:8px 12px; white-space:normal; }
+ .role-header :is(.learner-top-nav-link,.instructor-nav-link)::after { display:none; }
+}
+
+/* Desktop-only navbar refinement */
+@media (min-width: 1101px) {
+  .role-header :is(.instructor-nav-link, .learner-top-nav-link) {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .role-header .responsive-role-switch { display: none; }
+  .role-header .desktop-role-switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 42px;
+    padding-inline: 10px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .role-header .desktop-role-switch span[aria-hidden="true"] {
+    font-family: Arial, sans-serif;
+    font-size: 21px;
+    line-height: 1;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .role-header .desktop-role-switch { display: none !important; }
+  .role-header .responsive-role-switch { display: inline-flex !important; }
+  .role-header .responsive-role-switch span:not([aria-hidden="true"]) { display: none !important; }
+  .role-header .responsive-role-switch span[aria-hidden="true"] { display: inline !important; }
+}
+@media (max-width: 760px) {
+  .role-header .desktop-role-switch,
+  .role-header .responsive-role-switch { display: none !important; }
+  .role-header .role-mobile-switch { display: flex !important; }
 }

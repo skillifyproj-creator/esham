@@ -2,7 +2,7 @@ import useAccountProfile from '../../hooks/useAccountProfile';
 import useAccountName from "../../hooks/useAccountName";
 import NotificationBell from "../shared/NotificationBell";
 import { useState } from "react";
-import { NavLink, Link } from "react-router";
+import { NavLink, Link, useNavigate } from "react-router";
 
 import { usePreferences } from "../../context/PreferencesContext";
 import { learnerCopy } from "../../i18n/learnerCopy";
@@ -13,6 +13,7 @@ import PointsBadge from "../shared/PointsBadge";
 import logo from "../../assets/esham-logo.png";
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 export default function LearnerNavigation() {
+  const navigate = useNavigate();
   const accountName = useAccountName();
   const profile = useAccountProfile();
   const {
@@ -34,13 +35,13 @@ export default function LearnerNavigation() {
       "/learner/progress",
       language === "ar" ? "تقدّم التعلّم" : "Learning progress",
     ],
-    ["/learner/points", language === "ar" ? "النقاط" : "Points"],
     [
       "/learner/reviews",
       language === "ar" ? "التقييمات" : "Reviews",
     ],
 ];
 
+  const switchLabel = language === "ar" ? "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0648\u0636\u0639 \u0627\u0644\u0645\u0639\u0644\u0645" : "Switch to instructor";
   const { balance } = useLearnerWallet();
 
   return (
@@ -54,6 +55,7 @@ export default function LearnerNavigation() {
           <img src={logo} alt={c.brand} className="learner-logo" />
         </Link>
 
+        <Link to="/learner/profile" className="role-mobile-profile" aria-label={language === "ar" ? "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a" : "Edit profile"} onClick={() => setOpen(false)}><span className="learner-profile-avatar"><Icon name="user" size={18} /></span></Link>
         <button
           type="button"
           className="learner-menu-button"
@@ -70,6 +72,35 @@ export default function LearnerNavigation() {
           className={`learner-top-navigation${open ? " open" : ""}`}
           aria-label={c.navigation}
         >
+          <div className="role-mobile-menu-extras">
+            <div className="role-mobile-account">
+              <span className="learner-profile-avatar"><Icon name="user" size={18} /></span>
+              <span className="learner-profile-copy">
+                <strong>{accountName || learnerDemo.name[language]}</strong>
+                <small>{language === "ar" ? "\u0645\u062a\u0639\u0644\u0651\u0645 \u062a\u062c\u0631\u064a\u0628\u064a" : "Demo learner"}</small>
+              </span>
+            </div>
+            <Link to="/learner/profile" className="role-mobile-edit-profile" onClick={() => setOpen(false)}>
+              {language === "ar" ? "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a" : "Edit profile"}
+            </Link>
+            {profile.role === "both" && (
+              <button type="button" className="role-mobile-switch" aria-label={switchLabel} title={switchLabel} onClick={() => { setOpen(false); navigate("/instructor"); }}>
+                <span aria-hidden="true">⇄</span>{switchLabel}
+              </button>
+            )}
+            <div className="role-mobile-utilities">
+              <NotificationBell role="learner" onClick={() => setOpen(false)} />
+              <Link className="preference-button" to="/learner/settings" aria-label={language === "ar" ? "\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628" : "Account settings"} onClick={() => setOpen(false)}>
+                <Icon name="settings" size={18} />
+              </Link>
+              <button className="preference-button" type="button" onClick={toggleLanguage} aria-label={language === "ar" ? "Switch to English" : "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0627\u0644\u0639\u0631\u0628\u064a\u0629"}>
+                {language === "ar" ? "EN" : "\u0639\u0631\u0628\u064a"}
+              </button>
+              <button className="preference-button" type="button" onClick={toggleTheme} aria-label={theme === "light" ? c.theme : c.light}>
+                <Icon name={theme === "light" ? "moon" : "sun"} size={19} />
+              </button>
+            </div>
+          </div>
           {links.map(([to, label]) => (
             <NavLink
               key={to}
@@ -108,12 +139,12 @@ export default function LearnerNavigation() {
         <div className={`learner-header-actions${open ? ' tools-open' : ''}`}>
 <NotificationBell role="learner" onClick={() => setOpen(false)} />
 <Link className="preference-button mobile-secondary" to="/learner/settings" aria-label={language === "ar" ? "إعدادات الحساب" : "Account settings"} onClick={() => setOpen(false)}><Icon name="settings" size={18} /></Link>
-          {profile.role === "both" && <Link className="learner-switch-role" to="/instructor">
-            {language === "ar"
-              ? "التبديل إلى المعلّم"
-              : "Switch to instructor"}
-            <Icon name="swap" size={16} />
-          </Link>}
+          {profile.role === "both" && <button type="button" className="learner-switch-role desktop-role-switch" aria-label={switchLabel} title={switchLabel} onClick={() => navigate("/instructor")}>
+            <span aria-hidden="true">⇄</span><span>{switchLabel}</span>
+          </button>}
+          {profile.role === "both" && <button type="button" className="learner-switch-role responsive-role-switch" aria-label={switchLabel} title={switchLabel} onClick={() => navigate("/instructor")}>
+            <span aria-hidden="true">⇄</span><span>{switchLabel}</span>
+          </button>}
 
           <PointsBadge
             amount={balance}

@@ -3,7 +3,7 @@ import useAccountProfile from '../../hooks/useAccountProfile';
 import useAccountName from "../../hooks/useAccountName";
 import NotificationBell from "../shared/NotificationBell";
 import { useState } from "react";
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import Icon from "../../components/Icon";
 import PointsBadge from "../shared/PointsBadge";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -20,6 +20,7 @@ const instructorLinks = [
 ];
 
 export default function InstructorNavigation() {
+  const navigate = useNavigate();
   const accountName = useAccountName();
   const { balance } = useLearnerWallet();
   const profile = useAccountProfile();
@@ -35,6 +36,7 @@ export default function InstructorNavigation() {
   const c = instructorCopy[language];
   const { instructor } = instructorDemo;
   const isEnglish = language === "en";
+  const switchLabel = isEnglish ? "Switch to learner mode" : "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0648\u0636\u0639 \u0627\u0644\u0645\u062a\u0639\u0644\u0645";
   const navigationCopy = {
     dashboard: c.dashboard,
     courses: c.myCourses,
@@ -61,6 +63,7 @@ export default function InstructorNavigation() {
           />
         </Link>
 
+        <Link to="/instructor/profile" className="role-mobile-profile" aria-label={isEnglish ? "Edit profile" : "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a"} onClick={() => setOpen(false)}><span className="instructor-profile-avatar"><Icon name="user" size={18} /></span></Link>
         {/* Mobile menu */}
         <button
           type="button"
@@ -92,6 +95,33 @@ export default function InstructorNavigation() {
               : "instructor-navigation"
           }
         >
+          <div className="role-mobile-menu-extras">
+            <div className="role-mobile-account">
+              <span className="instructor-profile-avatar"><Icon name="user" size={18} /></span>
+              <span className="instructor-profile-copy">
+                <strong>{accountName || instructor.name[language]}</strong>
+                <small>{instructor.role[language]}</small>
+              </span>
+            </div>
+            <Link to="/instructor/profile" className="role-mobile-edit-profile" onClick={() => setOpen(false)}>
+              {isEnglish ? "Edit profile" : "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a"}
+            </Link>
+            {profile.role === "both" && (
+              <button type="button" className="role-mobile-switch" aria-label={switchLabel} title={switchLabel} onClick={() => { setOpen(false); navigate("/learner"); }}>
+                <span aria-hidden="true">⇄</span>{switchLabel}
+              </button>
+            )}
+            <div className="role-mobile-utilities">
+              <NotificationBell role="instructor" onClick={() => setOpen(false)} />
+              <Link className="preference-button" to="/instructor/settings" aria-label={isEnglish ? "Account settings" : "\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628"} onClick={() => setOpen(false)}>
+                <Icon name="settings" size={18} />
+              </Link>
+              <button type="button" className="instructor-preference-button" onClick={toggleLanguage} aria-label={isEnglish ? c.switchToArabic : c.switchToEnglish}>{c.languageSwitchLabel}</button>
+              <button type="button" className="instructor-preference-button" onClick={toggleTheme} aria-label={theme === "light" ? c.switchToDarkMode : c.switchToLightMode}>
+                <Icon name={theme === "light" ? "moon" : "sun"} size={18} />
+              </button>
+            </div>
+          </div>
           {instructorLinks.map((link) => (
             <NavLink
               key={link.key}
@@ -150,14 +180,26 @@ export default function InstructorNavigation() {
           </button>
 
           {/* Switch role */}
-          {profile.role === "both" && <Link
-            to="/learner"
-            className="instructor-switch-role"
-            onClick={() => setOpen(false)}
+          {profile.role === "both" && <button
+            type="button"
+            className="instructor-switch-role desktop-role-switch"
+            aria-label={switchLabel}
+            title={switchLabel}
+            onClick={() => navigate("/learner")}
           >
-            <Icon name="swap" size={17} />
-            <span>{language === "ar" ? "التبديل إلى المتعلّم" : "Switch to learner"}</span>
-          </Link>}
+            <span aria-hidden="true">⇄</span>
+            <span>{c.switchToLearner}</span>
+          </button>}
+          {profile.role === "both" && <button
+            type="button"
+            className="instructor-switch-role responsive-role-switch"
+            aria-label={switchLabel}
+            title={switchLabel}
+            onClick={() => navigate("/learner")}
+          >
+            <span aria-hidden="true">⇄</span>
+            <span>{switchLabel}</span>
+          </button>}
 
           {/* Points */}
           <PointsBadge amount={balance} />

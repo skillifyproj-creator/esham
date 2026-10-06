@@ -1,6 +1,9 @@
 import { courses } from "../../data/courses";
 import PendingFeature from "../../components/shared/PendingFeature";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
+import { usePreferences } from "../../context/PreferencesContext";
+import { instructorDemo } from "../../data/instructorDemo";
+import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 
@@ -49,6 +52,17 @@ const checklist = [
 ];
 
 export default function CourseReviewPage() {
+  const { courseId } = useParams();
+  const { language } = usePreferences();
+  const reviewCourse = instructorDemo.courses.find((course) => String(course.id) === String(courseId));
+  const publicCourseId = instructorPublicCourseIds[courseId];
+  const publicCourse = courses.find((course) => String(course.id) === String(publicCourseId));
+  const reviewTitle = reviewCourse?.title?.[language];
+  const reviewCategory = reviewCourse?.category?.[language];
+  const reviewImage = reviewCourse
+    ? reviewCourse.image || publicCourse?.image
+    : courses.find((course) => course.id === 6)?.image;
+
   return (
     <div className="instructor-review-page instructor-detail-page">
       <div className="container">
@@ -63,7 +77,7 @@ export default function CourseReviewPage() {
 
           <div className="instructor-review-header-actions">
             <Link
-              to="/instructor/courses/new/curriculum"
+              to={reviewCourse ? `/instructor/courses/${courseId}/curriculum` : "/instructor/courses/new/curriculum"}
               className="instructor-review-back-button"
             >
               <Icon name="arrow-left" size={15} />
@@ -101,18 +115,23 @@ export default function CourseReviewPage() {
 
             <section className="instructor-course-preview-card">
               <div className="instructor-course-preview-cover">
-                <img
-                  src={courses.find(course => course.id === 6)?.image}
-                  alt="التصوير الفوتوغرافي للمبتدئين"
-                />
+                {reviewImage ? (
+                  <img src={reviewImage} alt={reviewTitle || ""} />
+                ) : (
+                  <div className="instructor-course-image-empty">
+                    <Icon name="camera" size={28} />
+                  </div>
+                )}
 
-                <span className="instructor-preview-course-badge">
+                <span className="instructor-preview-course-badge">{reviewCourse ? reviewCategory : <>
+
                   التصوير الفوتوغرافي
-                </span>
+
+</>}</span>
 
                 <span className="instructor-preview-points">
                   <Icon name="star" size={13} />
-                  20 نقطة مكتسبة
+                  {reviewCourse?.coursePoints ?? 20} نقطة مكتسبة
                 </span>
               </div>
 
@@ -123,14 +142,18 @@ export default function CourseReviewPage() {
                       المستوى الأكاديمي
                     </span>
 
-                    <h2>التصوير الفوتوغرافي للمبتدئين</h2>
+                    <h2>{reviewCourse ? reviewTitle : <>
+التصوير الفوتوغرافي للمبتدئين
+</>}</h2>
 
-                    <h3>
+                    <h3>{reviewCourse ? reviewCourse.description?.[language] : <>
+
                       التحكم اليدوي، الإضاءة، والتكوين البصري
-                    </h3>
+
+</>}</h3>
                   </div>
 
-                  <Link to="/instructor/courses/new"  className="instructor-preview-edit">
+                  <Link to={reviewCourse ? `/instructor/courses/${courseId}/edit` : "/instructor/courses/new"}  className="instructor-preview-edit">
                     <Icon name="edit" size={14} />
                     تعديل
                   </Link>
@@ -139,31 +162,41 @@ export default function CourseReviewPage() {
                 <div className="instructor-preview-stats">
                   <div>
                     <span>المستوى الأكاديمي</span>
-                    <strong>مبتدئ</strong>
+                    <strong>{reviewCourse ? (reviewCourse.level?.[language] || reviewCourse.level || "\u2014") : <>
+مبتدئ
+</>}</strong>
                   </div>
 
                   <div>
                     <span>مدة الدورة</span>
-                    <strong>3 ساعات و20 دقيقة</strong>
+                    <strong>{reviewCourse ? (reviewCourse.duration?.[language] || "\u2014") : <>
+3 ساعات و20 دقيقة
+</>}</strong>
                   </div>
 
                   <div>
                     <span>الدروس والأنشطة</span>
-                    <strong>12 درسًا</strong>
+                    <strong>{reviewCourse ? (reviewCourse.totalLessons ?? "\u2014") : <>
+12 درسًا
+</>}</strong>
                   </div>
 
                   <div>
                     <span>النقاط المكتسبة</span>
-                    <strong>20 نقطة</strong>
+                    <strong>{reviewCourse ? (reviewCourse.coursePoints ?? 20) : <>
+20 نقطة
+</>}</strong>
                   </div>
                 </div>
 
-                <div className="instructor-preview-tags">
+                <div className="instructor-preview-tags">{reviewCourse ? <span>{reviewCategory}</span> : <>
+
                   <span>التصوير الفوتوغرافي</span>
                   <span>الإضاءة</span>
                   <span>التكوين البصري</span>
                   <span>التصوير اليدوي</span>
-                </div>
+
+</>}</div>
               </div>
             </section>
 
@@ -174,13 +207,14 @@ export default function CourseReviewPage() {
                   <h2>عن الدورة التدريبية</h2>
                 </div>
 
-                <Link to="/instructor/courses/new" >
+                <Link to={reviewCourse ? `/instructor/courses/${courseId}/edit` : "/instructor/courses/new"} >
                   <Icon name="edit" size={13} />
                   تعديل الوصف
                 </Link>
               </div>
 
-              <p>
+              {reviewCourse ? <p>{reviewCourse.description?.[language]}</p> : <>
+<p>
                 صممت هذه الدورة خصيصًا للمصورين المبتدئين وهواة التصوير الذين
                 يرغبون في الانتقال من وضعية التصوير التلقائي إلى التحكم اليدوي
                 الكامل. ستتعلم خلال الدورة أساسيات التصوير الفوتوغرافي، فهم
@@ -192,8 +226,10 @@ export default function CourseReviewPage() {
                 العدسة وحساسية ISO، بالإضافة إلى تطبيقات عملية تساعدك على
                 تطوير مهاراتك في التصوير.
               </p>
+</>}
             </section>
 
+{!reviewCourse && (
             <section className="instructor-review-section">
               <div className="instructor-review-section-heading">
                 <div>
@@ -201,7 +237,7 @@ export default function CourseReviewPage() {
                   <h2>ماذا سيتعلم الطالب في هذه الدورة؟</h2>
                 </div>
 
-                <Link to="/instructor/courses/new" >
+                <Link to={reviewCourse ? `/instructor/courses/${courseId}/edit` : "/instructor/courses/new"} >
                   <Icon name="edit" size={13} />
                   تعديل المخرجات
                 </Link>
@@ -237,7 +273,9 @@ export default function CourseReviewPage() {
                 </article>
               </div>
             </section>
+            )}
 
+            {!reviewCourse && (
             <section className="instructor-review-section instructor-curriculum-preview">
               <div className="instructor-review-section-heading">
                 <div>
@@ -297,6 +335,8 @@ export default function CourseReviewPage() {
                 ))}
               </div>
             </section>
+
+            )}
 
             <section className="instructor-review-instructor-card">
               <div className="instructor-review-instructor-avatar">

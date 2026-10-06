@@ -1,37 +1,56 @@
 import { useMemo, useState } from "react";
+import { useParams } from "react-router";
 import Icon from "../../components/Icon";
 import { instructorFeedback } from "../../data/instructorFeedback";
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
+import { instructorDemo } from "../../data/instructorDemo";
 
 export default function InstructorFeedbackPage() {
   const { language } = usePreferences();
+  const { courseId } = useParams();
   const c = instructorCopy[language].feedbackPage;
+  const selectedCourse = instructorDemo.courses.find((item) => item.id === courseId);
+  const aliases = { photography: "photography-beginners", "graphic-design": "design-basics", "digital-content": "digital-content" };
+  const courseIdByFeedbackId = Object.fromEntries(Object.entries(aliases).map(([id, feedbackId]) => [feedbackId, id]));
+  const courseReviews = courseId
+    ? instructorFeedback.filter((review) => review.courseId === aliases[courseId])
+    : instructorFeedback;
+  const localizedReviews = courseReviews.map((review) => {
+    const course = instructorDemo.courses.find((item) => item.id === courseIdByFeedbackId[review.courseId]);
+    const localized = c.reviewContent?.[review.id] || {};
+    return {
+      ...review,
+      learner: {
+        ...review.learner,
+        name: localized.name || review.learner.name,
+        initials: localized.initials || review.learner.initials,
+      },
+      comment: localized.comment || review.comment,
+      courseName: course?.title?.[language] || review.courseName,
+      courseLabel: course?.title?.[language] || review.courseLabel,
+    };
+  });
   const [courseFilter, setCourseFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [responseFilter, setResponseFilter] = useState("all");
   const [replies, setReplies] = useState(() =>
     Object.fromEntries(
-      instructorFeedback.map((review) => [review.id, review.instructorReply || ""]),
+      localizedReviews.map((review) => [review.id, review.instructorReply || ""]),
     ),
   );
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [replyDraft, setReplyDraft] = useState("");
 
   const courses = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          instructorFeedback.map((review) => [
-            review.courseId,
-            review.courseLabel || review.courseName,
-          ]),
-        ),
-      ),
-    [],
+    () => Array.from(new Map(localizedReviews.map((review) => [
+      review.courseId,
+      review.courseLabel || review.courseName,
+    ]))),
+    [localizedReviews],
   );
 
-  const filteredReviews = instructorFeedback.filter((review) => {
+  const filteredReviews = localizedReviews.filter((review) => {
     const hasReply = Boolean(replies[review.id]?.trim());
 
     return (
@@ -43,26 +62,26 @@ export default function InstructorFeedbackPage() {
     );
   });
 
-  const averageRating = instructorFeedback.length
+  const averageRating = localizedReviews.length
     ? (
-        instructorFeedback.reduce((total, review) => total + review.rating, 0) /
-        instructorFeedback.length
+        localizedReviews.reduce((total, review) => total + review.rating, 0) /
+        localizedReviews.length
       ).toFixed(1)
     : "0.0";
-  const repliedCount = instructorFeedback.filter((review) =>
+  const repliedCount = localizedReviews.filter((review) =>
     replies[review.id]?.trim(),
   ).length;
 
   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
-    const count = instructorFeedback.filter(
+    const count = localizedReviews.filter(
       (review) => review.rating === rating,
     ).length;
 
     return {
       rating,
       count,
-      width: instructorFeedback.length
-        ? (count / instructorFeedback.length) * 100
+      width: localizedReviews.length
+        ? (count / localizedReviews.length) * 100
         : 0,
     };
   });
@@ -83,7 +102,9 @@ export default function InstructorFeedbackPage() {
         review.rating,
         review.comment,
         review.date,
-        replies[review.id] || "",
+        replies[review.id] === (review.instructorReply || "")
+          ? (c.reviewContent?.[review.id]?.reply || replies[review.id] || "")
+          : replies[review.id] || "",
       ]),
     ];
     const csv = rows
@@ -121,8 +142,8 @@ export default function InstructorFeedbackPage() {
       <div className="container">
         <header className="instructor-feedback-heading">
           <div>
-            <h1>{c.title}</h1>
-            <p>{c.intro}</p>
+            <h1>{courseId ? c.courseTitle : c.title}</h1>
+            <p>{courseId ? c.courseIntro.replace("{course}", selectedCourse?.title?.[language] || "—") : c.intro}</p>
           </div>
           <button
             type="button"
@@ -139,7 +160,7 @@ export default function InstructorFeedbackPage() {
             <span className="instructor-feedback-stat-icon">#</span>
             <div>
               <span>{c.totalReviews}</span>
-              <strong>{instructorFeedback.length}</strong>
+              <strong>{localizedReviews.length}</strong>
             </div>
           </article>
           <article className="instructor-feedback-stat">
@@ -147,17 +168,17 @@ export default function InstructorFeedbackPage() {
             <div>
               <span>{c.averageRating}</span>
               <strong>{averageRating}</strong>
-              <small>{c.ratingBasis.replace("{count}", instructorFeedback.length)}</small>
+              <small>{c.ratingBasis.replace("{count}", localizedReviews.length)}</small>
             </div>
           </article>
           <article className="instructor-feedback-stat">
             <span className="instructor-feedback-stat-icon green">
-              {Math.round((repliedCount / (instructorFeedback.length || 1)) * 100)}%
+              {Math.round((repliedCount / (localizedReviews.length || 1)) * 100)}%
             </span>
             <div>
               <span>{c.repliedReviews}</span>
               <strong>{repliedCount}</strong>
-              <small>{instructorFeedback.length}</small>
+              <small>{localizedReviews.length}</small>
             </div>
           </article>
         </section>
@@ -186,7 +207,7 @@ export default function InstructorFeedbackPage() {
         </section>
 
         <div className="instructor-feedback-toolbar">
-          <label>
+          {!courseId && <label>
             <span>{c.allCourses}</span>
             <select
               value={courseFilter}
@@ -199,7 +220,7 @@ export default function InstructorFeedbackPage() {
                 </option>
               ))}
             </select>
-          </label>
+          </label>}
 
           <label>
             <span>{c.allRatings}</span>
@@ -241,7 +262,11 @@ export default function InstructorFeedbackPage() {
 
           {filteredReviews.length ? (
             filteredReviews.map((review) => {
-              const reply = replies[review.id] || "";
+              const sourceReply = review.instructorReply || "";
+              const storedReply = replies[review.id] || "";
+              const reply = storedReply === sourceReply
+                ? (c.reviewContent?.[review.id]?.reply || sourceReply)
+                : storedReply;
               const isEditing = editingReviewId === review.id;
 
               return (

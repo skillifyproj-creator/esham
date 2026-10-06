@@ -85,8 +85,7 @@
   font-size: 15px;
 }
 
-.instructor-create-course-page .instructor-course-step-copy small,
-.instructor-create-course-page .instructor-create-save-state {
+.instructor-create-course-page .instructor-course-step-copy small {
   font-size: 13px;
 }
 
@@ -361,8 +360,7 @@
 .instructor-create-course-page :is(
   .create-preview-heading,
   .create-preview-body,
-  .create-tip-card,
-  .create-sidebar-note
+  .create-tip-card
 ) {
   padding: 20px;
 }
@@ -410,8 +408,7 @@
 
 .instructor-create-course-page :is(
   .create-tip-card p,
-  .create-tip-card ul,
-  .create-sidebar-note p
+  .create-tip-card ul
 ) {
   font-size: 14px;
 }

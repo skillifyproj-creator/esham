@@ -1,7 +1,7 @@
 import { pointsPolicy } from "../../data/pointsPolicy";
 import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
 import {
@@ -11,10 +11,13 @@ import {
 
 export default function EditLessonPage() {
   const { courseId, sectionId: routeSectionId, lessonId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { language } = usePreferences();
   const course = instructorCurriculumDemo.course;
   const isNewLesson = lessonId === "new";
+  const canOpenVideoTools = Boolean(lessonId && !isNewLesson && routeSectionId);
+  const videoBasePath = `/instructor/courses/${courseId}/sections/${routeSectionId}/lessons/${lessonId}/video`;
   const section = String(course.id) === String(courseId)
     ? instructorCurriculumDemo.sections.find((item) =>
         routeSectionId
@@ -27,7 +30,7 @@ export default function EditLessonPage() {
   );
 
   const [lesson, setLesson] = useState(() => {
-    const source = isNewLesson ? null : originalLesson;
+    const source = location.state?.lessonDraft || (isNewLesson ? null : originalLesson);
     const sourceTitle = source?.title;
 
     return {
@@ -162,7 +165,7 @@ export default function EditLessonPage() {
     }
 
     setSavedMessage(message);
-    navigate("/instructor/courses/new/curriculum");
+    navigate(`/instructor/courses/${courseId}/curriculum`, { state: { focusSectionId: section.id } });
   };
 
   if (!course || !section || (!isNewLesson && !originalLesson)) {
@@ -225,6 +228,15 @@ export default function EditLessonPage() {
             >
               <Icon name="arrow-left" size={15} />
               العودة إلى المنهج
+            </Link>
+
+            <Link
+                to={`/instructor/courses/${courseId}/sections/${section?.id}/lessons/${lessonId}/video`}
+                state={{ lessonDraft: lesson }}
+                className="instructor-course-button instructor-course-button-outline"
+            >
+              <Icon name="video" size={15} />
+              {language === "ar" ? "إضافة فيديو" : "Add video"}
             </Link>
 
             <button
@@ -320,7 +332,7 @@ export default function EditLessonPage() {
                           }
                         />
 
-                        <span>فيديو تدريبي</span>
+                        <span className="instructor-lesson-type-copy"><strong>{language === "ar" ? "فيديو تدريبي" : "Training video"}</strong><small>{language === "ar" ? "شرح مرئي ومحتوى فيديو للدرس." : "A video lesson with visual explanations."}</small></span>
                       </label>
 
                       <label
@@ -340,7 +352,7 @@ export default function EditLessonPage() {
                           }
                         />
 
-                        <span>قراءة ومقال</span>
+                        <span className="instructor-lesson-type-copy"><strong>{language === "ar" ? "قراءة ومقال" : "Reading and article"}</strong><small>{language === "ar" ? "محتوى نصي ومواد للقراءة." : "Text content and reading materials."}</small></span>
                       </label>
                     </div>
                   </div>
@@ -415,21 +427,29 @@ export default function EditLessonPage() {
                 </div>
 
                 <div className="instructor-lesson-video-actions">
-                  <PendingFeature
-
-                    className="instructor-course-button instructor-course-button-outline"
-                  >
-                    <Icon name="video" size={15} />
-                    معاينة الفيديو
-                  </PendingFeature>
-
-                  <PendingFeature
-
-                    className="instructor-course-button instructor-course-button-outline"
-                  >
-                    <Icon name="edit" size={15} />
-                    تغيير الفيديو
-                  </PendingFeature>
+                  {canOpenVideoTools ? (
+                    <>
+                      <Link to={`${videoBasePath}/preview`} state={{ lessonDraft: lesson }} className="instructor-course-button instructor-course-button-outline">
+                        <Icon name="video" size={15} />
+                        {language === "ar" ? "معاينة الفيديو" : "Preview video"}
+                      </Link>
+                      <Link to={`${videoBasePath}/edit`} state={{ lessonDraft: lesson }} className="instructor-course-button instructor-course-button-outline">
+                        <Icon name="edit" size={15} />
+                        {language === "ar" ? "تحرير الفيديو" : "Edit video"}
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <PendingFeature className="instructor-course-button instructor-course-button-outline">
+                        <Icon name="video" size={15} />
+                        {language === "ar" ? "معاينة الفيديو" : "Preview video"}
+                      </PendingFeature>
+                      <PendingFeature className="instructor-course-button instructor-course-button-outline">
+                        <Icon name="edit" size={15} />
+                        {language === "ar" ? "تحرير الفيديو" : "Edit video"}
+                      </PendingFeature>
+                    </>
+                  )}
                 </div>
               </div>
 

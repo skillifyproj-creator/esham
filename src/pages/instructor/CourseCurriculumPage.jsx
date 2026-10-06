@@ -1,6 +1,5 @@
-import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
@@ -10,6 +9,8 @@ import {
   saveInstructorCurriculumSections,
 } from "../../data/instructorCurriculumDemo";
 import instructorCopy from "../../i18n/instructorCopy";
+import { instructorDemo } from "../../data/instructorDemo";
+import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 
 import "../../styles/instructor.css";
 
@@ -17,9 +18,15 @@ export default function CourseCurriculumPage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
   const navigate = useNavigate();
-
-  const { course, sections: initialSections } =
-    instructorCurriculumDemo;
+  const { courseId } = useParams();
+  const selectedCourse = instructorDemo.courses.find((item) => String(item.id) === String(courseId));
+  const usesSharedCurriculum = !courseId || Number(instructorPublicCourseIds[courseId]) === Number(instructorCurriculumDemo.course.id);
+  const course = selectedCourse
+    ? { ...selectedCourse, instructor: instructorDemo.instructor.name }
+    : instructorCurriculumDemo.course;
+  const initialSections = selectedCourse && !usesSharedCurriculum
+    ? selectedCourse.curriculum || []
+    : instructorCurriculumDemo.sections;
 
   const [sections, setSections] = useState(initialSections);
   const [expandedSections, setExpandedSections] = useState(
@@ -31,7 +38,11 @@ export default function CourseCurriculumPage() {
   const updateSections = (updater) => {
     setSections((current) => {
       const nextSections = updater(current);
-      saveInstructorCurriculumSections(nextSections);
+      if (selectedCourse && !usesSharedCurriculum) {
+        selectedCourse.curriculum = nextSections;
+      } else {
+        saveInstructorCurriculumSections(nextSections);
+      }
       return nextSections;
     });
   };
@@ -64,12 +75,14 @@ export default function CourseCurriculumPage() {
     (section) => section.progress === 100,
   ).length;
 
-  const readiness = Math.round(
-    sections.reduce(
-      (total, section) => total + section.progress,
-      0,
-    ) / sections.length,
-  );
+  const readiness = sections.length
+    ? Math.round(
+        sections.reduce(
+          (total, section) => total + (section.progress || 0),
+          0,
+        ) / sections.length,
+      )
+    : 0;
 
   const toggleSection = (sectionId) => {
     setExpandedSections((current) =>
@@ -644,10 +657,11 @@ export default function CourseCurriculumPage() {
 
             <section className="curriculum-course-card">
               <div className="curriculum-course-image">
-                <img
-                  src={course.image}
-                  alt={course.title[language]}
-                />
+                {course.image ? (
+                  <img src={course.image} alt={course.title[language]} />
+                ) : (
+                  <Icon name={course.icon || "book"} size={28} />
+                )}
 
                 <span>
                   {course.instructor[language]}
@@ -800,37 +814,6 @@ export default function CourseCurriculumPage() {
                     ? "Keep each section focused on one learning outcome and follow it with a practical task."
                     : "اجعل كل قسم يركز على نتيجة تعليمية واضحة، ثم أتبعه بمهمة تطبيقية.")}
               </p>
-            </section>
-
-            <section className="curriculum-quick-links">
-              <h3>
-                {c.curriculum?.quickLinks ||
-                  (language === "en"
-                    ? "Quick links"
-                    : "إجراءات سريعة")}
-              </h3>
-
-              <PendingFeature >
-                {c.curriculum?.downloadPlan ||
-                  (language === "en"
-                    ? "Download curriculum plan"
-                    : "تحميل خطة المنهج")}
-                <Icon
-                  name="arrow-left"
-                  size={15}
-                />
-              </PendingFeature>
-
-              <PendingFeature >
-                {c.curriculum?.support ||
-                  (language === "en"
-                    ? "Contact academic support"
-                    : "استشارة فريق الدعم الأكاديمي")}
-                <Icon
-                  name="arrow-left"
-                  size={15}
-                />
-              </PendingFeature>
             </section>
           </aside>
         </div>
