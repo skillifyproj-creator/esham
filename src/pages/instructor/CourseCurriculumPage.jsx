@@ -1,50 +1,34 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
+import { getInstructorCourseWorkspace, saveWorkspaceSections, localized, lessonIsReady, taskIsReady } from "../../data/instructorCourseWorkspace";
+import useAccountProfile from "../../hooks/useAccountProfile";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
-import {
-  instructorCurriculumDemo,
-  saveInstructorCurriculumSections,
-} from "../../data/instructorCurriculumDemo";
 import instructorCopy from "../../i18n/instructorCopy";
-import { instructorDemo } from "../../data/instructorDemo";
-import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
-
 import "../../styles/instructor.css";
 
 export default function CourseCurriculumPage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
+  const profile = useAccountProfile();
   const navigate = useNavigate();
   const { courseId } = useParams();
-  const selectedCourse = instructorDemo.courses.find((item) => String(item.id) === String(courseId));
-  const usesSharedCurriculum = !courseId || Number(instructorPublicCourseIds[courseId]) === Number(instructorCurriculumDemo.course.id);
-  const course = selectedCourse
-    ? { ...selectedCourse, instructor: instructorDemo.instructor.name }
-    : instructorCurriculumDemo.course;
-  const initialSections = selectedCourse && !usesSharedCurriculum
-    ? selectedCourse.curriculum || []
-    : instructorCurriculumDemo.sections;
+  const workspace = getInstructorCourseWorkspace(courseId || 'new');
+  const course = workspace ? { ...workspace.course, instructor: { ar: profile.name || "أنت", en: profile.name || "You" } } : null;
+  const initialSections = workspace?.sections || [];
 
-  const [sections, setSections] = useState(initialSections);
+  const [storedSections, setSections] = useState(initialSections);
+  const sections = storedSections.map(section => { const lessonsReady = section.lessons.length > 0 && section.lessons.every(lesson => lessonIsReady(lesson, language)); const flags = [Boolean(localized(section.title, language)), section.lessons.length > 0, lessonsReady, !section.task || taskIsReady(section.task, language)]; return { ...section, progress: Math.round(flags.filter(Boolean).length / flags.length * 100) }; });
   const [expandedSections, setExpandedSections] = useState(
     initialSections.map((section) => section.id),
   );
 
   const [saved, setSaved] = useState(true);
 
-  const updateSections = (updater) => {
-    setSections((current) => {
-      const nextSections = updater(current);
-      if (selectedCourse && !usesSharedCurriculum) {
-        selectedCourse.curriculum = nextSections;
-      } else {
-        saveInstructorCurriculumSections(nextSections);
-      }
-      return nextSections;
-    });
+  const updateSections = updater => {
+    setSections(current => { const next = updater(current); return saveWorkspaceSections(courseId || 'new', next) ? next : current; });
   };
 
   const totalLessons = useMemo(
@@ -135,18 +119,7 @@ export default function CourseCurriculumPage() {
       },
       lessons: [],
       progress: 0,
-      task: {
-        id: `task-${Date.now()}`,
-        title: {
-          ar: "مهمة تطبيقية جديدة",
-          en: "New Practical Task",
-        },
-        description: {
-          ar: "أضف وصف المهمة.",
-          en: "Add the task description.",
-        },
-        status: "needs-review",
-      },
+      task: null,
     };
 
     updateSections((current) => [...current, newSection]);
@@ -180,8 +153,8 @@ export default function CourseCurriculumPage() {
     return remaining ? `${hourLabel} ${minuteLabel}` : hourLabel;
   };
 
-  return (
-    <section className="instructor-curriculum-page instructor-detail-page">
+  if (!course) return <section className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></section>;
+  return (<section className="instructor-curriculum-page instructor-detail-page">
       <div className="container">
 
         {/* Header */}
@@ -192,11 +165,11 @@ export default function CourseCurriculumPage() {
                 (language === "en"
                   ? "Course Curriculum"
                   : "منهاج الدورة")}
-              : {course.title[language]}
+              : {(course.title?.[language] || course.title?.ar || course.title?.en || "")}
             </h1>
 
             <p>
-              {course.description[language]}
+              {(course.description?.[language] || course.description?.ar || course.description?.en || "")}
             </p>
           </div>
 
@@ -217,13 +190,13 @@ export default function CourseCurriculumPage() {
           </div>
         </header>
 
-        <InstructorCourseStepper currentStep={2} />
+        <p className="instructor-media-demo-note">{language === 'ar' ? 'حفظ الدورة الجديدة في جلسة هذا التبويب فقط؛ تعديلات الدورات التجريبية الحالية مؤقتة. جاهزية المنهج منفصلة عن اكتمال معلومات الدورة في صفحة المراجعة.' : 'New courses are saved in this tab session; edits to existing demo courses are temporary. Curriculum readiness is separate from the course information checklist on the review page.'}</p><InstructorCourseStepper currentStep={2} />
 
         {/* Main layout */}
         <div className="curriculum-layout">
 
           {/* Main curriculum */}
-          <main className="curriculum-main">
+          <main className="curriculum-main"><p className="instructor-media-demo-note">{language === "ar" ? "المهام المطلوبة: من مهمة إلى ثلاث مهام للدورة كاملة. لا يلزم إضافة مهمة لكل قسم." : "Required tasks: one to three per course, not one per section."} {sections.filter(item => item.task).length}/3</p>
 
             <section className="curriculum-content-header">
               <div>
@@ -356,9 +329,7 @@ export default function CourseCurriculumPage() {
                         </div>
 
                         <h3>
-                          {section.title[
-                            language
-                          ]}
+                          {localized(section.title, language)}
                         </h3>
 
                         <p>
@@ -432,9 +403,7 @@ export default function CourseCurriculumPage() {
 
                             <div className="curriculum-lesson-info">
                               <strong>
-                                {lesson.title[
-                                  language
-                                ]}
+                                {localized(lesson.title, language)}
                               </strong>
 
                               <small>
@@ -458,19 +427,7 @@ export default function CourseCurriculumPage() {
                               </small>
                             </div>
 
-                            <span className="curriculum-ready-badge">
-                              <Icon
-                                name="check"
-                                size={13}
-                              />
-
-                              {c.curriculum
-                                ?.ready ||
-                                (language ===
-                                "en"
-                                  ? "Ready"
-                                  : "جاهز")}
-                            </span>
+                            <span className="curriculum-ready-badge">{lessonIsReady(lesson, language) ? (language === 'ar' ? 'جاهز' : 'Ready') : (language === 'ar' ? 'يحتاج استكمال' : 'Needs completion')}</span>
 
                             <button
                               type="button"
@@ -498,10 +455,9 @@ export default function CourseCurriculumPage() {
                       )}
 
                       {/* Task */}
-                      <article
+                      {section.task && <article
                         className={`curriculum-task-row ${
-                          section.task.status ===
-                          "needs-review"
+                          !taskIsReady(section.task, language)
                             ? "needs-review"
                             : ""
                         }`}
@@ -515,33 +471,24 @@ export default function CourseCurriculumPage() {
 
                         <div>
                           <strong>
-                            {section.task.title[
-                              language
-                            ]}
+                            {localized(section.task.title, language)}
                           </strong>
 
                           <small>
                             {
-                              section.task
-                                .description[
-                                language
-                              ]
+                              localized(section.task.description, language)
                             }
                           </small>
                         </div>
 
                         <span
                           className={
-                            section.task
-                              .status ===
-                            "needs-review"
+                            !taskIsReady(section.task, language)
                               ? "curriculum-task-status warning"
                               : "curriculum-task-status"
                           }
                         >
-                          {section.task
-                            .status ===
-                          "needs-review"
+                          {!taskIsReady(section.task, language)
                             ? c.curriculum
                                 ?.needsReview ||
                               (language ===
@@ -576,8 +523,7 @@ export default function CourseCurriculumPage() {
                               ? "Edit"
                               : "تعديل")}
                         </button>
-                      </article>
-
+                      </article>}
                       <div className="curriculum-section-footer">
                         <button
                           type="button"
@@ -604,7 +550,7 @@ export default function CourseCurriculumPage() {
                           type="button"
                           onClick={() =>
                             navigate(
-                              `/instructor/courses/${course.id}/sections/${section.id}/tasks/new`,
+                              section.task ? `/instructor/courses/${course.id}/sections/${section.id}/tasks/${section.task.id}/edit` : `/instructor/courses/${course.id}/sections/${section.id}/tasks/new`,
                             )
                           }
                         >
@@ -613,7 +559,7 @@ export default function CourseCurriculumPage() {
                             size={15}
                           />
 
-                          {c.curriculum
+                          {section.task ? (language === 'ar' ? 'تعديل مهمة القسم' : 'Edit section task') : c.curriculum
                             ?.addTask ||
                             (language ===
                             "en"
@@ -658,7 +604,7 @@ export default function CourseCurriculumPage() {
             <section className="curriculum-course-card">
               <div className="curriculum-course-image">
                 {course.image ? (
-                  <img src={course.image} alt={course.title[language]} />
+                  <img src={course.image} alt={(course.title?.[language] || course.title?.ar || course.title?.en || "")} />
                 ) : (
                   <Icon name={course.icon || "book"} size={28} />
                 )}
@@ -670,11 +616,11 @@ export default function CourseCurriculumPage() {
 
               <div className="curriculum-course-body">
                 <h2>
-                  {course.title[language]}
+                  {(course.title?.[language] || course.title?.ar || course.title?.en || "")}
                 </h2>
 
                 <p>
-                  {course.description[language]}
+                  {(course.description?.[language] || course.description?.ar || course.description?.en || "")}
                 </p>
 
                 <div className="curriculum-course-stats">
@@ -716,10 +662,7 @@ export default function CourseCurriculumPage() {
 
                   <div>
                     <strong>
-                      {sections.length}
-                    </strong>
-                    <span>
-                      {c.curriculum?.tasks ||
+                      {sections.filter(section => section.task).length}</strong><span>{c.curriculum?.tasks ||
                         (language === "en"
                           ? "Tasks"
                           : "مهام")}
@@ -812,7 +755,7 @@ export default function CourseCurriculumPage() {
                 {c.curriculum?.tipText ||
                   (language === "en"
                     ? "Keep each section focused on one learning outcome and follow it with a practical task."
-                    : "اجعل كل قسم يركز على نتيجة تعليمية واضحة، ثم أتبعه بمهمة تطبيقية.")}
+                    : "اجعل كل قسم يركز على نتيجة تعليمية واضحة، ووزّع من مهمة إلى ثلاث مهام على الدورة كاملة.")}
               </p>
             </section>
           </aside>
@@ -823,7 +766,7 @@ export default function CourseCurriculumPage() {
       <div className="curriculum-bottom-bar">
         <div className="container">
           <div className="curriculum-bottom-info">
-            <Link to="/instructor/courses/new">{c.curriculum?.backToBasics ||
+            <Link to={courseId ? `/instructor/courses/${courseId}/edit` : "/instructor/courses/new"}>{c.curriculum?.backToBasics ||
                 (language === "en"
                   ? "Back to Basic Information"
                   : "العودة للمعلومات الأساسية")}
@@ -864,7 +807,7 @@ export default function CourseCurriculumPage() {
               className="instructor-button instructor-button-outline"
               onClick={() =>
                 navigate(
-                  "/instructor/courses/new/review",
+                  courseId ? `/instructor/courses/${courseId}/review` : "/instructor/courses/new/review",
                 )
               }
             >
@@ -879,7 +822,7 @@ export default function CourseCurriculumPage() {
               type="button"
               className="instructor-button"
               onClick={() =>
-                navigate("/instructor/courses/new/review")
+                navigate(courseId ? `/instructor/courses/${courseId}/review` : "/instructor/courses/new/review")
               }
             >
               {c.curriculum?.continueReview ||

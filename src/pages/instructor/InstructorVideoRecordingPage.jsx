@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
+import { getInstructorCourseWorkspace } from "../../data/instructorCourseWorkspace";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorCurriculumDemo } from "../../data/instructorCurriculumDemo";
 import "../../styles/instructor.css";
 
 const copy = {
@@ -79,8 +79,9 @@ export default function InstructorVideoRecordingPage() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const fileInputRef = useRef(null);
 
-  const course = instructorCurriculumDemo.course;
-  const section = instructorCurriculumDemo.sections.find((item) => String(item.id) === String(sectionId));
+  const workspace = getInstructorCourseWorkspace(courseId);
+  const course = workspace?.course;
+  const section = (workspace?.sections || []).find((item) => String(item.id) === String(sectionId));
   const courseTitle = course && String(course.id) === String(courseId)
     ? course.title[language] || course.title.ar
     : t.courseFallback;
@@ -155,8 +156,9 @@ export default function InstructorVideoRecordingPage() {
     </div>
   );
 
-  return (
-    <main className="instructor-video-recording-page instructor-detail-page" dir={language === "ar" ? "rtl" : "ltr"}>
+  if (!workspace || !section || (lessonId !== 'new' && !section.lessons.some(lesson => String(lesson.id) === String(lessonId)))) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'لم يتم العثور على الدرس أو القسم' : 'Lesson or section not found'}</h1><button type="button" className="button" onClick={() => navigate('/instructor/courses')}>{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</button></main>;
+  return (<main className="instructor-video-recording-page instructor-detail-page" dir={language === "ar" ? "rtl" : "ltr"}>
+      <p className="instructor-media-demo-note" role="note">{language === 'ar' ? 'معاينة لمسار الفيديو: التسجيل والتشغيل والقص محاكاة للتصميم، ولا يُنشأ أو يُرفع أو يُعدّل ملف فيديو فعليًا.' : 'Video workflow preview: recording, playback and trimming are simulated. No video file is created, uploaded or edited.'}</p>
       <div className="container">
         <nav className="instructor-video-recording-breadcrumb" aria-label={language === "ar" ? "مسار التنقل" : "Breadcrumb"}>
           <span>{t.courses}</span><span>/</span><span>{courseTitle}</span><span>/</span>

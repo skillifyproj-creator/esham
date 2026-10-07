@@ -1,3 +1,4 @@
+import { categories as platformCategories } from '../data/categories';
 export const translations = {
   "ar": {
     "brand": "إسهام",
@@ -73,15 +74,7 @@ export const translations = {
     "coursesKicker": "شيء جديد ينتظرك",
     "coursesText": "اكتشف مهارات جديدة وتعلّم من تجارب تلهم يومك ومستقبلك.",
     "categoryLabel": "تصنيف الدورات",
-    "categories": [
-      "الكل",
-      "البرمجة",
-      "التصميم",
-      "الحرف اليدوية",
-      "التسويق",
-      "التصوير",
-      "ريادة الأعمال"
-    ],
+    "categories": ["الكل", ...platformCategories.map(category => category.title.ar)],
     "allCourses": "جميع الدورات",
     "available": "دورات متاحة",
     "points": "نقطة",
@@ -205,15 +198,7 @@ export const translations = {
     "coursesKicker": "Something new is waiting",
     "coursesText": "Discover new skills and learn from experiences that inspire your future.",
     "categoryLabel": "Filter courses",
-    "categories": [
-      "All",
-      "Programming",
-      "Design",
-      "Handcrafts",
-      "Marketing",
-      "Photography",
-      "Entrepreneurship"
-    ],
+    "categories": ["All", ...platformCategories.map(category => category.title.en)],
     "allCourses": "All courses",
     "available": "courses available",
     "points": "points",

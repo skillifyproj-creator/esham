@@ -1,5 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { readInstructorCourseDraft, saveInstructorCourseDraft } from "../../data/instructorCourseDraft";
+import { categories, getCategory, resolveCategoryId } from "../../data/categories";
+import useAccountProfile from "../../hooks/useAccountProfile";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -13,46 +16,35 @@ export default function CreateCoursePage() {
   const navigate = useNavigate();
   const { courseId } = useParams();
   const [saveStatus, setSaveStatus] = useState("");
-  const { instructor } = instructorDemo;
+  const profile = useAccountProfile();
   const isEditMode = Boolean(courseId);
   const editCourse = isEditMode
     ? instructorDemo.courses.find((course) => String(course.id) === String(courseId))
     : null;
-  const coursePoints = editCourse?.coursePoints ?? 20;
-  const categoryCopyKeys = {
-    photography: "photographyCategory",
-    "graphic-design": "graphicDesignCategory",
-    "user-interface": "userInterfaceCategory",
-    "digital-marketing": "digitalMarketingCategory",
-    "video-editing": "videoEditingCategory",
-    "digital-content": "digitalContentCategory",
-  };
-  const categoryLabels = {
-    photography: c.photographyCategory,
-    "graphic-design": c.graphicDesignCategory,
-    "user-interface": c.userInterfaceCategory,
-    "digital-marketing": c.digitalMarketingCategory,
-    "video-editing": c.videoEditingCategory,
-    "digital-content": c.digitalContentCategory,
-  };
+  const storedDraft = !isEditMode ? readInstructorCourseDraft() : null;
+  const initialCourse = editCourse || storedDraft;
+  const coursePoints = 20;
+  const categoryLabels = Object.fromEntries(categories.map(category => [category.id, category.title[language]]));
   const fileInputRef = useRef(null);
-  const courseCategory = Object.entries(categoryCopyKeys).find(([, key]) =>
-    ["ar", "en"].some((locale) => editCourse?.category?.[locale] === instructorCopy[locale][key]),
-  )?.[0];
+  const courseCategory = resolveCategoryId(initialCourse?.categoryKey) || resolveCategoryId(initialCourse?.category);
 
-  const [courseImage, setCourseImage] = useState(editCourse?.image || null);
+  const [courseImage, setCourseImage] = useState(initialCourse?.image || null);
 
   const [form, setForm] = useState({
-    title: editCourse?.title || { ar: "", en: "" },
-    category: editCourse?.categoryKey || courseCategory || "",
-    language: editCourse?.language || "ar",
-    description: editCourse?.description || { ar: "", en: "" },
-    level: editCourse?.level || "",
+    title: initialCourse?.title || { ar: "", en: "" },
+    category: courseCategory || "",
+    language: initialCourse?.language || "ar",
+    description: initialCourse?.description || { ar: "", en: "" },
+    level: typeof initialCourse?.level === "string" ? initialCourse.level : ({"مبتدئ":"beginner","متوسط":"intermediate","متقدم":"advanced","Beginner":"beginner","Intermediate":"intermediate","Advanced":"advanced"}[initialCourse?.level?.[language]] || ""),
   });
 
-  const [objectives, setObjectives] = useState(editCourse?.objectives || []);
+  const [objectives, setObjectives] = useState(initialCourse?.objectives || []);
 
   const [newObjective, setNewObjective] = useState("");
+
+  useEffect(() => {
+    if (!isEditMode) saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title || { ar: "", en: "" }, coursePoints: 20 });
+  }, [form, objectives, courseImage, isEditMode]);
 
   const updateField = (field, value) => {
     setForm((current) => {
@@ -94,21 +86,18 @@ export default function CreateCoursePage() {
 
     if (!file) return;
 
-    const previewUrl = URL.createObjectURL(file);
-    setCourseImage(previewUrl);
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) { setSaveStatus(language === 'ar' ? 'اختر صورة JPG أو PNG أو WEBP بحجم أقصى 2MB.' : 'Choose a JPG, PNG or WEBP cover up to 2MB.'); event.target.value = ''; return; }
+    const reader = new FileReader(); reader.onload = () => { setCourseImage(String(reader.result)); setSaveStatus(''); }; reader.readAsDataURL(file);
   };
 
   const saveCourseChanges = () => {
     if (!editCourse) return;
 
-    const categoryKey = categoryCopyKeys[form.category];
+
     Object.assign(editCourse, {
       title: form.title,
       description: form.description,
-      category: {
-        ar: instructorCopy.ar[categoryKey],
-        en: instructorCopy.en[categoryKey],
-      },
+      category: getCategory(form.category)?.title || { ar: "", en: "" },
       categoryKey: form.category,
       language: form.language,
       level: form.level,
@@ -124,7 +113,9 @@ export default function CreateCoursePage() {
       saveCourseChanges();
       return;
     }
-    setSaveStatus(language === "ar" ? "البيانات موجودة في معاينة الصفحة فقط؛ حفظ المسودة الدائم يحتاج ربط خدمة الدورات." : "Data remains in this page preview only; persistent draft saving requires the course service.");
+    const stored = saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title || { ar: '', en: '' }, coursePoints: 20 });
+    if (!stored) { setSaveStatus(language === 'ar' ? 'تعذّر حفظ المسودة. جرّب صورة أصغر أو فعّل تخزين المتصفح.' : 'Unable to save the draft. Try a smaller cover or enable browser storage.'); return; }
+    setSaveStatus(language === "ar" ? "المسودة محفوظة في جلسة هذا المتصفح. النشر والحفظ على الحساب يحتاجان ربط خدمة الدورات." : "Draft saved in this browser session. Account storage and publishing require the course service.");
   };
   const continueToCurriculum = () => {
     if (isEditMode) {
@@ -134,8 +125,8 @@ export default function CreateCoursePage() {
     navigate("/instructor/courses/new/curriculum");
   };
 
-  return (
-    <section className="instructor-create-course-page">
+  if (isEditMode && !editCourse) return <section className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></section>;
+  return (<section className="instructor-create-course-page">
       <div className="container">
         {/* PAGE HEADER */}
         <header className="instructor-create-course-heading">
@@ -229,14 +220,7 @@ export default function CreateCoursePage() {
                         }
                       >
                         <option value="" disabled>{c.category}</option>
-                        <option value="photography">
-                          {c.photographyCategory}
-                        </option>
-                        <option value="graphic-design">{c.graphicDesignCategory}</option>
-                        <option value="user-interface">{c.userInterfaceCategory}</option>
-                        <option value="digital-marketing">{c.digitalMarketingCategory}</option>
-                        <option value="video-editing">{c.videoEditingCategory}</option>
-                        <option value="digital-content">{c.digitalContentCategory}</option>
+                        {categories.map(category => <option key={category.id} value={category.id}>{category.title[language]}</option>)}
                       </select>
 
                       <Icon name="chevron-down" size={16} />
@@ -382,7 +366,7 @@ export default function CreateCoursePage() {
 
               <div className="create-preview-body">
                 <div className="create-preview-meta">
-                  <span>{c.instructorLabel} {instructor.name[language]} ({c.you})</span>
+                  <span>{c.instructorLabel} {profile.name || (language === 'ar' ? 'أنت' : 'You')} ({c.you})</span>
                   <span>{c.beginnerLevel}</span>
                 </div>
 

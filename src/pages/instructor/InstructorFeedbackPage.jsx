@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import Icon from "../../components/Icon";
 import { instructorFeedback } from "../../data/instructorFeedback";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -95,7 +95,7 @@ export default function InstructorFeedbackPage() {
 
   const exportReviews = () => {
     const rows = [
-      ["Learner", "Course", "Rating", "Comment", "Date", "Reply"],
+      language === 'ar' ? ['المتعلّم','الدورة','التقييم','التعليق','التاريخ','الرد'] : ['Learner','Course','Rating','Comment','Date','Reply'],
       ...filteredReviews.map((review) => [
         review.learner.name,
         review.courseLabel || review.courseName,
@@ -108,7 +108,7 @@ export default function InstructorFeedbackPage() {
       ]),
     ];
     const csv = rows
-      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+      .map((row) => row.map((value) => `"${String(/^[=+\-@\t\r]/.test(String(value)) ? "'" + value : value).replaceAll('"', '""')}"`).join(","))
       .join("\n");
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
@@ -137,9 +137,9 @@ export default function InstructorFeedbackPage() {
     setReplyDraft("");
   };
 
-  return (
-    <main className="instructor-feedback-page instructor-detail-page">
-      <div className="container">
+  if (courseId && !selectedCourse) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></main>;
+  return (<main className="instructor-feedback-page instructor-detail-page">
+      <div className="container"><p className="instructor-media-demo-note">{language === 'ar' ? 'تقييمات تجريبية؛ تعديلات الردود تحفظ في هذه الصفحة فقط ولا تُرسل إلى المتعلّمين.' : 'Demo reviews: reply edits remain on this page only and are not sent to learners.'}</p>
         <header className="instructor-feedback-heading">
           <div>
             <h1>{courseId ? c.courseTitle : c.title}</h1>

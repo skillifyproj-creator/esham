@@ -2,24 +2,23 @@ import { pointsPolicy } from "../../data/pointsPolicy";
 import PendingFeature from "../../components/shared/PendingFeature";
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { getInstructorCourseWorkspace, saveWorkspaceLesson, localized } from "../../data/instructorCourseWorkspace";
+import { instructorLessonText } from "../../i18n/instructorLessonCopy";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
-import {
-  instructorCurriculumDemo,
-  saveInstructorLesson,
-} from "../../data/instructorCurriculumDemo";
-
 export default function EditLessonPage() {
   const { courseId, sectionId: routeSectionId, lessonId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { language } = usePreferences();
-  const course = instructorCurriculumDemo.course;
+  const text = value => instructorLessonText(value, language);
+  const workspace = getInstructorCourseWorkspace(courseId);
+  const course = workspace?.course;
   const isNewLesson = lessonId === "new";
   const canOpenVideoTools = Boolean(lessonId && !isNewLesson && routeSectionId);
   const videoBasePath = `/instructor/courses/${courseId}/sections/${routeSectionId}/lessons/${lessonId}/video`;
-  const section = String(course.id) === String(courseId)
-    ? instructorCurriculumDemo.sections.find((item) =>
+  const section = workspace
+    ? workspace.sections.find((item) =>
         routeSectionId
           ? item.id === routeSectionId
           : item.lessons.some((currentLesson) => currentLesson.id === lessonId),
@@ -35,15 +34,15 @@ export default function EditLessonPage() {
 
     return {
       id: source?.id ?? "",
-      courseId: course.id,
+      courseId: course?.id,
       sectionId: section?.id ?? routeSectionId ?? "",
-      courseTitle: course.title.ar,
-      sectionTitle: section?.title.ar ?? "",
+      courseTitle: localized(course?.title, language),
+      sectionTitle: localized(section?.title, language),
       title:
         typeof sourceTitle === "object"
           ? sourceTitle?.[language] ?? ""
           : sourceTitle ?? "",
-      description: source?.description ?? "",
+      description: localized(source?.description, language),
       contentType: source?.contentType ?? "video",
       duration: source?.minutes ?? 10,
       video: {
@@ -53,41 +52,40 @@ export default function EditLessonPage() {
         quality: source?.video?.quality ?? "",
         encoding: source?.video?.encoding ?? "",
       },
-      objectives: [...(source?.objectives ?? [])],
+      objectives: (source?.objectives ?? []).map(value => localized(value, language)),
       resources: [...(source?.resources ?? [])],
     };
   });
   const [newObjective, setNewObjective] = useState("");
   const [savedMessage, setSavedMessage] = useState(
     isNewLesson
-      ? "مسودة جديدة غير محفوظة."
-      : "معاينة الدرس التجريبية؛ الحفظ محلي داخل جلسة التطبيق.",
+      ? text("مسودة جديدة غير محفوظة.")
+      : text("معاينة الدرس التجريبية؛ الحفظ محلي داخل جلسة التطبيق."),
   );
 
   const readinessItems = useMemo(
     () => [
       {
         id: 1,
-        label: "عنوان الدرس واضح ومحدد",
+        label: text("عنوان الدرس واضح ومحدد"),
         done: Boolean(lesson.title.trim()),
       },
       {
         id: 2,
-        label: "فيديو الدرس مرفوع ومجهز",
-        done: Boolean(lesson.video?.name),
+        label: language === "ar" ? "محتوى الدرس جاهز للمعاينة" : "Lesson content is ready to preview", done: lesson.contentType !== "video" ? lesson.description.trim().length >= 20 : Boolean(lesson.video?.name),
       },
       {
         id: 3,
-        label: "أهداف الدرس التعليمية محددة",
+        label: text("أهداف الدرس التعليمية محددة"),
         done: lesson.objectives.length > 0,
       },
       {
         id: 4,
-        label: "تم ضبط مدة الدرس",
-        done: Number(lesson.duration) > 0,
+        label: text("تم ضبط مدة الدرس"),
+        done: Number(lesson.duration) >= 1 && Number(lesson.duration) <= 600,
       },
     ],
-    [lesson]
+    [lesson, language]
   );
 
   const completedItems = readinessItems.filter((item) => item.done).length;
@@ -107,7 +105,7 @@ export default function EditLessonPage() {
   const addObjective = () => {
     const value = newObjective.trim();
 
-    if (!value) return;
+    if (!value || lesson.objectives.length >= 3 || lesson.objectives.includes(value)) return;
 
     setLesson((current) => ({
       ...current,
@@ -128,10 +126,11 @@ export default function EditLessonPage() {
 
   const handleSave = (message) => {
     if (!course || !section || !lesson.title.trim()) {
-      setSavedMessage("أدخل عنوان الدرس أولًا.");
+      setSavedMessage(text("أدخل عنوان الدرس أولًا."));
       return;
     }
 
+    if (!Number.isFinite(Number(lesson.duration)) || Number(lesson.duration) < 1 || Number(lesson.duration) > 600) { setSavedMessage(language === 'ar' ? 'أدخل مدة بين دقيقة و600 دقيقة.' : 'Enter a duration between 1 and 600 minutes.'); return; }
     const nextId = isNewLesson ? `lesson-${Date.now()}` : originalLesson.id;
     const title =
       originalLesson?.title && typeof originalLesson.title === "object"
@@ -145,7 +144,8 @@ export default function EditLessonPage() {
       courseId: course.id,
       sectionId: section.id,
       title,
-      description: lesson.description,
+      description: { ...(typeof originalLesson?.description === "object" ? originalLesson.description : {}), [language]: lesson.description },
+      status: readiness === 100 ? "ready" : "draft",
       minutes: Number(lesson.duration) || 1,
       contentType: lesson.contentType,
       objectives: [...lesson.objectives],
@@ -157,10 +157,10 @@ export default function EditLessonPage() {
           : "",
     };
 
-    const saved = saveInstructorLesson(courseId, section.id, savedLesson);
+    const saved = saveWorkspaceLesson(courseId, section.id, savedLesson);
 
     if (!saved) {
-      setSavedMessage("تعذر حفظ الدرس في هذا القسم.");
+      setSavedMessage(text("تعذر حفظ الدرس في هذا القسم."));
       return;
     }
 
@@ -173,13 +173,11 @@ export default function EditLessonPage() {
       <div className="instructor-edit-lesson-page instructor-detail-page">
         <div className="container">
           <section className="instructor-edit-lesson-side-card">
-            <h1>لم يتم العثور على الدرس</h1>
+            <h1>{text("لم يتم العثور على الدرس")}</h1>
             <Link
               className="instructor-course-button instructor-course-button-outline"
-              to="/instructor/courses/new/curriculum"
-            >
-              العودة إلى المنهج
-            </Link>
+              to={`/instructor/courses/${courseId}/curriculum`}
+            >{text("العودة إلى المنهج")}</Link>
           </section>
         </div>
       </div>
@@ -191,10 +189,10 @@ export default function EditLessonPage() {
       <div className="container">
         {/* Breadcrumb */}
         <div className="instructor-edit-lesson-breadcrumb">
-          <Link to="/instructor/courses">الدورات التدريبية</Link>
+          <Link to="/instructor/courses">{text("الدورات التدريبية")}</Link>
           <span>/</span>
 
-          <Link to="/instructor/courses/new/curriculum">
+          <Link to={`/instructor/courses/${courseId}/curriculum`}>
             {lesson.courseTitle}
           </Link>
 
@@ -202,33 +200,28 @@ export default function EditLessonPage() {
           <span>{lesson.sectionTitle}</span>
 
           <span>/</span>
-          <strong>{isNewLesson ? "إنشاء درس جديد" : "تحرير الدرس"}</strong>
+          <strong>{isNewLesson ? text("إنشاء درس جديد") : text("تحرير الدرس")}</strong>
         </div>
 
         {/* Header */}
         <section className="instructor-edit-lesson-header">
           <div>
             <div className="instructor-edit-lesson-title-row">
-              <h1>{isNewLesson ? "إنشاء درس جديد" : "تحرير الدرس"}</h1>
+              <h1>{isNewLesson ? text("إنشاء درس جديد") : text("تحرير الدرس")}</h1>
               <span className="instructor-lesson-status draft">
-                {isNewLesson ? "مسودة جديدة" : "مسودة"}
+                {isNewLesson ? text("مسودة جديدة") : text("مسودة")}
               </span>
             </div>
 
-            <p>
-              أضف محتوى الدرس وتأكد من جاهزيته ومطابقته للمعايير
-              التعليمية قبل الاعتماد.
-            </p>
+            <p>{text("أضف محتوى الدرس وتأكد من جاهزيته ومطابقته للمعايير التعليمية قبل الاعتماد.")}</p>
           </div>
 
           <div className="instructor-edit-lesson-header-actions">
             <Link
-              to="/instructor/courses/new/curriculum"
+              to={`/instructor/courses/${courseId}/curriculum`}
               className="instructor-course-button instructor-course-button-outline"
             >
-              <Icon name="arrow-left" size={15} />
-              العودة إلى المنهج
-            </Link>
+              <Icon name="arrow-left" size={15} />{text("العودة إلى المنهج")}</Link>
 
             <Link
                 to={`/instructor/courses/${courseId}/sections/${section?.id}/lessons/${lessonId}/video`}
@@ -236,25 +229,23 @@ export default function EditLessonPage() {
                 className="instructor-course-button instructor-course-button-outline"
             >
               <Icon name="video" size={15} />
-              {language === "ar" ? "إضافة فيديو" : "Add video"}
+              {language === "ar" ? text("إضافة فيديو") : "Add video"}
             </Link>
 
             <button
               type="button"
               className="instructor-course-button instructor-course-button-outline"
-              onClick={() => handleSave("تم حفظ الدرس كمسودة.")}
+              onClick={() => handleSave(text("تم حفظ الدرس كمسودة."))}
             >
-              <Icon name="save" size={15} />
-              حفظ كمسودة
-            </button>
+              <Icon name="save" size={15} />{text("حفظ كمسودة")}</button>
 
             <button
               type="button"
               className="instructor-course-button instructor-course-button-primary"
-              onClick={() => handleSave("تم حفظ التعديلات بنجاح.")}
+              onClick={() => handleSave(text("تم حفظ التعديلات بنجاح."))}
             >
               <Icon name="check" size={15} />
-              {isNewLesson ? "حفظ الدرس" : "حفظ التعديلات"}
+              {isNewLesson ? text("حفظ الدرس") : text("حفظ التعديلات")}
             </button>
           </div>
         </section>
@@ -267,16 +258,15 @@ export default function EditLessonPage() {
             <section className="instructor-edit-lesson-card">
               <div className="instructor-edit-lesson-card-header">
                 <div>
-                  <h2>معلومات الدرس الأساسية</h2>
-                  <p>البيانات الأساسية التي ستظهر للمتعلمين.</p>
+                  <h2>{text("معلومات الدرس الأساسية")}</h2>
+                  <p>{text("البيانات الأساسية التي ستظهر للمتعلمين.")}</p>
                 </div>
                 <Icon name="lesson" size={20} />
               </div>
 
               <div className="instructor-edit-lesson-form">
                 <label className="instructor-edit-lesson-field">
-                  <span>
-                    عنوان الدرس <b>*</b>
+                  <span>{text("عنوان الدرس")}<b>*</b>
                   </span>
 
                   <input
@@ -287,14 +277,11 @@ export default function EditLessonPage() {
                     }
                   />
 
-                  <small>
-                    سيظهر هذا العنوان في قائمة دروس الكورس.
-                  </small>
+                  <small>{text("سيظهر هذا العنوان في قائمة دروس الكورس.")}</small>
                 </label>
 
                 <label className="instructor-edit-lesson-field">
-                  <span>
-                    وصف الدرس ومخرجاته <b>*</b>
+                  <span>{text("وصف الدرس ومخرجاته")}<b>*</b>
                   </span>
 
                   <textarea
@@ -306,13 +293,12 @@ export default function EditLessonPage() {
                   />
 
                   <small>
-                    {lesson.description.length} / 300 حرف
-                  </small>
+                    {lesson.description.length}{text("/ 300 حرف")}</small>
                 </label>
 
                 <div className="instructor-edit-lesson-form-row">
                   <div className="instructor-edit-lesson-field">
-                    <span>نوع محتوى الدرس</span>
+                    <span>{text("نوع محتوى الدرس")}</span>
 
                     <div className="instructor-lesson-type-options">
                       <label
@@ -332,7 +318,7 @@ export default function EditLessonPage() {
                           }
                         />
 
-                        <span className="instructor-lesson-type-copy"><strong>{language === "ar" ? "فيديو تدريبي" : "Training video"}</strong><small>{language === "ar" ? "شرح مرئي ومحتوى فيديو للدرس." : "A video lesson with visual explanations."}</small></span>
+                        <span className="instructor-lesson-type-copy"><strong>{language === "ar" ? text("فيديو تدريبي") : "Training video"}</strong><small>{language === "ar" ? text("شرح مرئي ومحتوى فيديو للدرس.") : "A video lesson with visual explanations."}</small></span>
                       </label>
 
                       <label
@@ -352,18 +338,18 @@ export default function EditLessonPage() {
                           }
                         />
 
-                        <span className="instructor-lesson-type-copy"><strong>{language === "ar" ? "قراءة ومقال" : "Reading and article"}</strong><small>{language === "ar" ? "محتوى نصي ومواد للقراءة." : "Text content and reading materials."}</small></span>
+                        <span className="instructor-lesson-type-copy"><strong>{language === "ar" ? text("قراءة ومقال") : "Reading and article"}</strong><small>{language === "ar" ? text("محتوى نصي ومواد للقراءة.") : "Text content and reading materials."}</small></span>
                       </label>
                     </div>
                   </div>
 
                   <label className="instructor-edit-lesson-field">
-                    <span>مدة الدرس التقديرية</span>
+                    <span>{text("مدة الدرس التقديرية")}</span>
 
                     <div className="instructor-lesson-duration-input">
                       <input
                         type="number"
-                        min="1"
+                        min="1" max="600"
                         value={lesson.duration}
                         onChange={(event) =>
                           updateLesson(
@@ -372,38 +358,34 @@ export default function EditLessonPage() {
                           )
                         }
                       />
-                      <span>دقيقة</span>
+                      <span>{text("دقيقة")}</span>
                     </div>
 
-                    <small>
-                      حدد مدة تقريبية لمحتوى الدرس.
-                    </small>
+                    <small>{text("حدد مدة تقريبية لمحتوى الدرس.")}</small>
                   </label>
                 </div>
               </div>
             </section>
 
             {/* Video */}
-            <section className="instructor-edit-lesson-card">
+            {lesson.contentType === "video" && lesson.video?.name && <section className="instructor-edit-lesson-card">
               <div className="instructor-edit-lesson-card-header">
                 <div>
-                  <h2>فيديو الدرس</h2>
-                  <p>الفيديو المرتبط بهذا الدرس.</p>
+                  <h2>{text("فيديو الدرس")}</h2>
+                  <p>{text("الفيديو المرتبط بهذا الدرس.")}</p>
                 </div>
 
                 <span className="instructor-ready-badge">
-                  <span />
-                  جاهز للمعاينة
-                </span>
+                  <span />{text("جاهز للمعاينة")}</span>
               </div>
 
               <div className="instructor-lesson-video-box">
                 <div className="instructor-lesson-video-preview">
-                  <PendingFeature  aria-label="تشغيل الفيديو">
+                  <PendingFeature  aria-label={text("تشغيل الفيديو")}>
                     <Icon name="video" size={24} />
                   </PendingFeature>
 
-                  <span>معاينة الفيديو</span>
+                  <span>{text("معاينة الفيديو")}</span>
 
                   <small>{lesson.video.duration}</small>
                 </div>
@@ -421,8 +403,7 @@ export default function EditLessonPage() {
                     </div>
                   </div>
 
-                  <span className="instructor-video-quality">
-                    معدل الترميز: {lesson.video.encoding}
+                  <span className="instructor-video-quality">{text("معدل الترميز:")}{lesson.video.encoding}
                   </span>
                 </div>
 
@@ -431,22 +412,22 @@ export default function EditLessonPage() {
                     <>
                       <Link to={`${videoBasePath}/preview`} state={{ lessonDraft: lesson }} className="instructor-course-button instructor-course-button-outline">
                         <Icon name="video" size={15} />
-                        {language === "ar" ? "معاينة الفيديو" : "Preview video"}
+                        {language === "ar" ? text("معاينة الفيديو") : "Preview video"}
                       </Link>
                       <Link to={`${videoBasePath}/edit`} state={{ lessonDraft: lesson }} className="instructor-course-button instructor-course-button-outline">
                         <Icon name="edit" size={15} />
-                        {language === "ar" ? "تحرير الفيديو" : "Edit video"}
+                        {language === "ar" ? text("تحرير الفيديو") : "Edit video"}
                       </Link>
                     </>
                   ) : (
                     <>
                       <PendingFeature className="instructor-course-button instructor-course-button-outline">
                         <Icon name="video" size={15} />
-                        {language === "ar" ? "معاينة الفيديو" : "Preview video"}
+                        {language === "ar" ? text("معاينة الفيديو") : "Preview video"}
                       </PendingFeature>
                       <PendingFeature className="instructor-course-button instructor-course-button-outline">
                         <Icon name="edit" size={15} />
-                        {language === "ar" ? "تحرير الفيديو" : "Edit video"}
+                        {language === "ar" ? text("تحرير الفيديو") : "Edit video"}
                       </PendingFeature>
                     </>
                   )}
@@ -455,27 +436,20 @@ export default function EditLessonPage() {
 
               <div className="instructor-edit-lesson-note">
                 <Icon name="info" size={15} />
-                <span>
-                  يمكنك استبدال الفيديو أو معاينته مباشرة قبل اعتماد
-                  الدرس في المنهج الدراسي.
-                </span>
+                <span>{text("يمكنك استبدال الفيديو أو معاينته مباشرة قبل اعتماد الدرس في المنهج الدراسي.")}</span>
               </div>
-            </section>
+            </section>}
 
             {/* Objectives */}
             <section className="instructor-edit-lesson-card">
               <div className="instructor-edit-lesson-card-header">
                 <div>
-                  <h2>أهداف الدرس التعليمية</h2>
-                  <p>
-                    حدد ما سيتمكن المتعلم من فهمه واكتسابه بنهاية
-                    هذا الدرس.
-                  </p>
+                  <h2>{text("أهداف الدرس التعليمية")}</h2>
+                  <p>{text("حدد ما سيتمكن المتعلم من فهمه واكتسابه بنهاية هذا الدرس.")}</p>
                 </div>
 
                 <span className="instructor-section-counter">
-                  {lesson.objectives.length} من 3
-                </span>
+                  {lesson.objectives.length}{text("من 3")}</span>
               </div>
 
               <div className="instructor-objectives-list">
@@ -492,7 +466,7 @@ export default function EditLessonPage() {
 
                     <button
                       type="button"
-                      aria-label="حذف الهدف"
+                      aria-label={text("حذف الهدف")}
                       onClick={() => removeObjective(index)}
                     >
                       <Icon name="trash" size={15} />
@@ -505,7 +479,7 @@ export default function EditLessonPage() {
                 <input
                   type="text"
                   value={newObjective}
-                  placeholder="اكتب هدفًا تعليميًا جديدًا..."
+                  placeholder={text("اكتب هدفًا تعليميًا جديدًا...")}
                   onChange={(event) =>
                     setNewObjective(event.target.value)
                   }
@@ -521,9 +495,7 @@ export default function EditLessonPage() {
                   className="instructor-course-button instructor-course-button-outline"
                   onClick={addObjective}
                 >
-                  <Icon name="plus" size={15} />
-                  إضافة هدف
-                </button>
+                  <Icon name="plus" size={15} />{text("إضافة هدف")}</button>
               </div>
             </section>
 
@@ -531,16 +503,11 @@ export default function EditLessonPage() {
             <section className="instructor-edit-lesson-card">
               <div className="instructor-edit-lesson-card-header">
                 <div>
-                  <h2>موارد إضافية وملحقات</h2>
-                  <p>
-                    أرفق ملفات مساعدة لتعزيز التجربة التعليمية
-                    للمتعلمين.
-                  </p>
+                  <h2>{text("موارد إضافية وملحقات")}</h2>
+                  <p>{text("أرفق ملفات مساعدة لتعزيز التجربة التعليمية للمتعلمين.")}</p>
                 </div>
 
-                <span className="instructor-resource-label">
-                  اختياري
-                </span>
+                <span className="instructor-resource-label">{text("اختياري")}</span>
               </div>
 
               <div className="instructor-resource-list">
@@ -561,25 +528,19 @@ export default function EditLessonPage() {
                     </div>
 
                     <div className="instructor-resource-actions">
-                      <PendingFeature  aria-label={language === "ar" ? "معاينة المورد" : "Preview resource"}>
+                      <PendingFeature  aria-label={language === "ar" ? text("معاينة المورد") : "Preview resource"}>
                         <Icon name="arrow-left" size={14} />
                       </PendingFeature>
 
-                      <PendingFeature  aria-label={language === "ar" ? "حذف المورد" : "Delete resource"}>
+                      <button type="button" onClick={() => updateLesson("resources", lesson.resources.filter(item => item.id !== resource.id))} aria-label={language === "ar" ? text("حذف المورد") : "Delete resource"}>
                         <Icon name="trash" size={14} />
-                      </PendingFeature>
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <PendingFeature
-
-                className="instructor-resource-add"
-              >
-                <Icon name="plus" size={15} />
-                إضافة مورد أو ملف مرفق
-              </PendingFeature>
+              <label className="instructor-resource-add">{text("إضافة مورد أو ملف مرفق")}<input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" onChange={event => { const files = [...event.target.files]; if (files.some(file => file.size > 10 * 1024 * 1024 || !/\.(pdf|png|jpe?g|txt|docx?)$/i.test(file.name)) || files.length + lesson.resources.length > 5) { setSavedMessage(language === 'ar' ? 'الحد الأقصى 5 ملفات، و10MB لكل ملف.' : 'Up to 5 files, 10MB each.'); return; } updateLesson('resources', [...lesson.resources, ...files.map(file => ({ id: crypto.randomUUID(), name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.name.split('.').pop().toUpperCase() }))]); event.target.value = ''; }} /></label><small>{language === 'ar' ? 'تُحفظ أسماء الملفات محليًا؛ رفع الملفات وإتاحتها للمتعلّم يحتاج خدمة تخزين.' : 'File names are saved locally; uploads and learner access require a storage service.'}</small>
             </section>
           </main>
 
@@ -588,16 +549,16 @@ export default function EditLessonPage() {
             {/* Readiness */}
             <section className="instructor-edit-lesson-side-card">
               <div className="instructor-side-card-title">
-                <strong>جاهزية الدرس للاعتماد</strong>
+                <strong>{text("جاهزية الدرس للاعتماد")}</strong>
 
                 <span className="instructor-ready-badge">
-                  {readiness === 100 ? "مكتمل وجاهز" : "يحتاج استكمال"}
+                  {readiness === 100 ? text("مكتمل وجاهز") : text("يحتاج استكمال")}
                 </span>
               </div>
 
               <div className="instructor-readiness-score">
                 <strong>{readiness}%</strong>
-                <span>نسبة اكتمال متطلبات الدرس</span>
+                <span>{text("نسبة اكتمال متطلبات الدرس")}</span>
               </div>
 
               <div className="instructor-readiness-progress">
@@ -628,39 +589,36 @@ export default function EditLessonPage() {
                 onClick={() =>
                   handleSave(
                     isNewLesson
-                      ? "تم حفظ الدرس وإضافته إلى المنهج."
-                      : "تم اعتماد الدرس وإضافته إلى المنهج."
+                      ? text("تم حفظ الدرس وإضافته إلى المنهج.")
+                      : text("تم اعتماد الدرس وإضافته إلى المنهج.")
                   )
                 }
               >
-                <Icon name="check" size={15} />
-                اعتماد الدرس وإضافته للمنهج
-              </button>
+                <Icon name="check" size={15} />{text("اعتماد الدرس وإضافته للمنهج")}</button>
             </section>
 
             {/* Academic context */}
             <section className="instructor-edit-lesson-side-card">
               <div className="instructor-side-card-heading">
-                <strong>السياق الأكاديمي للدرس</strong>
+                <strong>{text("السياق الأكاديمي للدرس")}</strong>
                 <Icon name="book" size={17} />
               </div>
 
               <div className="instructor-academic-context">
-                <span>الدورة</span>
+                <span>{text("الدورة")}</span>
                 <strong>{lesson.courseTitle}</strong>
 
-                <span>القسم</span>
+                <span>{text("القسم")}</span>
                 <strong>{lesson.sectionTitle}</strong>
 
                 <p>
-                  {lesson.duration} دقيقة للدرس الحالي.
-                </p>
+                  {lesson.duration}{text("دقيقة للدرس الحالي.")}</p>
               </div>
 
               <div className="instructor-points-info">
                 <div>
                   <Icon name="star" size={15} />
-                  <strong>{language === "ar" ? "نقاط إسهام" : "Esham Points"}</strong>
+                  <strong>{language === "ar" ? text("نقاط إسهام") : "Esham Points"}</strong>
                 </div>
 
                 <p>
@@ -672,21 +630,16 @@ export default function EditLessonPage() {
             {/* Task */}
             <section className="instructor-edit-lesson-side-card">
               <div className="instructor-side-card-heading">
-                <strong>مهمة القسم التطبيقية</strong>
+                <strong>{text("مهمة القسم التطبيقية")}</strong>
                 <Icon name="lesson" size={17} />
               </div>
 
-              <p className="instructor-task-description">
-                في إسهام، يختم كل قسم تعليمي بمهمة تطبيقية عملية
-                ينفذها المتعلم ويقدمها للمدرب.
-              </p>
+              <p className="instructor-task-description">{text("تتضمن الدورة من مهمة إلى ثلاث مهام تطبيقية يراجعها المدرّب؛ لا يلزم إضافة مهمة لكل قسم.")}</p>
 
               <Link to={section?.task?.id ? `/instructor/courses/${courseId}/sections/${lesson.sectionId}/tasks/${section.task.id}/edit` : `/instructor/courses/${courseId}/sections/${lesson.sectionId}/tasks/new`}
 
                 className="instructor-task-button"
-              >
-                إدارة مهمة هذا القسم
-                <Icon name="arrow-left" size={14} />
+              >{text("إدارة مهمة هذا القسم")}<Icon name="arrow-left" size={14} />
               </Link>
             </section>
           </aside>
@@ -696,17 +649,15 @@ export default function EditLessonPage() {
         <section className="instructor-edit-lesson-bottom-bar">
           <span>
             <i />
-            {savedMessage}
+            {text(savedMessage)}
           </span>
 
           <div>
             <button
               type="button"
               className="instructor-course-button instructor-course-button-outline"
-              onClick={() => handleSave("تم حفظ الدرس كمسودة.")}
-            >
-              حفظ كمسودة
-            </button>
+              onClick={() => handleSave(text("تم حفظ الدرس كمسودة."))}
+            >{text("حفظ كمسودة")}</button>
 
             <button
               type="button"
@@ -714,12 +665,12 @@ export default function EditLessonPage() {
               onClick={() =>
                 handleSave(
                   isNewLesson
-                    ? "تم حفظ الدرس وإضافته إلى المنهج."
-                    : "تم حفظ التعديلات والمتابعة.",
+                    ? text("تم حفظ الدرس وإضافته إلى المنهج.")
+                    : text("تم حفظ التعديلات والمتابعة."),
                 )
               }
             >
-              {isNewLesson ? "حفظ الدرس" : "حفظ التعديلات والمتابعة"}
+              {isNewLesson ? text("حفظ الدرس") : text("حفظ التعديلات والمتابعة")}
               <Icon name="check" size={15} />
             </button>
           </div>

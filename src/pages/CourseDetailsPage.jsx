@@ -1,3 +1,5 @@
+import ReportCourseButton from '../components/learner/ReportCourseButton';
+import '../styles/community.css';
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { usePreferences } from "../context/PreferencesContext";
@@ -68,7 +70,7 @@ function CourseDetail({ course, c, p, language }) {
             <span className="detail-category">
               <span /> {c.categories[categoryKeys.indexOf(course.category)]}
             </span>
-            <h1>{title}</h1>
+            <h1>{title}</h1><ReportCourseButton course={course}/>
             <p>{description}</p>
             <div className="detail-rating">
               <span className="stars" aria-hidden="true">

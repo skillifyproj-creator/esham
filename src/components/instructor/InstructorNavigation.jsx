@@ -100,7 +100,7 @@ export default function InstructorNavigation() {
               <span className="instructor-profile-avatar"><Icon name="user" size={18} /></span>
               <span className="instructor-profile-copy">
                 <strong>{accountName || instructor.name[language]}</strong>
-                <small>{instructor.role[language]}</small>
+                <small>{language === "ar" ? "مدرّب" : "Instructor"}</small>
               </span>
             </div>
             <Link to="/instructor/profile" className="role-mobile-edit-profile" onClick={() => setOpen(false)}>
@@ -220,7 +220,7 @@ export default function InstructorNavigation() {
               </strong>
 
               <small>
-                {instructor.role[language]}
+                {language === "ar" ? "مدرّب" : "Instructor"}
               </small>
             </span>
           </Link>

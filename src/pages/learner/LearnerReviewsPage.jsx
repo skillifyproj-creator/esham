@@ -1,3 +1,4 @@
+import CourseRecommendations from '../../components/learner/CourseRecommendations';
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -323,6 +324,7 @@ export default function LearnerReviewsPage() {
                 </div>
 
                 <blockquote>{review.text}</blockquote>
+                {eligibleIds.has(review.courseId) && <CourseRecommendations course={item.course} review={review} enrollments={enrollments}/>}
 
                 <p>
                   {t.date}:{" "}

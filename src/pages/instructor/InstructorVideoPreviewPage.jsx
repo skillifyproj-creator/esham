@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
+import { getInstructorCourseWorkspace } from "../../data/instructorCourseWorkspace";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorCurriculumDemo } from "../../data/instructorCurriculumDemo";
 import "../../styles/instructor.css";
 
 const copy = {
@@ -12,8 +12,8 @@ const copy = {
     preview: "معاينة التسجيل", play: "تشغيل المعاينة", pause: "إيقاف المعاينة مؤقتًا",
     seek: "موضع تشغيل الفيديو", volume: "مستوى الصوت", fullscreen: "ملء الشاشة", exitFullscreen: "إنهاء ملء الشاشة",
     info: "معلومات التسجيل", duration: "مدة الفيديو", quality: "الجودة", format: "الصيغة", size: "حجم الملف",
-    success: "تم تسجيل الفيديو بنجاح", demo: "هذه بيانات تجريبية للمعاينة، وسيتم استبدالها ببيانات التسجيل الفعلية لاحقًا.",
-    edit: "متابعة إلى التعديل", again: "إعادة التسجيل", save: "حفظ كمسودة", saved: "حُفظت المسودة محليًا لهذه الجلسة.",
+    success: "معاينة بيانات الفيديو جاهزة", demo: "هذه بيانات تجريبية للمعاينة، وسيتم استبدالها ببيانات التسجيل الفعلية لاحقًا.",
+    edit: "متابعة إلى التعديل", again: "إعادة التسجيل", save: "حفظ كمسودة", saved: "تم تحديد المسودة في هذه المعاينة فقط؛ لا تُحفظ بعد مغادرة الصفحة.",
   },
   en: {
     courses: "My courses", courseFallback: "Course name", sectionFallback: "Section name",
@@ -21,8 +21,8 @@ const copy = {
     preview: "Recording preview", play: "Play preview", pause: "Pause preview",
     seek: "Video playback position", volume: "Volume", fullscreen: "Enter fullscreen", exitFullscreen: "Exit fullscreen",
     info: "Recording information", duration: "Video duration", quality: "Quality", format: "Format", size: "File size",
-    success: "Video recorded successfully", demo: "These are demo preview values and will be replaced with recording details when the recording pipeline is available.",
-    edit: "Continue to editing", again: "Record again", save: "Save as draft", saved: "Draft saved locally for this session.",
+    success: "Video details preview is ready", demo: "These are demo preview values and will be replaced with recording details when the recording pipeline is available.",
+    edit: "Continue to editing", again: "Record again", save: "Save as draft", saved: "Draft selected in this preview only; it is not retained after leaving the page.",
   },
 };
 
@@ -43,8 +43,9 @@ export default function InstructorVideoPreviewPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const playerRef = useRef(null);
-  const course = instructorCurriculumDemo.course;
-  const section = instructorCurriculumDemo.sections.find((item) => String(item.id) === String(sectionId));
+  const workspace = getInstructorCourseWorkspace(courseId);
+  const course = workspace?.course;
+  const section = (workspace?.sections || []).find((item) => String(item.id) === String(sectionId));
   const courseTitle = course && String(course.id) === String(courseId)
     ? course.title[language] || course.title.ar
     : t.courseFallback;
@@ -86,8 +87,9 @@ export default function InstructorVideoPreviewPage() {
     setIsPlaying((playing) => !playing);
   };
 
-  return (
-    <main className="instructor-video-preview-page instructor-detail-page" dir={direction}>
+  if (!workspace || !section || (lessonId !== 'new' && !section.lessons.some(lesson => String(lesson.id) === String(lessonId)))) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'لم يتم العثور على الدرس أو القسم' : 'Lesson or section not found'}</h1><button type="button" className="button" onClick={() => navigate('/instructor/courses')}>{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</button></main>;
+  return (<main className="instructor-video-preview-page instructor-detail-page" dir={direction}>
+      <p className="instructor-media-demo-note" role="note">{language === 'ar' ? 'معاينة لمسار الفيديو: التسجيل والتشغيل والقص محاكاة للتصميم، ولا يُنشأ أو يُرفع أو يُعدّل ملف فيديو فعليًا.' : 'Video workflow preview: recording, playback and trimming are simulated. No video file is created, uploaded or edited.'}</p>
       <div className="container">
         <nav className="instructor-video-preview-breadcrumb" aria-label={direction === "rtl" ? "مسار التنقل" : "Breadcrumb"}>
           <span>{t.courses}</span><span>/</span><span>{courseTitle}</span><span>/</span>

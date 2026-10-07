@@ -1,0 +1,1 @@
+export function canPreviewCertificate(details,tasks) { return Boolean(details?.isComplete && tasks.filter(task=>String(task.courseId)===String(details.courseId)).every(task=>task.status==='completed')); }

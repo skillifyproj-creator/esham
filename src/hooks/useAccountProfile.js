@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const validRoles = ['learner', 'instructor', 'both'];
 
-function normalizeAccountProfile(value) {
+export function normalizeAccountProfile(value) {
   if (!value || typeof value !== 'object') return null;
 
   const declaredRoles = Array.isArray(value.roles) ? value.roles : [];
@@ -21,18 +21,18 @@ function normalizeAccountProfile(value) {
 
   if (hasLearner && hasInstructor) return { ...value, role: 'both' };
   if (value.role === 'learner' || value.role === 'instructor') return value;
-  if (declaredRoles.includes('learner')) return { ...value, role: 'learner' };
-  if (declaredRoles.includes('instructor')) return { ...value, role: 'instructor' };
+  if (hasLearner) return { ...value, role: 'learner' };
+  if (hasInstructor) return { ...value, role: 'instructor' };
   return null;
 }
 
 export function readAccountProfile() {
   for (const [storage, key] of [
-    [localStorage, 'esham-account-profile-v1'],
-    [sessionStorage, 'esham-onboarding-draft-v1'],
+    ['localStorage', 'esham-account-profile-v1'],
+    ['sessionStorage', 'esham-onboarding-draft-v1'],
   ]) {
     try {
-      const value = JSON.parse(storage.getItem(key) || 'null');
+      const value = JSON.parse(window[storage].getItem(key) || 'null');
       const profile = normalizeAccountProfile(value);
       if (profile && validRoles.includes(profile.role)) return profile;
     } catch {

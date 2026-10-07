@@ -491,3 +491,62 @@ git rebase --abort
 - https://www.coursera.org/articles/digital-marketing
 - https://www.adobe.com/creativecloud/photography/hub/guides/camera-exposure-camera-settings.html
 - https://www.craftsy.com/all-classes
+
+
+## مراجعة النسخة المدمجة — 7 أكتوبر 2026
+
+تمت مقارنة ce3e7f4 بإضافتي cb4fc33 و4bf5c80. احتُفظ بإعداد الحساب والأدوار والبحث السابق، وبإضافات المعلّم والأدمن، مع إصلاح الأخطاء التالية:
+
+- صور المصادقة والاستعادة على اليمين بالعربية واليسار بالإنجليزية.
+- مصدر موحد للتصنيفات في `src/data/categories.js` يستخدمه إعداد الحساب والكتالوج وإنشاء الدورة وبيانات الأدمن؛ ترتيب اهتمامات الملفات السابقة محفوظ. علوم البيانات تصنيف فرعي للبرمجة، مع دعم أسماء التصنيفات القديمة.
+- تطبيع الدور المنفرد والهايبرد من الأعلام وقوائم الأدوار، ومعالجة التخزين غير المتاح. إعدادات الحساب لا تحوّل الدور إلى هايبرد تلقائيًا؛ تظهر اهتمامات التعلّم والتعليم حسب دور الحساب.
+- إصلاح إنشاء المدير والتصنيف والإعلان، والتحقق من البريد واسم التصنيف المكرر والحقول الفارغة، وربط الإسناد بين المدير والتصنيف.
+- ترجمة حالات الأدمن وتصنيفاته وتواريخه، وإصلاح البحث والنتائج الفارغة وسجل النشاط، واستخدام نافذة dialog المشتركة.
+- قبول الدورة يتطلب استكمال قائمة المراجعة. خدمة المراجعة تمنع القرارات خارج نطاق التصنيفات أو إعادة القرار على دورة ليست قيد المراجعة.
+- فصل تكلفة التسجيل عن مكافأة الإكمال، وإزالة وصف المدرّب بأنه معتمد تلقائيًا ورسائل النجاح التي توحي بتنفيذ خدمة غير متصلة.
+- مسودة الدورة الجديدة تحفظ في sessionStorage، وتستعاد عند الرجوع أو التحديث، وتنتقل ببياناتها إلى المنهج والمراجعة. صورة الغلاف تحفظ كبيانات معاينة محلية، مع التحقق من الصيغة وحد 2MB.
+- الدروس والمهمات تحفظ في الدورة والقسم الصحيحين؛ القسم الجديد لا يحتوي مهمة تصوير جاهزة. المسار غير الصحيح يعرض حالة عدم العثور بدل التعطل أو عرض دورة أخرى.
+- ترجمة واجهات تعديل الدرس والمهمة والمراجعة إلى العربية والإنجليزية. درس القراءة لا يتطلب فيديو؛ مدة الدرس بين 1 و600 دقيقة، وحتى ثلاثة أهداف دون تكرار.
+- المهمة تبدأ فارغة، وتدعم الوصف والتعليمات ونوع التسليم ومعايير التقييم ومعاينة الطالب والحفظ والإزالة. الموارد تدعم أسماء ملفات معاينة وإزالتها مع حدود عدد الملفات والحجم.
+- جاهزية الدرس والمهمة والمنهج والمراجعة محسوبة من المحتوى، ولا تعتمد على 100% ثابتة أو حالة ready قديمة وحدها. جاهزية المنهج منفصلة عن اكتمال معلومات الدورة.
+- أدوات الفيديو ترجع للدورة الحالية، مع توضيح أن التسجيل والتشغيل والقص محاكاة؛ لا يُنشأ أو يُرفع فيديو فعليًا. إصلاح سياق محرر الفيديو.
+- توضيح مؤشرات الأداء التجريبية والردود المؤقتة، وترجمة رؤوس CSV ومنع تفسير النصوص المصدّرة كصيغ جداول.
+- تحميل صفحات المعلّم والمتعلّم والأدمن عند الحاجة؛ JavaScript الرئيسي نحو 438 kB بعد أن كان نحو 779 kB. اختفى تحذير تجاوز 500 kB، وبقي تحذير use client من React Router دون فشل البناء.
+
+### التحقق
+
+`npm test` يشغّل 11 اختبار تراجع تشمل التصنيفات والأدوار والتخزين ومسودة الدورة ونطاق المراجعة والإشعارات والجاهزية. تتضمن الاختبارات عرض صفحات المتعلّم الثماني وصفحات المعلّم الأربع عشرة باللغتين داخل السياقات المشتركة.
+
+`npm run build` ناجح. جرى فحص 30 مسارًا في نسخة الإنتاج، ثم مسارات تعديل الدرس والفيديو والحالات غير الموجودة، مع فحص الموبايل بعرض 390px. جُرّب إنشاء مهمة ودرس قراءة وحفظهما داخل القسم الصحيح، وإضافة مدير مع منع البريد المكرر، وقراءة الإشعارات وتصفية النتائج الفارغة. هذه سيناريوهات محددة، وليست إثباتًا لكل حالة محتملة.
+
+### حدود النسخة الحالية
+
+هذه واجهة عرض تجريبية: المصادقة وصلاحيات الخادم والنشر وإرسال الدورة للأدمن والتسجيل الحقيقي للفيديو ورفع الملفات تحتاج خدمات فعلية. بيانات المعلّم والمتعلّم والأدمن التجريبية لا تتزامن كقاعدة بيانات واحدة. إضافة تصنيف من الأدمن مؤقتة داخل معاينته؛ ظهور التصنيف الجديد في جميع الحسابات يحتاج الربط المشترك بالخادم. مسودة الدورة الجديدة خاصة بجلسة التبويب، وتعديلات الدورات التجريبية الأخرى مؤقتة. الغلاف بيانات محلية وليس ملفًا مرفوعًا، والمرفقات أسماء وبيانات معاينة فقط.
+
+
+### Course workload and safety policy (2026-10-07)
+- Courses require 1–3 assessed tasks overall; sections do not each require a task. Workspace mutations reject a fourth task.
+- Instructor review and category administrator review show the safety policy. Administrator preview warnings require verified evidence, incident ID, reason, correction and deadline. Duplicate incident IDs are rejected. Warning 2 pauses enrollment in the local policy state; warning 3 archives while preserving warning history. Urgent suspension and instructor appeal preview controls are available.
+- These are local browser previews. Admin and instructor demo course IDs remain separate; notifications, real AI video/audio/transcript scanning, shared server authorization, enrollment enforcement and catalog archiving need backend integration. Ratings/reports must trigger investigation, not automatic warnings. Risk and AI confidence must be separate.
+
+### Post-completion recommendations
+- Completed lessons and approved/completed tasks unlock the review invitation. Saved eligible reviews show up to three same-category suggestions, excluding enrolled courses. Feedback keywords influence topic and level; low ratings favor alternative instructors.
+- This is an explicitly labeled deterministic local fallback, not an AI response. A future authenticated backend must obtain consent as appropriate, send the relevant rating/feedback to the AI service, validate returned catalog IDs and filter availability/access before display. No feedback is sent externally by this preview.
+
+### Frontend re-audit (2026-10-07)
+- Production browser smoke check: 46 desktop visits (including redirects for incomplete onboarding), 17 mobile pages and 7 English mobile pages. No horizontal overflow, broken images or browser errors observed in checked pages.
+- Fixed bilingual task-policy wording, added course task count and disabled add buttons at three tasks. Curriculum state now retains the previous value if saving fails.
+- Hardened safety local storage and deadline validation; made its device-only, non-synchronized nature explicit. Added a route-resetting error boundary with reload/home recovery.
+- 16 tests pass, including administrator rendering in both languages. Production build passes; React Router use-client bundling warning remains.
+- NOT feature-complete for production: administrative authentication/authorization, actual enrollment, upload/playback/recording, publication, notifications and persistence need services. AI safety and recommendations remain previews. Admin warnings and instructor courses use distinct demo IDs and are not linked end-to-end.
+- Remaining frontend/product work: learner report submission and an admin moderation queue; certificate views/issuance workflow; instructor review-report details; help, instructor guidelines and approved privacy/terms copy. Existing buttons explain unavailability instead of pretending these workflows are finished.
+
+### Certificates, reports and remaining frontend pages (2026-10-07)
+- Learner certificates: /learner/certificates and /learner/certificates/:courseId. Platform-branded bilingual certificate previews include learner/course names and instructor name in Aref Ruqaa/Marck Script signature-style fonts, with a clearly visible preview watermark. Completed lessons and approved tasks are required. Print/save PDF uses browser printing. Dates, verified identifiers and actual issuance require server responses; no fake dates or verification IDs are generated.
+- Reports: course details and lesson pages open a validated reason/description/timestamp form. Reports are saved locally and available at /admin/moderation and /category-admin/moderation, filtered by assigned category in the latter. Duplicate open reports are blocked. Administrators can investigate, record outcomes, resolve or dismiss; reports do not automatically issue warnings.
+- Local warning records from the report queue use catalog IDs; photography/design/marketing instructor courses with known public mappings read the same record. Legacy independent admin course fixtures remain separate.
+- New pages: /instructor/certificates, /instructor/courses/:courseId/review-report, and /help/support|guidelines|privacy|terms. Instructor shortcuts and footer links now open these pages. Privacy/terms are preliminary project content requiring owner approval, not final legal policies.
+- Video screening status UI distinguishes risk/confidence and explicitly says no analysis has occurred before a service is connected.
+- 19 automated tests pass; local browser report submit-to-admin-and-dismiss flow verified on isolated preview origin. Eleven new mobile page visits show no horizontal overflow. Backend must still supply authentication, permissions, persistence, actual certificates/verification, uploads/scans, notifications and publication/enrollment enforcement.
+
+- Certificate print correction: remove surrounding application content from pagination, use a fixed A4 landscape certificate (277 × 188 mm within 10 mm margins), and compact print-only typography/signature spacing so the footer stays on the same sheet.

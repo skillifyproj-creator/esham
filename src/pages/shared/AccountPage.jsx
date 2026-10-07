@@ -7,14 +7,16 @@ import { passwordRequirements } from '../auth/passwordValidation';
 import Modal from '../../components/Modal';
 import Icon from '../../components/Icon';
 import '../../styles/account.css';
+import { readAccountProfile } from '../../hooks/useAccountProfile';
+import { categories } from '../../data/categories';
 const key = 'esham-account-profile-v1';
 function readProfile() {
-  const empty = { role: 'both', name: '', username: '', bio: '', interests: [], teachingAreas: [], customSkills: [], goal: null };
+  const empty = { role: '', name: '', username: '', bio: '', interests: [], teachingAreas: [], customSkills: [], goal: null };
   try {
-    const value = JSON.parse(localStorage.getItem(key) || sessionStorage.getItem('esham-onboarding-draft-v1') || '{}');
+    const value = readAccountProfile();
     if (['learner', 'instructor', 'both'].includes(value.role)) empty.role = value.role;
     for (const field of ['name', 'username', 'bio']) if (typeof value[field] === 'string') empty[field] = value[field].slice(0, field === 'bio' ? 500 : 80);
-    for (const field of ['interests', 'teachingAreas']) if (Array.isArray(value[field])) empty[field] = [...new Set(value[field].filter(id => Number.isInteger(id) && id >= 0 && id < 6))];
+    for (const field of ['interests', 'teachingAreas']) if (Array.isArray(value[field])) empty[field] = [...new Set(value[field].filter(id => Number.isInteger(id) && id >= 0 && id < categories.length))];
     if (Number.isInteger(value.goal) && value.goal >= 0 && value.goal < 4) empty.goal = value.goal;
     if (Array.isArray(value.customSkills)) empty.customSkills = value.customSkills.filter(item => typeof item === 'string').slice(0, 10).map(item => item.slice(0, 80));
     return empty;
@@ -58,7 +60,7 @@ export default function AccountPage({ role, section }) {
     <div className="account-layout"><nav className="account-tabs" aria-label={text('إدارة الحساب', 'Account navigation')}>
       <NavLink to={`/${role}/profile`}>{text('الملف الشخصي', 'Profile')}</NavLink><NavLink end to={`/${role}/settings`}>{text('الإعدادات', 'Settings')}</NavLink><NavLink to={`/${role}/settings/security`}>{text('الأمان', 'Security')}</NavLink><Link to={`/${role}/notifications`}>{text('الإشعارات', 'Notifications')}</Link>
     </nav><div className="account-content">
-    {section === 'profile' ? <form onSubmit={save} noValidate><ProfileSetup draft={draft} update={update} error={error} photo={photo} setPhoto={setPhoto} /><details className="account-panel"><summary>{text('اهتمامات التعلّم ومجالات التعليم', 'Learning interests and teaching areas')}</summary><InterestsSetup draft={draft} update={update} /><InterestsSetup draft={draft} update={update} mode="teaching" /></details><div className="account-actions"><button className="button" type="submit">{text('حفظ التغييرات', 'Save changes')}</button><button type="button" className="button secondary" onClick={() => { setDraft(saved); setPhoto(''); setError(''); setStatus(''); }}>{text('إلغاء التعديلات', 'Discard edits')}</button></div></form> : section === 'security' ? <form className="account-panel account-password" onSubmit={checkPassword} noValidate>
+    {section === 'profile' ? <form onSubmit={save} noValidate><ProfileSetup draft={draft} update={update} error={error} photo={photo} setPhoto={setPhoto} /><details className="account-panel"><summary>{text('اهتمامات التعلّم ومجالات التعليم', 'Learning interests and teaching areas')}</summary>{draft.role !== 'instructor' && <InterestsSetup draft={draft} update={update} />}{draft.role !== 'learner' && <InterestsSetup draft={draft} update={update} mode="teaching" />}</details><div className="account-actions"><button className="button" type="submit">{text('حفظ التغييرات', 'Save changes')}</button><button type="button" className="button secondary" onClick={() => { setDraft(saved); setPhoto(''); setError(''); setStatus(''); }}>{text('إلغاء التعديلات', 'Discard edits')}</button></div></form> : section === 'security' ? <form className="account-panel account-password" onSubmit={checkPassword} noValidate>
       <p className="account-note">{text('هذه واجهة تجريبية. لا يتم تخزين كلمات المرور أو إرسالها، والتغيير الفعلي يحتاج ربط خدمة الحسابات.', 'This is a demo form. Passwords are neither stored nor sent; actual changes require the account service.')}</p>
       {['current', 'next', 'confirm'].map((field, index) => <div className="account-field" key={field}><label htmlFor={`password-${field}`}>{[text('كلمة المرور الحالية', 'Current password'), text('كلمة المرور الجديدة', 'New password'), text('تأكيد كلمة المرور الجديدة', 'Confirm new password')][index]}</label><div className="account-password-input"><input id={`password-${field}`} type={visible[field] ? 'text' : 'password'} autoComplete={field === 'current' ? 'current-password' : 'new-password'} value={passwords[field]} required onChange={event => { setPasswords(value => ({ ...value, [field]: event.target.value })); setError(''); setStatus(''); }} /><button type="button" aria-pressed={!!visible[field]} aria-label={text('إظهار أو إخفاء', 'Show or hide') + ' ' + [text('كلمة المرور الحالية', 'current password'), text('كلمة المرور الجديدة', 'new password'), text('تأكيد كلمة المرور', 'password confirmation')][index]} onClick={() => setVisible(value => ({ ...value, [field]: !value[field] }))}><Icon name={visible[field] ? "eye-off" : "eye"} size={21} /></button></div></div>)}<p>{text('8 أحرف على الأقل، تتضمن حرفًا ورقمًا.', 'At least 8 characters, including a letter and number.')}</p>{error && <p role="alert" className="account-error">{error}</p>}<button className="button">{text('التحقق من النموذج', 'Validate form')}</button>
     </form> : <div className="account-panel">

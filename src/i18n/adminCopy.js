@@ -1,11 +1,12 @@
+import { categories as platformCategories, subcategories } from '../data/categories';
 ﻿const ar = {
   appName: 'إسهام', superAdmin: 'Super Admin', categoryAdmin: 'Category Admin',
-  dashboard: 'لوحة التحكم', admins: 'المديرون', users: 'المستخدمون', courses: 'الكورسات', categories: 'التصنيفات', reports: 'التقارير', announcements: 'الإعلانات', activity: 'سجل النشاط', activityPlural: 'سجل النشاطات', notifications: 'الإشعارات', logout: 'تسجيل الخروج',
+  moderation: 'بلاغات المحتوى', dashboard: 'لوحة التحكم', admins: 'المديرون', users: 'المستخدمون', courses: 'الكورسات', categories: 'التصنيفات', reports: 'التقارير', announcements: 'الإعلانات', activity: 'سجل النشاط', activityPlural: 'سجل النشاطات', notifications: 'الإشعارات', logout: 'تسجيل الخروج',
   openMenu: 'فتح القائمة', closeMenu: 'إغلاق القائمة', menu: 'القائمة', language: 'اللغة', theme: 'المظهر', lightMode: 'الوضع الفاتح', darkMode: 'الوضع الداكن', profile: 'الملف الشخصي', systemOk: 'النظام يعمل بشكل طبيعي', manager: 'أحمد محمد',
 };
 const en = {
   appName: 'Esham', superAdmin: 'Super Admin', categoryAdmin: 'Category Admin',
-  dashboard: 'Dashboard', admins: 'Admins', users: 'Users', courses: 'Courses', categories: 'Categories', reports: 'Reports', announcements: 'Announcements', activity: 'Activity log', activityPlural: 'Activity log', notifications: 'Notifications', logout: 'Log out',
+  moderation: 'Content reports', dashboard: 'Dashboard', admins: 'Admins', users: 'Users', courses: 'Courses', categories: 'Categories', reports: 'Reports', announcements: 'Announcements', activity: 'Activity log', activityPlural: 'Activity log', notifications: 'Notifications', logout: 'Log out',
   openMenu: 'Open menu', closeMenu: 'Close menu', menu: 'Menu', language: 'Language', theme: 'Theme', lightMode: 'Light mode', darkMode: 'Dark mode', profile: 'Profile', systemOk: 'All systems operational', manager: 'Ahmed Mohammad',
 };
 const text = {
@@ -134,6 +135,8 @@ export function translateAdminText(value, language = 'ar') {
     if (value === 'تعديل Category Admin') return 'تعديل مدير التصنيف';
     return value;
   }
+  const platformCategory = [...platformCategories,...subcategories].find(category => category.title.ar === value);
+  if (platformCategory) return platformCategory.title.en;
   const translated = text[value] || extendedText[value];
   if (translated) return translated;
 
@@ -141,7 +144,7 @@ export function translateAdminText(value, language = 'ar') {
   if (scope) {
     const categories = scope[1]
       .split('، ')
-      .map((category) => text[category] || extendedText[category] || category);
+      .map((category) => translateAdminText(category, language));
     return `Responsible for ${categories.join(', ')}`;
   }
 

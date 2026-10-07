@@ -1,13 +1,6 @@
 // المصدر الوحيد لبيانات الدورات في الرئيسية والاستكشاف والتفاصيل.
-export const categoryKeys = [
-  "all",
-  "programming",
-  "design",
-  "crafts",
-  "marketing",
-  "photography",
-  "business"
-];
+import { categories } from "./categories";
+export const categoryKeys = ["all", ...categories.map(category => category.id)];
 
 const courseRecords = [
   {

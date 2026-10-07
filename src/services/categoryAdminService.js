@@ -24,7 +24,7 @@ export function reviewCourse(courses,courseId,reviewer,decision,comment,now=new 
   const outcome=decisions[decision]; if(!outcome) throw new Error('قرار المراجعة غير صالح');
   if(decision!=='approve'&&!comment?.trim()) throw new Error('ملاحظة المراجعة مطلوبة');
   let review=null;
-  const nextCourses=courses.map(course=>{if(course.id!==courseId||!reviewer.categoryIds.includes(course.categoryId))return course;review={id:crypto.randomUUID(),courseId,reviewerId:reviewer.id,decision,comment:comment?.trim()||'',createdAt:now};return {...course,status:outcome.status,reviewerId:reviewer.id,reviewComment:review.comment,rejectionReason:decision==='reject'?review.comment:course.rejectionReason,reviewedAt:now,updatedAt:now};});
+  const nextCourses=courses.map(course=>{if(course.id!==courseId||!reviewer?.categoryIds?.includes(course.categoryId))return course;if(course.status!=='pending')throw new Error('يمكن مراجعة الكورسات قيد المراجعة فقط');review={id:crypto.randomUUID(),courseId,reviewerId:reviewer.id,decision,comment:comment?.trim()||'',createdAt:now};return {...course,status:outcome.status,reviewerId:reviewer.id,reviewComment:review.comment,rejectionReason:decision==='reject'?review.comment:null,reviewedAt:now,updatedAt:now};});
   if(!review)throw new Error('الكورس غير موجود ضمن التصنيفات المسندة');
   return {courses:nextCourses,review,action:outcome.action};
 }

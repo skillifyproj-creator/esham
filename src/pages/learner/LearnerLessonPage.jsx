@@ -1,3 +1,5 @@
+import ReportCourseButton from '../../components/learner/ReportCourseButton';
+import '../../styles/community.css';
 import { Link, useParams, useSearchParams } from "react-router";
 import { courses } from "../../data/courses";
 import { getEnrollmentDetails } from "../../data/learnerHelpers";
@@ -114,7 +116,8 @@ export default function LearnerLessonPage() {
           </Link>
         </header>
 
-        <p className="learner-demo-label">{t.demo}</p>
+        <p className="learner-demo-label">{t.demo}</p><ReportCourseButton course={course}/>
+        {details.isComplete && tasks.every(task => task.status === "completed") && <section className="learner-panel"><h2>{language === "ar" ? "أكملت الدورة؛ ما الخطوة التالية؟" : "Course completed — what comes next?"}</h2><p>{language === "ar" ? "قيّم تجربتك واكتب ملاحظاتك لعرض اقتراحات لدورات مشابهة." : "Rate your experience and share feedback to see similar course suggestions."}</p><Link className="button" to="/learner/reviews">{language === "ar" ? "التقييم والاقتراحات" : "Review and suggestions"}</Link></section>}
 
         <div className="lesson-page-grid">
           <aside className="learner-panel lesson-curriculum">

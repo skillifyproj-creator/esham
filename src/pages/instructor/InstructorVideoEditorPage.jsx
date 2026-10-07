@@ -1,7 +1,7 @@
+import { getInstructorCourseWorkspace } from "../../data/instructorCourseWorkspace";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorCurriculumDemo } from "../../data/instructorCurriculumDemo";
 import "../../styles/instructor.css";
 
 const copy = {
@@ -11,7 +11,7 @@ const copy = {
     preview: "معاينة الفيديو", play: "تشغيل الفيديو", pause: "إيقاف الفيديو مؤقتًا",
     duration: "15:32", start: "قص البداية", end: "قص النهاية", previewSelection: "معاينة الجزء المحدد",
     startTime: "البداية", endTime: "النهاية", audio: "الصوت", improveAudio: "تحسين مستوى الصوت",
-    back: "رجوع للمعاينة", save: "حفظ التعديلات", saved: "تم حفظ تعديلات الفيديو.",
+    back: "رجوع للمعاينة", save: "حفظ التعديلات", saved: "تم نقل إعدادات المعاينة إلى نموذج الدرس.",
   },
   en: {
     courses: "My courses", courseFallback: "Course name", sectionFallback: "Section name",
@@ -19,7 +19,7 @@ const copy = {
     preview: "Video preview", play: "Play video", pause: "Pause video",
     duration: "15:32", start: "Trim start", end: "Trim end", previewSelection: "Preview selected segment",
     startTime: "Start", endTime: "End", audio: "Audio", improveAudio: "Improve audio level",
-    back: "Back to preview", save: "Save changes", saved: "Video edits saved.",
+    back: "Back to preview", save: "Save changes", saved: "Preview settings passed to the lesson form.",
   },
 };
 
@@ -41,8 +41,9 @@ export default function InstructorVideoEditorPage() {
   const [isPreviewingSelection, setIsPreviewingSelection] = useState(false);
   const [audioImprovement, setAudioImprovement] = useState(false);
   const [saved, setSaved] = useState(false);
-  const course = instructorCurriculumDemo.course;
-  const section = instructorCurriculumDemo.sections.find((item) => String(item.id) === String(sectionId));
+  const workspace = getInstructorCourseWorkspace(courseId);
+  const course = workspace?.course;
+  const section = (workspace?.sections || []).find((item) => String(item.id) === String(sectionId));
   const courseTitle = course && String(course.id) === String(courseId)
     ? course.title[language] || course.title.ar
     : t.courseFallback;
@@ -88,8 +89,9 @@ export default function InstructorVideoEditorPage() {
     setIsPlaying((playing) => !playing);
   };
 
-  return (
-    <main className="instructor-video-editor-page instructor-detail-page" dir={direction}>
+  if (!workspace || !section || (lessonId !== 'new' && !section.lessons.some(lesson => String(lesson.id) === String(lessonId)))) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'لم يتم العثور على الدرس أو القسم' : 'Lesson or section not found'}</h1><button type="button" className="button" onClick={() => navigate('/instructor/courses')}>{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</button></main>;
+  return (<main className="instructor-video-editor-page instructor-detail-page" dir={direction}>
+      <p className="instructor-media-demo-note" role="note">{language === 'ar' ? 'معاينة لمسار الفيديو: التسجيل والتشغيل والقص محاكاة للتصميم، ولا يُنشأ أو يُرفع أو يُعدّل ملف فيديو فعليًا.' : 'Video workflow preview: recording, playback and trimming are simulated. No video file is created, uploaded or edited.'}</p>
       <div className="container">
         <nav className="instructor-video-editor-breadcrumb" aria-label={direction === "rtl" ? "مسار التنقل" : "Breadcrumb"}>
           <span>{t.courses}</span><span>/</span><span>{courseTitle}</span><span>/</span>

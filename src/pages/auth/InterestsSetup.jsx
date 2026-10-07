@@ -4,6 +4,7 @@ import { usePreferences } from '../../context/PreferencesContext';
 import { onboardingCopy } from '../../i18n/onboardingCopy';
 import { interestAreas, interestsCopy } from '../../data/interestAreas';
 import { courses } from '../../data/courses';
+import { categories } from '../../data/categories';
 import Icon from '../../components/Icon';
 import '../../styles/onboarding-interests.css';
 
@@ -51,7 +52,7 @@ export default function InterestsSetup({ draft, update, mode = "learning" }) {
     {!visibleAreas.length && <p className="interests-search-empty">{searchCopy.empty}</p>}
     <fieldset className="interests-card-grid"><legend className="sr-only">{teaching ? s.heading : s.learningHeading}</legend>{visibleAreas.map(({ area, index }) => {
       const selected = selectedAreas.includes(index);
-      const title = index === 5 ? t.business : copy.categories[index];
+      const title = categories[index].title[language];
       const matching = courses.filter(course => course.category === area.category);
       return <label key={area.category} className={`interests-card${selected ? ' selected' : ''}`}>
         <input type="checkbox" checked={selected} onChange={() => toggle(index)} aria-label={title} aria-describedby={`${mode}-${area.category}-description`} />

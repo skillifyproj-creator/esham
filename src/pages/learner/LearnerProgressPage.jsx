@@ -363,7 +363,7 @@ export default function LearnerProgressPage() {
                     to={`/learner/courses/${item.courseId}/learn`}
                   >
                     {t.review}
-                  </Link>
+                  </Link><Link className="button button-outline button-small" to={"/learner/certificates/"+item.courseId}>{language === "ar" ? "الشهادة ومتطلباتها" : "Certificate requirements"}</Link>
                 </article>
               ))}
 

@@ -27,7 +27,7 @@ export default function LearnerNavigation() {
   const t = learnerCopy[language];
   const [open, setOpen] = useState(false);
 
-  const links = [
+  const links = [["/learner/certificates",language === "ar" ? "شهاداتي" : "Certificates"],
     ["/learner", t.dashboard],
     ["/learner/courses", t.myCourses],
     ["/learner/tasks", t.tasks],

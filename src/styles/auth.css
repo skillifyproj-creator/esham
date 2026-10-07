@@ -323,3 +323,7 @@
     font-size: 14px;
   }
 }
+
+/* Place the illustration at the reading start: right in Arabic, left in English. */
+.auth-page .auth-visual { order: 1; }
+.auth-page .auth-form-panel { order: 2; }

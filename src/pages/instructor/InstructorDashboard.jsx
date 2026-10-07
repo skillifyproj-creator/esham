@@ -286,10 +286,7 @@ export default function InstructorDashboard() {
                     <Icon name="plus" size={19} />
                     <span>{c.createNewCourse}</span>
                   </Link>
-                  <PendingFeature>
-                    <Icon name="award" size={19} />
-                    <span>{c.learnerCertificates}</span>
-                  </PendingFeature>
+                  <Link to="/instructor/certificates"><Icon name="award" size={19}/><span>{c.learnerCertificates}</span></Link>
                 </div>
               </section>
             </div>

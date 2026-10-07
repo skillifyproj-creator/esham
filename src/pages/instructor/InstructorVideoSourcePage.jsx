@@ -1,7 +1,8 @@
+import VideoSafetyStatus from '../../components/shared/VideoSafetyStatus';
 ﻿import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { getInstructorCourseWorkspace } from "../../data/instructorCourseWorkspace";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorCurriculumDemo } from "../../data/instructorCurriculumDemo";
 import "../../styles/instructor.css";
 
 const copy = {
@@ -35,8 +36,9 @@ export default function InstructorVideoSourcePage() {
   const location = useLocation();
   const { language } = usePreferences();
   const t = copy[language] || copy.ar;
-  const course = instructorCurriculumDemo.course;
-  const section = instructorCurriculumDemo.sections.find((item) => String(item.id) === String(sectionId));
+  const workspace = getInstructorCourseWorkspace(courseId);
+  const course = workspace?.course;
+  const section = (workspace?.sections || []).find((item) => String(item.id) === String(sectionId));
   const lesson = section?.lessons.find((item) => String(item.id) === String(lessonId));
   const courseTitle = course && String(course.id) === String(courseId)
     ? course.title[language] || course.title.ar
@@ -45,16 +47,17 @@ export default function InstructorVideoSourcePage() {
   const lessonTitle = lesson?.title?.[language] || lesson?.title?.ar || t.lessonFallback;
   const basePath = `/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/video`;
 
-  return (
-    <main className="instructor-video-source-page instructor-detail-page">
+  if (!workspace || !section || (lessonId !== 'new' && !section.lessons.some(lesson => String(lesson.id) === String(lessonId)))) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'لم يتم العثور على الدرس أو القسم' : 'Lesson or section not found'}</h1><button type="button" className="button" onClick={() => navigate('/instructor/courses')}>{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</button></main>;
+  return (<main className="instructor-video-source-page instructor-detail-page">
+      <p className="instructor-media-demo-note" role="note">{language === 'ar' ? 'معاينة لمسار الفيديو: التسجيل والتشغيل والقص محاكاة للتصميم، ولا يُنشأ أو يُرفع أو يُعدّل ملف فيديو فعليًا.' : 'Video workflow preview: recording, playback and trimming are simulated. No video file is created, uploaded or edited.'}</p>
       <div className="container">
         <nav className="instructor-video-source-breadcrumb" aria-label={language === "ar" ? "مسار التنقل" : "Breadcrumb"}>
           <Link to="/instructor/courses">{t.courses}</Link><span>/</span>
-          <Link to="/instructor/courses/new/curriculum">{courseTitle}</Link><span>/</span>
+          <Link to={`/instructor/courses/${courseId}/curriculum`}>{courseTitle}</Link><span>/</span>
           <span>{sectionTitle}</span><span>/</span><strong>{lessonTitle}</strong>
         </nav>
         <header className="instructor-video-source-header">
-          <h1>{t.title}</h1><p>{t.subtitle}</p>
+          <h1>{t.title}</h1><p>{t.subtitle}</p><VideoSafetyStatus/>
         </header>
         <section className="instructor-video-source-options" aria-label={t.title}>
           <article className="instructor-video-source-card">

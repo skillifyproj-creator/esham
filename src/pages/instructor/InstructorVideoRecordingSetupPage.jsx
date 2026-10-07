@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
+import { getInstructorCourseWorkspace } from "../../data/instructorCourseWorkspace";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorCurriculumDemo } from "../../data/instructorCurriculumDemo";
 import "../../styles/instructor.css";
 
 const copy = {
@@ -58,8 +58,9 @@ export default function InstructorVideoRecordingSetupPage() {
   const t = copy[language] || copy.ar;
   const [screenSharing, setScreenSharing] = useState(false);
   const [selectedLayout, setSelectedLayout] = useState("screen-camera");
-  const course = instructorCurriculumDemo.course;
-  const section = instructorCurriculumDemo.sections.find((item) => String(item.id) === String(sectionId));
+  const workspace = getInstructorCourseWorkspace(courseId);
+  const course = workspace?.course;
+  const section = (workspace?.sections || []).find((item) => String(item.id) === String(sectionId));
   const courseTitle = course && String(course.id) === String(courseId)
     ? course.title[language] || course.title.ar
     : t.courseFallback;
@@ -68,8 +69,9 @@ export default function InstructorVideoRecordingSetupPage() {
   const recordingPath = `${sourcePath}/recording`;
   const isRtl = language === "ar";
 
-  return (
-    <main className="instructor-video-setup-page instructor-detail-page" dir={isRtl ? "rtl" : "ltr"}>
+  if (!workspace || !section || (lessonId !== 'new' && !section.lessons.some(lesson => String(lesson.id) === String(lessonId)))) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'لم يتم العثور على الدرس أو القسم' : 'Lesson or section not found'}</h1><button type="button" className="button" onClick={() => navigate('/instructor/courses')}>{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</button></main>;
+  return (<main className="instructor-video-setup-page instructor-detail-page" dir={isRtl ? "rtl" : "ltr"}>
+      <p className="instructor-media-demo-note" role="note">{language === 'ar' ? 'معاينة لمسار الفيديو: التسجيل والتشغيل والقص محاكاة للتصميم، ولا يُنشأ أو يُرفع أو يُعدّل ملف فيديو فعليًا.' : 'Video workflow preview: recording, playback and trimming are simulated. No video file is created, uploaded or edited.'}</p>
       <div className="container">
         <nav className="instructor-video-setup-breadcrumb" aria-label={isRtl ? "مسار التنقل" : "Breadcrumb"}>
           <span>{t.courses}</span><span>/</span><span>{courseTitle}</span><span>/</span>

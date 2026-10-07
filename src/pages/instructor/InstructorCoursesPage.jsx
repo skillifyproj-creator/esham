@@ -528,11 +528,7 @@ function CourseCard({ course, copy: c, language }) {
             {c.editAndResubmit}
           </Link>
 
-          <PendingFeature
-            className="instructor-review-details"
-          >
-            {c.reviewReportDetails}
-          </PendingFeature>
+          <Link to={"/instructor/courses/"+course.id+"/review-report"} className="instructor-review-details">{c.reviewReportDetails}</Link>
 
         </div>
 

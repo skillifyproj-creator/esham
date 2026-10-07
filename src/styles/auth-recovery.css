@@ -1,5 +1,5 @@
 /* Recovery pages share the existing authentication design system. */
-.auth-page.auth-recovery { direction: ltr; }
+
 .auth-recovery .auth-form-panel { display: flex; flex-direction: column; min-height: 100dvh; }
 .auth-recovery .auth-form-content { width: min(100%, 470px); margin-block: auto; padding-block: 54px 36px; }
 .auth-recovery .recovery-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; color: var(--green); font-size: 13px; font-weight: 700; }

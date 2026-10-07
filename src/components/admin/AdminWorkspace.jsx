@@ -158,7 +158,7 @@ export default function AdminWorkspace({
           </div>
           <Link className="admin-logout" to="/login" onClick={() => setOpen(false)}>
             <Icon name="logout" size={18} />
-            <span>{words.logout}</span>
+            <span>{language === 'ar' ? 'مغادرة المعاينة' : 'Leave preview'}</span>
           </Link>
         </div>
       </aside>
@@ -183,11 +183,12 @@ export default function AdminWorkspace({
             <span className="admin-live-dot" />
             {scope
               ? translateAdminText(scope, language)
-              : words.systemOk}
+              : language === 'ar' ? 'معاينة إدارة المنصة' : 'Platform administration preview'}
           </div>
           <div className="admin-topbar-right">{utilities}</div>
         </header>
         <div className={`${variant}-content admin-content`}>
+          <p className="admin-demo-notice" role="note">{language === 'ar' ? 'معاينة ببيانات تجريبية: بعض التعديلات مؤقتة، والبلاغات والتحذيرات تُحفظ على هذا الجهاز فقط. صلاحيات الأدمن تحتاج ربط خدمة الحسابات.' : 'Demo preview: some changes are temporary; reports and warnings are saved only on this device. Admin permissions require the account service.'}</p>
           <Outlet key={location.pathname} />
         </div>
       </main>

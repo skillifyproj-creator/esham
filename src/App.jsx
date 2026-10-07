@@ -1,8 +1,14 @@
+const PlatformHelpPage = lazy(() => import('./pages/shared/PlatformHelpPage'));
+const InstructorReviewReportPage = lazy(() => import('./pages/instructor/InstructorReviewReportPage'));
+const InstructorCertificatesPage = lazy(() => import('./pages/instructor/InstructorCertificatesPage'));
+const ModerationQueuePage = lazy(() => import('./pages/shared/ModerationQueuePage'));
+const LearnerCertificatesPage = lazy(() => import('./pages/learner/LearnerCertificatesPage'));
+import PageErrorBoundary from './components/shared/PageErrorBoundary';
 ﻿import RoleArea from './components/shared/RoleArea';
 import AccountPage from "./pages/shared/AccountPage";
 import { NotificationsProvider } from "./context/NotificationsContext";
 import NotificationsPage from "./pages/shared/NotificationsPage";
-import { useLayoutEffect } from "react";
+import { lazy, Suspense, useLayoutEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Link, Navigate } from "react-router";
 
 import {
@@ -27,36 +33,76 @@ import "./styles/course-pages.css";
 
 import { LearnerProvider } from "./context/LearnerContext";
 import LearnerLayout from "./components/learner/LearnerLayout";
-import LearnerDashboard from "./pages/learner/LearnerDashboard";
-import LearnerCoursesPage from "./pages/learner/LearnerCoursesPage";
-import LearnerLessonPage from "./pages/learner/LearnerLessonPage";
+
+
+
 
 import InstructorLayout from "./components/instructor/InstructorLayout";
-import InstructorDashboard from "./pages/instructor/InstructorDashboard";
-import InstructorCoursesPage from "./pages/instructor/InstructorCoursesPage";
-import CreateCoursePage from "./pages/instructor/CreateCoursePage";
-import CourseCurriculumPage from "./pages/instructor/CourseCurriculumPage";
-import CourseReviewPage from "./pages/instructor/CourseReviewPage";
-import InstructorPerformancePage from "./pages/instructor/InstructorPerformancePage";
-import InstructorFeedbackPage from "./pages/instructor/InstructorFeedbackPage";
-import EditLessonPage from "./pages/instructor/EditLessonPage";
-import InstructorVideoSourcePage from "./pages/instructor/InstructorVideoSourcePage";
-import InstructorVideoRecordingSetupPage from "./pages/instructor/InstructorVideoRecordingSetupPage";
-import InstructorVideoRecordingPage from "./pages/instructor/InstructorVideoRecordingPage";
-import InstructorVideoPreviewPage from "./pages/instructor/InstructorVideoPreviewPage";
-import InstructorVideoEditorPage from "./pages/instructor/InstructorVideoEditorPage";
-import InstructorTaskPage from "./pages/instructor/InstructorTaskPage";
 
-import LearnerTasksPage from "./pages/learner/LearnerTasksPage";
-import LearnerProgressPage from "./pages/learner/LearnerProgressPage";
-import LearnerPointsPage from "./pages/learner/LearnerPointsPage";
-import LearnerReviewsPage from "./pages/learner/LearnerReviewsPage";
-import LearnerNotificationsPage from "./pages/learner/LearnerNotificationsPage";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import EshamChatbot from "./components/chatbot/EshamChatbot";
 import "./styles/role-navigation.css";
 import "./styles/instructor-details.css";
-import { SuperAdminLayout, SuperAdminRoutes, Dashboard, AdminsPage, UsersPage, CoursesPage as AdminCoursesPage, CategoriesPage, ReportsPage, AnnouncementsPage, ActivityPage } from "./pages/admin/SuperAdminModule";
-import { CategoryAdminProvider, CategoryAdminLayout, Dashboard as CategoryAdminDashboard, CoursesPage as CategoryAdminCourses, ReviewPage as CategoryAdminReview, ActivityPage as CategoryAdminActivity, NotificationsPage as CategoryAdminNotifications } from "./pages/category-admin/CategoryAdminModule";
+
+const LearnerDashboard = lazy(() => import("./pages/learner/LearnerDashboard"));
+const LearnerCoursesPage = lazy(() => import("./pages/learner/LearnerCoursesPage"));
+const LearnerLessonPage = lazy(() => import("./pages/learner/LearnerLessonPage"));
+const InstructorDashboard = lazy(() => import("./pages/instructor/InstructorDashboard"));
+const InstructorCoursesPage = lazy(() => import("./pages/instructor/InstructorCoursesPage"));
+const CreateCoursePage = lazy(() => import("./pages/instructor/CreateCoursePage"));
+const CourseCurriculumPage = lazy(() => import("./pages/instructor/CourseCurriculumPage"));
+const CourseReviewPage = lazy(() => import("./pages/instructor/CourseReviewPage"));
+const InstructorPerformancePage = lazy(() => import("./pages/instructor/InstructorPerformancePage"));
+const InstructorFeedbackPage = lazy(() => import("./pages/instructor/InstructorFeedbackPage"));
+const EditLessonPage = lazy(() => import("./pages/instructor/EditLessonPage"));
+const InstructorVideoSourcePage = lazy(() => import("./pages/instructor/InstructorVideoSourcePage"));
+const InstructorVideoRecordingSetupPage = lazy(() => import("./pages/instructor/InstructorVideoRecordingSetupPage"));
+const InstructorVideoRecordingPage = lazy(() => import("./pages/instructor/InstructorVideoRecordingPage"));
+const InstructorVideoPreviewPage = lazy(() => import("./pages/instructor/InstructorVideoPreviewPage"));
+const InstructorVideoEditorPage = lazy(() => import("./pages/instructor/InstructorVideoEditorPage"));
+const InstructorTaskPage = lazy(() => import("./pages/instructor/InstructorTaskPage"));
+const LearnerTasksPage = lazy(() => import("./pages/learner/LearnerTasksPage"));
+const LearnerProgressPage = lazy(() => import("./pages/learner/LearnerProgressPage"));
+const LearnerPointsPage = lazy(() => import("./pages/learner/LearnerPointsPage"));
+const LearnerReviewsPage = lazy(() => import("./pages/learner/LearnerReviewsPage"));
+const LearnerNotificationsPage = lazy(() => import("./pages/learner/LearnerNotificationsPage"));
+
+const lazyNamed = (load, name) => lazy(() => load().then(module => ({ default: module[name] })));
+const SuperAdminLayout = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "SuperAdminLayout");
+const SuperAdminRoutes = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "SuperAdminRoutes");
+const Dashboard = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "Dashboard");
+const AdminsPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "AdminsPage");
+const UsersPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "UsersPage");
+const AdminCoursesPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "CoursesPage");
+const CategoriesPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "CategoriesPage");
+const ReportsPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "ReportsPage");
+const AnnouncementsPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "AnnouncementsPage");
+const ActivityPage = lazyNamed(() => import("./pages/admin/SuperAdminModule"), "ActivityPage");
+const CategoryAdminProvider = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "CategoryAdminProvider");
+const CategoryAdminLayout = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "CategoryAdminLayout");
+const CategoryAdminDashboard = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "Dashboard");
+const CategoryAdminCourses = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "CoursesPage");
+const CategoryAdminReview = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "ReviewPage");
+const CategoryAdminActivity = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "ActivityPage");
+const CategoryAdminNotifications = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "NotificationsPage");
 
 function RouteShell() {
   const { pathname, hash } = useLocation();
@@ -102,6 +148,7 @@ function RouteShell() {
       {/* Public Header only */}
       {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && <Header />}
 
+      <PageErrorBoundary><Suspense fallback={<main className="section container" role="status">{language === "ar" ? "جاري تحميل الصفحة…" : "Loading page…"}</main>}>
       <Routes>
         <Route path="/admin" element={<SuperAdminRoutes />}>
           <Route element={<SuperAdminLayout />}>
@@ -110,7 +157,7 @@ function RouteShell() {
             <Route path="users" element={<UsersPage />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="categories" element={<CategoriesPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route path="reports" element={<ReportsPage />} /><Route path="moderation" element={<ModerationQueuePage/>}/>
             <Route path="announcements" element={<AnnouncementsPage />} />
             <Route path="activity" element={<ActivityPage />} />
           </Route>
@@ -121,7 +168,7 @@ function RouteShell() {
             <Route path="courses" element={<CategoryAdminCourses />} />
             <Route path="courses/:courseId/review" element={<CategoryAdminReview />} />
             <Route path="activity" element={<CategoryAdminActivity />} />
-            <Route path="notifications" element={<CategoryAdminNotifications />} />
+            <Route path="notifications" element={<CategoryAdminNotifications />} /><Route path="moderation" element={<ModerationQueuePage scoped/>}/>
           </Route>
         </Route>
         {/* =================================
@@ -136,7 +183,7 @@ function RouteShell() {
 
         <Route path="/assistant" element={<EshamChatbot />} />
 
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/help/:topic" element={<PlatformHelpPage/>}/><Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<Navigate to="/onboarding/role" replace />} />
         <Route path="/onboarding/:step" element={<OnboardingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -161,7 +208,7 @@ function RouteShell() {
 
           <Route path="tasks" element={<LearnerTasksPage />} />
 
-          <Route path="progress" element={<LearnerProgressPage />} />
+          <Route path="certificates" element={<LearnerCertificatesPage/>}/><Route path="certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="progress" element={<LearnerProgressPage />} />
           <Route path="points" element={<LearnerPointsPage />} />
           <Route path="reviews" element={<LearnerReviewsPage />} />
           <Route
@@ -180,7 +227,7 @@ function RouteShell() {
 <Route path="profile" element={<AccountPage role="instructor" section="profile" />} />
 <Route path="settings" element={<AccountPage role="instructor" section="settings" />} />
 <Route path="settings/security" element={<AccountPage role="instructor" section="security" />} />
-          <Route path="notifications" element={<NotificationsPage role="instructor" />} />
+          <Route path="notifications" element={<NotificationsPage role="instructor" />} /><Route path="certificates" element={<InstructorCertificatesPage/>}/><Route path="courses/:courseId/review-report" element={<InstructorReviewReportPage/>}/>
           <Route index element={<InstructorDashboard />} />
 
           <Route path="courses" element={<InstructorCoursesPage />} />
@@ -284,6 +331,7 @@ function RouteShell() {
           }
         />
       </Routes>
+      </Suspense></PageErrorBoundary>
 
       {!isAssistantPage && !isAdmin && !isCategoryAdmin && !isAuth && (
         <Link

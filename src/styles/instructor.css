@@ -9475,3 +9475,4 @@ html body .instructor-review-page .instructor-review-points-card {
     grid-column: auto;
   }
 }
+.instructor-media-demo-note { padding: 12px 18px; margin: 0 auto 24px; max-width: 1200px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); font-size: 13px; line-height: 1.8; }

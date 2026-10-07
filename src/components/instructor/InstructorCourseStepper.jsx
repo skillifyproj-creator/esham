@@ -1,10 +1,13 @@
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { Fragment } from "react";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
 
 export default function InstructorCourseStepper({ currentStep }) {
+  const { courseId } = useParams();
+  const base = courseId && courseId !== "new" ? `/instructor/courses/${courseId}` : "/instructor/courses/new";
+  const destinations = [courseId && courseId !== "new" ? `${base}/edit` : base, `${base}/curriculum`, `${base}/review`];
   const { language } = usePreferences();
   const c = instructorCopy[language].curriculum;
 
@@ -31,7 +34,7 @@ export default function InstructorCourseStepper({ currentStep }) {
 
         return (
           <Fragment key={stepNumber}>
-            <Link to={["/instructor/courses/new", "/instructor/courses/new/curriculum", "/instructor/courses/new/review"][index]} className={`instructor-course-step is-${state}`}
+            <Link to={destinations[index]} className={`instructor-course-step is-${state}`}
               aria-current={isActive ? "step" : undefined}
             >
               <span className="instructor-course-step-indicator">

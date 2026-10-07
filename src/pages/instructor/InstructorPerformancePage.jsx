@@ -82,8 +82,8 @@ export default function InstructorPerformancePage() {
 
   const earnedPoints = learners.completed * pointsPerCompletion;
 
-  return (
-    <div className="instructor-performance-page instructor-detail-page">
+  if (courseId && !course) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></main>;
+  return (<div className="instructor-performance-page instructor-detail-page">
       <div className="container">
         {/* Header */}
         <header className="instructor-performance-header">
@@ -129,7 +129,7 @@ export default function InstructorPerformancePage() {
           </div>
         </header>
 
-        {/* Metrics */}
+        <p className="instructor-media-demo-note">{language === 'ar' ? 'الأرقام تجريبية ثابتة ولا تتغير باختيار الفترة. نقاط هذه الإحصاءات منفصلة عن الرصيد المتاح في المحفظة.' : 'These are fixed demo metrics and do not change with the selected period. Statistical points are separate from the available wallet balance.'}</p>{/* Metrics */}
         <section className="instructor-performance-metrics">
           <article className="instructor-performance-metric">
             <Icon name="users" size={18} />
