@@ -1,4 +1,4 @@
-import RoleArea from './components/shared/RoleArea';
+﻿import RoleArea from './components/shared/RoleArea';
 import AccountPage from "./pages/shared/AccountPage";
 import { NotificationsProvider } from "./context/NotificationsContext";
 import NotificationsPage from "./pages/shared/NotificationsPage";
@@ -55,6 +55,8 @@ import LearnerNotificationsPage from "./pages/learner/LearnerNotificationsPage";
 import EshamChatbot from "./components/chatbot/EshamChatbot";
 import "./styles/role-navigation.css";
 import "./styles/instructor-details.css";
+import { SuperAdminLayout, SuperAdminRoutes, Dashboard, AdminsPage, UsersPage, CoursesPage as AdminCoursesPage, CategoriesPage, ReportsPage, AnnouncementsPage, ActivityPage } from "./pages/admin/SuperAdminModule";
+import { CategoryAdminProvider, CategoryAdminLayout, Dashboard as CategoryAdminDashboard, CoursesPage as CategoryAdminCourses, ReviewPage as CategoryAdminReview, ActivityPage as CategoryAdminActivity, NotificationsPage as CategoryAdminNotifications } from "./pages/category-admin/CategoryAdminModule";
 
 function RouteShell() {
   const { pathname, hash } = useLocation();
@@ -85,6 +87,8 @@ function RouteShell() {
   const isHome = pathname === "/";
   const isInstructor = pathname.startsWith("/instructor");
   const isLearner = pathname.startsWith("/learner");
+  const isAdmin = pathname.startsWith("/admin");
+  const isCategoryAdmin = pathname.startsWith("/category-admin");
   const isAuth = ["/signup", "/login", "/forgot-password", "/reset-password"].includes(pathname) || pathname.startsWith("/onboarding");
   const assistantPath = isLearner
     ? "/learner/assistant"
@@ -96,9 +100,30 @@ function RouteShell() {
   return (
     <>
       {/* Public Header only */}
-      {!isHome && !isInstructor && !isLearner && !isAuth && <Header />}
+      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && <Header />}
 
       <Routes>
+        <Route path="/admin" element={<SuperAdminRoutes />}>
+          <Route element={<SuperAdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="admins" element={<AdminsPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="courses" element={<AdminCoursesPage />} />
+            <Route path="categories" element={<CategoriesPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="announcements" element={<AnnouncementsPage />} />
+            <Route path="activity" element={<ActivityPage />} />
+          </Route>
+        </Route>
+        <Route path="/category-admin" element={<CategoryAdminProvider />}>
+          <Route element={<CategoryAdminLayout />}>
+            <Route index element={<CategoryAdminDashboard />} />
+            <Route path="courses" element={<CategoryAdminCourses />} />
+            <Route path="courses/:courseId/review" element={<CategoryAdminReview />} />
+            <Route path="activity" element={<CategoryAdminActivity />} />
+            <Route path="notifications" element={<CategoryAdminNotifications />} />
+          </Route>
+        </Route>
         {/* =================================
             Public Pages
         ================================= */}
@@ -260,7 +285,7 @@ function RouteShell() {
         />
       </Routes>
 
-      {!isAssistantPage && !isAuth && (
+      {!isAssistantPage && !isAdmin && !isCategoryAdmin && !isAuth && (
         <Link
           className="esham-assistant-launcher"
           to={assistantPath}
@@ -310,7 +335,7 @@ function RouteShell() {
       )}
 
       {/* Public Footer only */}
-      {!isHome && !isInstructor && !isLearner && !isAuth && <Footer />}
+      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && <Footer />}
     </>
   );
 }

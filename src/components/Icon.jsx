@@ -1,4 +1,4 @@
-const paths = {
+﻿const paths = {
   moon: <path d="M21 13A9 9 0 0 1 11 3a9 9 0 1 0 10 10Z" />,
   sun: (
     <>
@@ -198,7 +198,54 @@ award: (
     </>
   ),
 
-  settings: (
+  bell: (
+    <>
+      <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
+    </>
+  ),
+  megaphone: (
+    <>
+      <path d="m3 11 18-5v12L3 14z" />
+      <path d="m7 15 2 6h4l-2-5M21 10v4" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M20 13 13 20 3 10V4h6Z" />
+      <circle cx="7.5" cy="8" r="1" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M10 17l5-5-5-5M15 12H3" />
+      <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
+    </>
+  ),
+  filter: (
+    <>
+      <path d="M4 5h16l-6 7v6l-4 2v-8Z" />
+    </>
+  ),
+  sort: (
+    <>
+      <path d="M8 5v14m0 0-4-4m4 4 4-4M16 19V5m0 0-4 4m4-4 4 4" />
+    </>
+  ),
+  'check-circle': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12 2.5 2.5L16 9" />
+    </>
+  ),
+  'x-circle': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m9 9 6 6m0-6-6 6" />
+    </>
+  ),
+  'chevron-left': <path d="m14 6-6 6 6 6" />,
+  'chevron-right': <path d="m10 6 6 6-6 6" />,  settings: (
     <>
       <path d="M9 3h6l.5 3 2 1 2.5-1 3 5-2.5 2v2l2.5 2-3 5-2.5-1-2 1-.5 3H9l-.5-3-2-1-2.5 1-3-5 2.5-2v-2L1 11l3-5 2.5 1 2-1Z" transform="translate(2 0) scale(.83)" />
       <circle cx="12" cy="12" r="3" />
