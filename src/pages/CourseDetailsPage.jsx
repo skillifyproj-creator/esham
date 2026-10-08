@@ -8,6 +8,11 @@ import { courses, categoryKeys } from "../data/courses";
 import { getCourseText, getCurriculum } from "../data/courseHelpers";
 import CourseCard from "../components/CourseCard";
 import Modal from "../components/Modal";
+import useAccountProfile from '../hooks/useAccountProfile';
+import { useLearnerWallet } from '../hooks/useLearnerWallet';
+import { useLearner } from '../context/LearnerContext';
+import { accountId, enrollWithPoints } from '../data/pointsLedger';
+import { pointsPolicy } from '../data/pointsPolicy';
 export default function CourseDetailsPage() {
   const { courseId } = useParams();
   const course = courses.find((item) => String(item.id) === courseId);
@@ -34,6 +39,17 @@ export default function CourseDetailsPage() {
   );
 }
 function CourseDetail({ course, c, p, language }) {
+  const profile = useAccountProfile();
+  const { balance, error: walletError } = useLearnerWallet();
+  const { enrollments } = useLearner();
+  const [enrollmentError, setEnrollmentError] = useState('');
+  const registered = enrollments.some(item => item.courseId === course.id);
+  const t = (ar, en) => language === 'ar' ? ar : en;
+  const ownCourse = course.instructorId === accountId(profile);
+  function enroll() {
+    try { enrollWithPoints(profile, course.id); setEnrollmentError(''); }
+    catch (error) { setEnrollmentError(error.message === 'balance' ? t('رصيدك غير كافٍ. اكسب نقاطًا من تسجيل المتعلّمين في دوراتك.', 'Insufficient balance. Earn points when learners enroll in your courses.') : t('تعذّر التسجيل. تحقق من صلاحية الحساب وتخزين المتصفح ثم حاول مجددًا.', 'Enrollment failed. Check your account role and browser storage, then try again.')); }
+  }
   const [dialog, setDialog] = useState(null);
   const [previewLesson, setPreviewLesson] = useState(null);
 
@@ -266,8 +282,13 @@ function CourseDetail({ course, c, p, language }) {
               </strong>
             </div>
 
-<Link className="button enroll-button" to="/login">{language === "ar" ? "سجّل الدخول للالتحاق" : "Log in to enroll"}<span aria-hidden="true">←</span></Link>
-<p className="enrollment-hint">{language === "ar" ? "استكشف محتوى الدورة، ثم أنشئ حسابًا أو سجّل الدخول للمتابعة." : "Explore the course content, then create an account or log in to continue."}</p>
+{profile.role === 'instructor' ? <Link className="button enroll-button" to="/instructor/settings#account-type">{t('أضف دور المتعلّم من إعدادات الحساب', 'Add learner access in account settings')}</Link>
+  : registered ? <Link className="button enroll-button" to={`/learner/courses/${course.id}/learn`}>{t('متابعة التعلّم', 'Continue learning')}</Link>
+  : !profile.role ? <Link className="button enroll-button" to="/login">{t('سجّل الدخول للالتحاق', 'Log in to enroll')}</Link>
+  : <button className="button enroll-button" onClick={enroll} disabled={walletError || ownCourse || balance < pointsPolicy.enrollmentCost}>{ownCourse ? t('هذه دورتك', 'This is your course') : t('التحق مقابل 20 نقطة', 'Enroll for 20 points')}</button>}
+<p className="enrollment-hint">{profile.role ? t(`رصيدك: ${balance} نقطة. يُخصم 20 نقطة مرة واحدة عند التسجيل.`, `Your balance: ${balance} points. Enrollment costs 20 points once.`) : t('أنشئ حسابًا لتحصل على 20 نقطة لتجربة أول دورة.', 'Create an account to receive 20 points for your first course.')}</p>
+{!registered && profile.role && balance < pointsPolicy.enrollmentCost && <p role="status">{t('رصيدك غير كافٍ. اكسب نقاطًا من تسجيل المتعلّمين في دوراتك.', 'Insufficient balance. Earn points when learners enroll in your courses.')}</p>}
+{enrollmentError && <p role="alert">{enrollmentError}</p>}
             <ul className="enrollment-perks">
               {p.perks.map((text) => (
                 <li key={text}>

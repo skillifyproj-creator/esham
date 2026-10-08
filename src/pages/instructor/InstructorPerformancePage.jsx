@@ -1,3 +1,5 @@
+import { pointsPolicy } from '../../data/pointsPolicy';
+import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
@@ -32,7 +34,7 @@ const performanceData = {
     { id: "section-3", completionRate: 64 },
   ],
 
-  pointsPerCompletion: 20,
+  pointsPerCompletion: pointsPolicy.instructorEnrollmentReward,
 
   reviews: [
     {
@@ -49,6 +51,7 @@ const performanceData = {
 const periodValues = ["7d", "30d", "3m", "all"];
 
 export default function InstructorPerformancePage() {
+  const { transactions } = useLearnerWallet();
   const [period, setPeriod] = useState("30d");
   const { courseId } = useParams();
   const { language } = usePreferences();
@@ -69,7 +72,7 @@ export default function InstructorPerformancePage() {
         },
         ratings: { ...performanceData.ratings, average: course.rating, total: course.ratingCount },
         sections: course.id === "photography" ? performanceData.sections : [],
-        pointsPerCompletion: course.coursePoints || performanceData.pointsPerCompletion,
+        pointsPerCompletion: pointsPolicy.instructorEnrollmentReward,
         reviews: course.id === "photography" ? performanceData.reviews : [],
       }
     : performanceData;
@@ -80,7 +83,7 @@ export default function InstructorPerformancePage() {
       ? Math.round((learners.completed / learners.enrolled) * 100)
       : 0;
 
-  const earnedPoints = learners.completed * pointsPerCompletion;
+  const earnedPoints = transactions.filter(item => item.type === 'teaching' && (!courseId || item.courseId === instructorPublicCourseIds[courseId])).reduce((sum, item) => sum + item.points, 0);
 
   if (courseId && !course) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></main>;
   return (<div className="instructor-performance-page instructor-detail-page">

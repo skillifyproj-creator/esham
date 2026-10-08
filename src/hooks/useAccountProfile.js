@@ -42,6 +42,21 @@ export function readAccountProfile() {
   return { role: '', interests: [] };
 }
 
+// Change capabilities without replacing the identity or its learning/teaching records.
+export function updateAccountRole(role) {
+  if (!validRoles.includes(role)) throw new Error('Invalid account role');
+  const current = readAccountProfile();
+  const roles = role === 'both' ? ['learner', 'instructor'] : [role];
+  const next = { ...current, role, roles };
+  // Synchronize legacy role flags so they cannot restore a disabled capability.
+  for (const [flag, capability] of [['isLearner', 'learner'], ['learner', 'learner'], ['isInstructor', 'instructor'], ['instructor', 'instructor']]) {
+    if (typeof current[flag] === 'boolean') next[flag] = roles.includes(capability);
+  }
+  window.localStorage.setItem('esham-account-profile-v1', JSON.stringify(next));
+  window.dispatchEvent(new Event('esham-profile-updated'));
+  return next;
+}
+
 export default function useAccountProfile() {
   const [profile, setProfile] = useState(readAccountProfile);
 

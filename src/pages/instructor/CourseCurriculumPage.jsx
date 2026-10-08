@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 
 import { getInstructorCourseWorkspace, saveWorkspaceSections, localized, lessonIsReady, taskIsReady } from "../../data/instructorCourseWorkspace";
 import useAccountProfile from "../../hooks/useAccountProfile";
+import { pointsPolicy } from '../../data/pointsPolicy';
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -26,9 +27,16 @@ export default function CourseCurriculumPage() {
   );
 
   const [saved, setSaved] = useState(true);
+  const [saveError, setSaveError] = useState('');
 
   const updateSections = updater => {
-    setSections(current => { const next = updater(current); return saveWorkspaceSections(courseId || 'new', next) ? next : current; });
+    const next = updater(storedSections);
+    if (!saveWorkspaceSections(courseId || 'new', next)) {
+      setSaved(false);
+      setSaveError(language === 'ar' ? 'تعذّر الحفظ. تحقق من تخزين المتصفح والحد الأقصى ثلاث مهام.' : 'Save failed. Check browser storage and the three-task limit.');
+      return;
+    }
+    setSections(next); setSaved(true); setSaveError('');
   };
 
   const totalLessons = useMemo(
@@ -107,7 +115,6 @@ export default function CourseCurriculumPage() {
       ),
     );
 
-    setSaved(false);
   };
 
   const addSection = () => {
@@ -127,7 +134,6 @@ export default function CourseCurriculumPage() {
       ...current,
       newSection.id,
     ]);
-    setSaved(false);
   };
 
   const addLesson = (sectionId) => {
@@ -137,7 +143,7 @@ export default function CourseCurriculumPage() {
   };
 
   const saveDraft = () => {
-    setSaved(true);
+    updateSections(current => current);
   };
 
   const formatDuration = (minutes) => {
@@ -190,7 +196,7 @@ export default function CourseCurriculumPage() {
           </div>
         </header>
 
-        <p className="instructor-media-demo-note">{language === 'ar' ? 'حفظ الدورة الجديدة في جلسة هذا التبويب فقط؛ تعديلات الدورات التجريبية الحالية مؤقتة. جاهزية المنهج منفصلة عن اكتمال معلومات الدورة في صفحة المراجعة.' : 'New courses are saved in this tab session; edits to existing demo courses are temporary. Curriculum readiness is separate from the course information checklist on the review page.'}</p><InstructorCourseStepper currentStep={2} />
+        <p className="instructor-media-demo-note">{language === 'ar' ? 'تُحفظ الدورات ومناهجها في هذا المتصفح حتى بعد إغلاقه. جاهزية المنهج منفصلة عن اكتمال معلومات الدورة في صفحة المراجعة.' : 'Courses and curricula are saved in this browser, including after closing it. Curriculum readiness is separate from the course information checklist on the review page.'}</p>{saveError && <p role="alert">{saveError}</p>}<InstructorCourseStepper currentStep={2} />
 
         {/* Main layout */}
         <div className="curriculum-layout">
@@ -675,7 +681,7 @@ export default function CourseCurriculumPage() {
 
                   <div>
                     <strong>
-                      {course.coursePoints || 20}{" "}
+                      {pointsPolicy.enrollmentCost}{" "}
                       {c.points || "نقطة"}
                     </strong>
 
@@ -683,8 +689,8 @@ export default function CourseCurriculumPage() {
                       {c.curriculum
                         ?.courseReward ||
                         (language === "en"
-                          ? "Course completion reward"
-                          : "مكافأة إتمام الدورة")}
+                          ? "Enrollment cost"
+                          : "تكلفة التسجيل")}
                     </span>
                   </div>
                 </div>

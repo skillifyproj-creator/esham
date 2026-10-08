@@ -1,3 +1,5 @@
+import useAccountProfile from '../../hooks/useAccountProfile';
+import { accountId } from '../../data/pointsLedger';
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import Icon from "../../components/Icon";
@@ -8,6 +10,9 @@ import { instructorDemo } from "../../data/instructorDemo";
 
 export default function InstructorFeedbackPage() {
   const { language } = usePreferences();
+  const profile = useAccountProfile();
+  const replyKey = `esham-instructor-replies:${accountId(profile)}`;
+  const [replyError, setReplyError] = useState('');
   const { courseId } = useParams();
   const c = instructorCopy[language].feedbackPage;
   const selectedCourse = instructorDemo.courses.find((item) => item.id === courseId);
@@ -34,11 +39,10 @@ export default function InstructorFeedbackPage() {
   const [courseFilter, setCourseFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [responseFilter, setResponseFilter] = useState("all");
-  const [replies, setReplies] = useState(() =>
-    Object.fromEntries(
-      localizedReviews.map((review) => [review.id, review.instructorReply || ""]),
-    ),
-  );
+  const [replies, setReplies] = useState(() => {
+    const initial = Object.fromEntries(localizedReviews.map(review => [review.id, review.instructorReply || '']));
+    try { const stored = JSON.parse(localStorage.getItem(replyKey) || '{}'); return { ...initial, ...Object.fromEntries(Object.entries(stored).filter(([,value]) => typeof value === 'string')) }; } catch { return initial; }
+  });
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [replyDraft, setReplyDraft] = useState("");
 
@@ -127,7 +131,9 @@ export default function InstructorFeedbackPage() {
     const value = replyDraft.trim();
     if (!value) return;
 
-    setReplies((current) => ({ ...current, [reviewId]: value }));
+    const next = { ...replies, [reviewId]: value };
+    try { localStorage.setItem(replyKey, JSON.stringify(next)); setReplies(next); setReplyError(''); }
+    catch { setReplyError(language === 'ar' ? 'تعذّر حفظ الرد. تحقق من تخزين المتصفح.' : 'Unable to save the reply. Check browser storage.'); return; }
     setEditingReviewId(null);
     setReplyDraft("");
   };
@@ -139,7 +145,7 @@ export default function InstructorFeedbackPage() {
 
   if (courseId && !selectedCourse) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></main>;
   return (<main className="instructor-feedback-page instructor-detail-page">
-      <div className="container"><p className="instructor-media-demo-note">{language === 'ar' ? 'تقييمات تجريبية؛ تعديلات الردود تحفظ في هذه الصفحة فقط ولا تُرسل إلى المتعلّمين.' : 'Demo reviews: reply edits remain on this page only and are not sent to learners.'}</p>
+      <div className="container">{replyError && <p role="alert">{replyError}</p>}<p className="instructor-media-demo-note">{language === 'ar' ? 'تقييمات تجريبية؛ الردود تحفظ على هذا الجهاز. إرسالها للمتعلّمين يحتاج خدمة التقييمات.' : 'Demo reviews: replies are saved on this device. Delivery requires the reviews service.'}</p>
         <header className="instructor-feedback-heading">
           <div>
             <h1>{courseId ? c.courseTitle : c.title}</h1>

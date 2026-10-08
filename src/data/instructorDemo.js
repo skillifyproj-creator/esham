@@ -1,3 +1,6 @@
+import { readSavedInstructorCourse, persistInstructorCourse } from './instructorCourseStorage';
+import { readSubmissions, asInstructorCourse, updateSubmittedCourse } from '../services/coursePublishing';
+
 export const instructorDemo = {
   // =========================================================
   // INSTRUCTOR
@@ -52,7 +55,7 @@ export const instructorDemo = {
   // =========================================================
 
   stats: {
-    courses: 8,
+    courses: 6,
     coursesAddedThisMonth: 1,
     learners: 1248,
     learnerGrowthPercent: 14,
@@ -454,3 +457,24 @@ export const instructorDemo = {
     },
   ],
 };
+
+for (const course of instructorDemo.courses) {
+  const saved = readSavedInstructorCourse(course.id);
+  if (saved) Object.assign(course, saved, { id: course.id });
+}
+export function refreshInstructorCourses() {
+  for (const record of readSubmissions()) {
+    const value = asInstructorCourse(record), index = instructorDemo.courses.findIndex(item=>item.id===record.id);
+    if (index < 0) instructorDemo.courses.push(value); else Object.assign(instructorDemo.courses[index],value);
+  }
+}
+refreshInstructorCourses();
+export function saveInstructorCourse(id, patch) {
+  const course = instructorDemo.courses.find(item => String(item.id) === String(id));
+  if (!course) return false;
+  try {
+    if (!updateSubmittedCourse(id, patch) && !persistInstructorCourse(id, patch)) return false;
+  } catch { return false; }
+  Object.assign(course, patch, { id: course.id });
+  return true;
+}

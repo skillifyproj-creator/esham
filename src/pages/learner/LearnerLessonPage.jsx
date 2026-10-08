@@ -1,3 +1,4 @@
+import { StoredVideo, StoredFileLink } from '../../components/shared/StoredMedia';
 import ReportCourseButton from '../../components/learner/ReportCourseButton';
 import '../../styles/community.css';
 import { Link, useParams, useSearchParams } from "react-router";
@@ -194,19 +195,9 @@ export default function LearnerLessonPage() {
               className="lesson-media"
               aria-label={currentLesson.title[language]}
             >
-              {currentLesson.videoUrl ? (
-                <video
-                  key={currentLesson.id}
-                  src={currentLesson.videoUrl}
-                  poster={course.image}
-                  controls
-                  playsInline
-                  preload="metadata"
-                >
-                  <a href={currentLesson.videoUrl}>
-                    {currentLesson.title[language]}
-                  </a>
-                </video>
+              {currentLesson.videoUrl || currentLesson.video?.mediaId ? (
+                <StoredVideo key={currentLesson.id} mediaId={currentLesson.video?.mediaId} url={currentLesson.videoUrl} poster={course.image}/>
+
               ) : (
                 <div className="lesson-video-placeholder">
                   <img src={course.image} alt="" />
@@ -231,6 +222,8 @@ export default function LearnerLessonPage() {
 
               <h2>{currentLesson.title[language]}</h2>
 
+              {currentLesson.contentType === 'article' || currentLesson.contentType === 'reading' ? <div className="lesson-reading" style={{whiteSpace:'pre-wrap'}}>{currentLesson.description?.[language] || currentLesson.description?.ar || (typeof currentLesson.description === 'string' ? currentLesson.description : '')}</div> : null}
+              {currentLesson.resources?.length > 0 && <section><h3>{language === 'ar' ? 'موارد الدرس' : 'Lesson resources'}</h3><ul>{currentLesson.resources.map(file => <li key={file.id}><StoredFileLink file={file}/></li>)}</ul></section>}
               <h3>{t.about}</h3>
 
               <p>

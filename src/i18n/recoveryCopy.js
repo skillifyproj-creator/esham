@@ -9,8 +9,8 @@ export const recoveryCopy = {
     secure: 'بداية آمنة لرحلتك', secureText: 'كلمة مرور قوية تحمي فرصك القادمة.', strength: 'قوة كلمة المرور', weak: 'ضعيفة', medium: 'متوسطة', strong: 'قوية',
     length: '8 أحرف على الأقل', letter: 'حرف واحد على الأقل', number: 'رقم واحد على الأقل', optional: 'إضافة رمز تجعلها أقوى',
     passwordError: 'استخدم 8 أحرف على الأقل، تتضمن حرفًا ورقمًا.', confirmError: 'كلمتا المرور غير متطابقتين.', confirmRequired: 'يرجى تأكيد كلمة المرور الجديدة.', emailError: 'أدخل بريدًا إلكترونيًا صحيحًا.',
-    resetReady: 'كلمة المرور تستوفي الشروط. تغييرها فعليًا يتطلب رابط استعادة صالحًا وربط خدمة الحسابات.',
-    forgotReady: 'تم التحقق من البريد. إرسال رابط الاستعادة سيتاح عند ربط خدمة الحسابات؛ لم يُرسل بريد الآن.', preview: 'معاينة صفحة تعيين كلمة المرور', editEmail: 'تعديل البريد الإلكتروني',
+    resetReady: 'تم تغيير كلمة المرور. يمكنك تسجيل الدخول بكلمة المرور الجديدة.',
+    forgotReady: 'إذا كان البريد مرتبطًا بحساب، سيصلك رابط استعادة كلمة المرور.', preview: 'معاينة صفحة تعيين كلمة المرور', editEmail: 'تعديل البريد الإلكتروني',
   },
   en: {
     resetTitle: 'Reset your password', resetIntro: 'A fresh step back to your journey. Choose a strong password that is easy for you to remember.',
@@ -22,7 +22,7 @@ export const recoveryCopy = {
     secure: 'A secure start to your journey', secureText: 'A strong password protects your next opportunities.', strength: 'Password strength', weak: 'Weak', medium: 'Medium', strong: 'Strong',
     length: 'At least 8 characters', letter: 'At least one letter', number: 'At least one number', optional: 'Add a symbol for extra strength',
     passwordError: 'Use at least 8 characters, including a letter and a number.', confirmError: 'The passwords do not match.', confirmRequired: 'Confirm your new password.', emailError: 'Enter a valid email address.',
-    resetReady: 'Your password meets the requirements. Updating it requires a valid recovery link and the account service connection.',
-    forgotReady: 'The email format is valid. Recovery email delivery will be available when the account service is connected; no email was sent.', preview: 'Preview the reset password page', editEmail: 'Edit email address',
+    resetReady: 'Your password has been updated. Sign in with your new password.',
+    forgotReady: 'If this email belongs to an account, you will receive a password recovery link.', preview: 'Preview the reset password page', editEmail: 'Edit email address',
   },
 };

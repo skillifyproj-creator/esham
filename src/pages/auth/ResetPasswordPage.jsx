@@ -1,3 +1,4 @@
+import { accountRequest, accountError, AccountApiError } from '../../services/accountApi';
 import { useRef, useState } from 'react';
 import { usePreferences } from '../../context/PreferencesContext';
 import { recoveryCopy } from '../../i18n/recoveryCopy';
@@ -8,6 +9,8 @@ import { passwordRequirements, passwordStrength } from './passwordValidation';
 export default function ResetPasswordPage() {
   const { language } = usePreferences();
   const t = recoveryCopy[language];
+  const [busy, setBusy] = useState(false);
+  const [requestError, setRequestError] = useState('');
   const [values, setValues] = useState({ password: '', confirm: '' });
   const [visible, setVisible] = useState({ password: false, confirm: false });
   const [errors, setErrors] = useState({});
@@ -21,17 +24,19 @@ export default function ResetPasswordPage() {
     setErrors(current => ({ ...current, [name]: undefined, ...(name === 'password' ? { confirm: undefined } : {}) }));
     setReady(false);
   }
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const next = {};
     if (!Object.values(requirements).every(Boolean)) next.password = 'passwordError';
     if (!values.confirm) next.confirm = 'confirmRequired';
     else if (values.password !== values.confirm) next.confirm = 'confirmError';
     setErrors(next);
-    setReady(Object.keys(next).length === 0);
+    setReady(false);
     inputs.current[Object.keys(next)[0]]?.focus();
-    // A backend must verify a recovery token before changing any account password.
-    // Passwords are intentionally kept only in component state.
+    if (Object.keys(next).length || busy) return;
+    setBusy(true); setRequestError('');
+    try { const token = new URLSearchParams(window.location.search).get('token'); if (!token) throw new AccountApiError('token'); await accountRequest('/auth/reset-password', { token, password: values.password }); setValues({ password: '', confirm: '' }); setReady(true); }
+    catch (error) { setRequestError(accountError(error, language)); } finally { setBusy(false); }
   }
   return <RecoveryLayout title={t.resetTitle} intro={t.resetIntro}>
     <form onSubmit={submit} noValidate>
@@ -48,7 +53,8 @@ export default function ResetPasswordPage() {
           <small>{t.optional}</small>
         </div>}
       </div>)}
-      <button type="submit" className="auth-submit">{t.resetSubmit}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
+      <button type="submit" className="auth-submit" disabled={busy} aria-busy={busy}>{t.resetSubmit}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
+      {requestError && <p className="auth-error" role="alert">{requestError}</p>}
       {ready && <p className="auth-status" role="status">{t.resetReady}</p>}
     </form>
   </RecoveryLayout>;

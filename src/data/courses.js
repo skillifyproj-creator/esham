@@ -1,5 +1,7 @@
 // المصدر الوحيد لبيانات الدورات في الرئيسية والاستكشاف والتفاصيل.
 import { categories } from "./categories";
+import { pointsPolicy } from './pointsPolicy';
+import { readSubmissions, asPublicCourse } from '../services/coursePublishing';
 export const categoryKeys = ["all", ...categories.map(category => category.id)];
 
 const courseRecords = [
@@ -1008,5 +1010,17 @@ const courseRecords = [
 // عدد الدروس مشتق من المنهج، فلا يُكتب في مكان آخر.
 export const courses = courseRecords.map(course => ({
   ...course,
+  points: pointsPolicy.enrollmentCost,
+  instructorId: `catalog-instructor:${course.id}`,
   get lessons() { return this.curriculum.reduce((count, module) => count + module.lessons.length, 0); },
 }));
+
+export function refreshPublishedCourses() {
+  const additions = readSubmissions().map(asPublicCourse).filter(Boolean);
+  for (const course of additions) {
+    const index = courses.findIndex(item=>item.id===course.id);
+    const normalized = { ...course, get lessons() { return this.curriculum.reduce((sum,section)=>sum+section.lessons.length,0); } };
+    if (index < 0) courses.push(normalized); else courses[index] = normalized;
+  }
+}
+refreshPublishedCourses();

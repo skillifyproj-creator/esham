@@ -1,6 +1,7 @@
 import { pointsPolicy } from "../../data/pointsPolicy";
-import PendingFeature from "../../components/shared/PendingFeature";
-import { useMemo, useState } from "react";
+import { StoredVideo, StoredFileLink } from '../../components/shared/StoredMedia';
+import { saveMedia, validateAttachments, formatBytes } from '../../services/mediaStore';
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { getInstructorCourseWorkspace, saveWorkspaceLesson, localized } from "../../data/instructorCourseWorkspace";
 import { instructorLessonText } from "../../i18n/instructorLessonCopy";
@@ -15,7 +16,7 @@ export default function EditLessonPage() {
   const workspace = getInstructorCourseWorkspace(courseId);
   const course = workspace?.course;
   const isNewLesson = lessonId === "new";
-  const canOpenVideoTools = Boolean(lessonId && !isNewLesson && routeSectionId);
+  const canOpenVideoTools = Boolean(lessonId && routeSectionId);
   const videoBasePath = `/instructor/courses/${courseId}/sections/${routeSectionId}/lessons/${lessonId}/video`;
   const section = workspace
     ? workspace.sections.find((item) =>
@@ -28,8 +29,10 @@ export default function EditLessonPage() {
     (item) => item.id === lessonId,
   );
 
+  const draftKey = `esham-lesson-form:${courseId}:${routeSectionId}:${lessonId}`;
   const [lesson, setLesson] = useState(() => {
-    const source = location.state?.lessonDraft || (isNewLesson ? null : originalLesson);
+    let restored; try { restored = JSON.parse(sessionStorage.getItem(draftKey)); } catch { /* Use saved lesson. */ }
+    const source = location.state?.lessonDraft || restored || (isNewLesson ? null : originalLesson);
     const sourceTitle = source?.title;
 
     return {
@@ -44,8 +47,9 @@ export default function EditLessonPage() {
           : sourceTitle ?? "",
       description: localized(source?.description, language),
       contentType: source?.contentType ?? "video",
-      duration: source?.minutes ?? 10,
+      duration: source?.duration ?? source?.minutes ?? 10,
       video: {
+        ...source?.video,
         name: source?.video?.name ?? source?.videoUrl ?? "",
         duration: source?.video?.duration ?? "",
         size: source?.video?.size ?? "",
@@ -56,11 +60,13 @@ export default function EditLessonPage() {
       resources: [...(source?.resources ?? [])],
     };
   });
+  useEffect(() => { try { sessionStorage.setItem(draftKey,JSON.stringify(lesson)); } catch { window.dispatchEvent(new Event('esham-storage-error')); } }, [draftKey, lesson]);
+  const [uploading, setUploading] = useState(false);
   const [newObjective, setNewObjective] = useState("");
   const [savedMessage, setSavedMessage] = useState(
     isNewLesson
       ? text("مسودة جديدة غير محفوظة.")
-      : text("معاينة الدرس التجريبية؛ الحفظ محلي داخل جلسة التطبيق."),
+      : text("بيانات الدرس محفوظة على هذا الجهاز."),
   );
 
   const readinessItems = useMemo(
@@ -72,7 +78,7 @@ export default function EditLessonPage() {
       },
       {
         id: 2,
-        label: language === "ar" ? "محتوى الدرس جاهز للمعاينة" : "Lesson content is ready to preview", done: lesson.contentType !== "video" ? lesson.description.trim().length >= 20 : Boolean(lesson.video?.name),
+        label: language === "ar" ? "محتوى الدرس جاهز للمعاينة" : "Lesson content is ready to preview", done: lesson.contentType !== "video" ? lesson.description.trim().length >= 20 : Boolean(lesson.video?.mediaId || /^https?:\/\//i.test(originalLesson?.videoUrl || "")),
       },
       {
         id: 3,
@@ -125,6 +131,7 @@ export default function EditLessonPage() {
   };
 
   const handleSave = (message) => {
+    if (uploading) return;
     if (!course || !section || !lesson.title.trim()) {
       setSavedMessage(text("أدخل عنوان الدرس أولًا."));
       return;
@@ -153,7 +160,7 @@ export default function EditLessonPage() {
       video: { ...lesson.video },
       videoUrl:
         lesson.contentType === "video"
-          ? lesson.video.name || originalLesson?.videoUrl || ""
+          ? (/^https?:\/\//i.test(originalLesson?.videoUrl || "") ? originalLesson.videoUrl : "")
           : "",
     };
 
@@ -165,6 +172,7 @@ export default function EditLessonPage() {
     }
 
     setSavedMessage(message);
+    try { sessionStorage.removeItem(draftKey); } catch { /* Course data has been saved. */ }
     navigate(`/instructor/courses/${courseId}/curriculum`, { state: { focusSectionId: section.id } });
   };
 
@@ -380,15 +388,7 @@ export default function EditLessonPage() {
               </div>
 
               <div className="instructor-lesson-video-box">
-                <div className="instructor-lesson-video-preview">
-                  <PendingFeature  aria-label={text("تشغيل الفيديو")}>
-                    <Icon name="video" size={24} />
-                  </PendingFeature>
-
-                  <span>{text("معاينة الفيديو")}</span>
-
-                  <small>{lesson.video.duration}</small>
-                </div>
+                <StoredVideo mediaId={lesson.video.mediaId} url={originalLesson?.videoUrl} style={{width:'100%', maxHeight:360}}/>
 
                 <div className="instructor-lesson-video-details">
                   <div>
@@ -421,14 +421,7 @@ export default function EditLessonPage() {
                     </>
                   ) : (
                     <>
-                      <PendingFeature className="instructor-course-button instructor-course-button-outline">
-                        <Icon name="video" size={15} />
-                        {language === "ar" ? text("معاينة الفيديو") : "Preview video"}
-                      </PendingFeature>
-                      <PendingFeature className="instructor-course-button instructor-course-button-outline">
-                        <Icon name="edit" size={15} />
-                        {language === "ar" ? text("تحرير الفيديو") : "Edit video"}
-                      </PendingFeature>
+                      <Link to={videoBasePath} state={{lessonDraft: lesson}} className="instructor-course-button instructor-course-button-outline">{language === 'ar' ? 'إضافة فيديو' : 'Add video'}</Link>
                     </>
                   )}
                 </div>
@@ -528,9 +521,7 @@ export default function EditLessonPage() {
                     </div>
 
                     <div className="instructor-resource-actions">
-                      <PendingFeature  aria-label={language === "ar" ? text("معاينة المورد") : "Preview resource"}>
-                        <Icon name="arrow-left" size={14} />
-                      </PendingFeature>
+                      <StoredFileLink file={resource}>{language === 'ar' ? 'تنزيل الملف' : 'Download file'}</StoredFileLink>
 
                       <button type="button" onClick={() => updateLesson("resources", lesson.resources.filter(item => item.id !== resource.id))} aria-label={language === "ar" ? text("حذف المورد") : "Delete resource"}>
                         <Icon name="trash" size={14} />
@@ -540,7 +531,7 @@ export default function EditLessonPage() {
                 ))}
               </div>
 
-              <label className="instructor-resource-add">{text("إضافة مورد أو ملف مرفق")}<input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" onChange={event => { const files = [...event.target.files]; if (files.some(file => file.size > 10 * 1024 * 1024 || !/\.(pdf|png|jpe?g|txt|docx?)$/i.test(file.name)) || files.length + lesson.resources.length > 5) { setSavedMessage(language === 'ar' ? 'الحد الأقصى 5 ملفات، و10MB لكل ملف.' : 'Up to 5 files, 10MB each.'); return; } updateLesson('resources', [...lesson.resources, ...files.map(file => ({ id: crypto.randomUUID(), name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.name.split('.').pop().toUpperCase() }))]); event.target.value = ''; }} /></label><small>{language === 'ar' ? 'تُحفظ أسماء الملفات محليًا؛ رفع الملفات وإتاحتها للمتعلّم يحتاج خدمة تخزين.' : 'File names are saved locally; uploads and learner access require a storage service.'}</small>
+              <label className="instructor-resource-add">{text("إضافة مورد أو ملف مرفق")}<input type="file" multiple disabled={uploading} accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" onChange={async event => { const files = Array.from(event.target.files || []); event.target.value = ''; if(uploading) return; setUploading(true); try { validateAttachments(files, lesson.resources.length); const stored = await Promise.all(files.map(file => saveMedia(file, { name: file.name }))); updateLesson('resources', [...lesson.resources, ...stored.map(file => ({ id: file.id, mediaId: file.id, name: file.name, size: formatBytes(file.sizeBytes), type: file.name.split('.').pop().toUpperCase() }))]); } catch { setSavedMessage(language === 'ar' ? 'تعذّر حفظ الملفات. الحد الأقصى 5 ملفات و10MB لكل ملف؛ تحقق من تخزين المتصفح.' : 'Unable to save files. Up to 5 files, 10MB each; check browser storage.'); } finally { setUploading(false); } }} /></label><small>{language === 'ar' ? 'تُحفظ الملفات على هذا الجهاز وتبقى بعد تحديث الصفحة.' : 'Files are saved on this device and remain available after reload.'}</small>
             </section>
           </main>
 
@@ -622,7 +613,7 @@ export default function EditLessonPage() {
                 </div>
 
                 <p>
-                  {language === "ar" ? `مكافأة إكمال الدورة ${pointsPolicy.courseReward} نقطة بعد اعتماد الإكمال؛ لا تُمنح تلقائيًا عند إنهاء القسم.` : `The course completion reward is ${pointsPolicy.courseReward} points after approval; completing a section does not award it automatically.`}
+                  {language === "ar" ? `تكلفة التسجيل ${pointsPolicy.enrollmentCost} نقطة. تكسب ${pointsPolicy.instructorEnrollmentReward} نقطة عن كل متعلّم يسجّل في الدورة.` : `Enrollment costs ${pointsPolicy.enrollmentCost} points. You earn ${pointsPolicy.instructorEnrollmentReward} points for each learner who enrolls.`}
                 </p>
               </div>
             </section>

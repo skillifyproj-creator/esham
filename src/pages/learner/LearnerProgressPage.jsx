@@ -72,7 +72,7 @@ const copy = {
     taskUpdate: "Demo submission for review",
     noUpdates: "No recorded updates.",
     demo:
-      "Current demo account data. Lesson completion is separate from task approval, certificates and points awards.",
+      "Current demo account data. Lesson completion is separate from task approval, certificates. Teaching points come from enrollments.",
     notStarted: "Not started",
     inProgress: "In progress",
     awaitingReview: "Awaiting review",
@@ -363,7 +363,7 @@ export default function LearnerProgressPage() {
                     to={`/learner/courses/${item.courseId}/learn`}
                   >
                     {t.review}
-                  </Link><Link className="button button-outline button-small" to={"/learner/certificates/"+item.courseId}>{language === "ar" ? "الشهادة ومتطلباتها" : "Certificate requirements"}</Link>
+                  </Link>
                 </article>
               ))}
 

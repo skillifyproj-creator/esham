@@ -31,12 +31,17 @@ export default function ProfileSetup({ draft, update, error, photo, setPhoto }) 
       image.src = url;
       await image.decode();
       if (selection.current !== request) { URL.revokeObjectURL(url); return; }
-      setPhoto(url);
+      const canvas = document.createElement('canvas');
+      const scale = Math.min(1, 512 / Math.max(image.width, image.height));
+      canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      const avatar = canvas.toDataURL('image/jpeg', .85);
+      setPhoto(avatar); update({ avatar }); URL.revokeObjectURL(url);
     } catch { URL.revokeObjectURL(url); if (selection.current === request) setPhotoError(true); }
     finally { if (selection.current === request) setLoading(false); }
   }
-  function resetPhoto() { selection.current++; setLoading(false); setPhoto(''); setPhotoError(false); }
-  const avatar = (className) => <span className={`profile-setup-avatar ${className || ''}`}>{photo ? <img src={photo} alt={t.photo} /> : <span aria-hidden="true">{initials}</span>}</span>;
+  function resetPhoto() { selection.current++; setLoading(false); setPhoto(''); update({ avatar: '' }); setPhotoError(false); }
+  const avatar = (className) => <span className={`profile-setup-avatar ${className || ''}`}>{photo || draft.avatar ? <img src={photo || draft.avatar} alt={t.photo} /> : <span aria-hidden="true">{initials}</span>}</span>;
   return <div className="profile-setup-grid">
     <section className="profile-setup-form" aria-label={copy.steps[1]}>
       <div className="profile-setup-photo"><div>{avatar()}<strong>{t.photo} <small>({t.optional})</small></strong></div><div className="profile-setup-photo-controls"><div className="profile-setup-buttons"><button type="button" className="profile-setup-upload" disabled={loading} onClick={() => fileInput.current?.click()}><Icon name="camera" size={18} />{loading ? t.uploading : t.addPhoto}</button><button type="button" className="profile-setup-default" onClick={resetPhoto}>{t.defaultPhoto}</button></div><input ref={fileInput} type="file" accept="image/jpeg,image/png" onChange={choosePhoto} hidden aria-label={t.addPhoto} /><p>{t.photoHint}</p>{photoError && <p className="profile-setup-error" role="alert">{t.photoError}</p>}{photo && <p className="profile-setup-photo-status" role="status">{t.selected}</p>}</div></div>

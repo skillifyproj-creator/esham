@@ -1,6 +1,7 @@
+import { accountRequest, accountError, acceptAccountSession } from '../../services/accountApi';
 import useAccountProfile from '../../hooks/useAccountProfile';
 import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { usePreferences } from "../../context/PreferencesContext";
 import { loginCopy } from "../../i18n/loginCopy";
@@ -18,6 +19,9 @@ export default function LoginPage() {
     toggleTheme,
   } = usePreferences();
 
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [requestError, setRequestError] = useState('');
   const t = loginCopy[language];
   const profile = useAccountProfile();
 
@@ -48,7 +52,7 @@ export default function LoginPage() {
     setReady(false);
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
 
     const next = {};
@@ -62,13 +66,15 @@ export default function LoginPage() {
     }
 
     setErrors(next);
-    setReady(Object.keys(next).length === 0);
+    setReady(false);
 
     const firstError = Object.keys(next)[0];
     inputs.current[firstError]?.focus();
 
-    // ربط API تسجيل الدخول يتم هنا لاحقًا.
-    // لا نحفظ كلمة المرور في localStorage.
+    if (firstError || busy) return;
+    setBusy(true); setRequestError('');
+    try { const account = acceptAccountSession(await accountRequest('/auth/login', { email: values.email.trim(), password: values.password })); setValues({ email: '', password: '' }); navigate(account.role === 'instructor' ? '/instructor' : '/learner'); }
+    catch (error) { setRequestError(accountError(error, language)); } finally { setBusy(false); }
   }
 
   return (
@@ -188,9 +194,10 @@ export default function LoginPage() {
 
             <Link className="auth-forgot" to="/forgot-password">{t.forgot}</Link>
 
-            <button className="auth-submit" type="submit">
-              {t.submit}
+            <button className="auth-submit" type="submit" disabled={busy} aria-busy={busy}>
+              {busy ? (language === 'ar' ? 'جاري تسجيل الدخول…' : 'Signing in…') : t.submit}
             </button>
+            {requestError && <p className="auth-error" role="alert">{requestError}</p>}
 
             {ready && (
               <p className="auth-status" role="status">

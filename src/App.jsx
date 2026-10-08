@@ -4,11 +4,16 @@ const InstructorCertificatesPage = lazy(() => import('./pages/instructor/Instruc
 const ModerationQueuePage = lazy(() => import('./pages/shared/ModerationQueuePage'));
 const LearnerCertificatesPage = lazy(() => import('./pages/learner/LearnerCertificatesPage'));
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
+import DevelopmentAdminAccess from './components/shared/DevelopmentAdminAccess';
+import StorageNotice from './components/shared/StorageNotice';
+import { refreshPublishedCourses } from './data/courses';
+import { refreshInstructorCourses } from './data/instructorDemo';
+import { COURSE_EVENT } from './services/coursePublishing';
 ﻿import RoleArea from './components/shared/RoleArea';
 import AccountPage from "./pages/shared/AccountPage";
 import { NotificationsProvider } from "./context/NotificationsContext";
 import NotificationsPage from "./pages/shared/NotificationsPage";
-import { lazy, Suspense, useLayoutEffect } from "react";
+import { lazy, Suspense, useLayoutEffect, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Link, Navigate } from "react-router";
 
 import {
@@ -82,6 +87,8 @@ const InstructorTaskPage = lazy(() => import("./pages/instructor/InstructorTaskP
 const LearnerTasksPage = lazy(() => import("./pages/learner/LearnerTasksPage"));
 const LearnerProgressPage = lazy(() => import("./pages/learner/LearnerProgressPage"));
 const LearnerPointsPage = lazy(() => import("./pages/learner/LearnerPointsPage"));
+const InstructorCoursePreviewPage = lazy(() => import('./pages/instructor/InstructorCoursePreviewPage'));
+const InstructorSubmissionsPage = lazy(() => import('./pages/instructor/InstructorSubmissionsPage'));
 const LearnerReviewsPage = lazy(() => import("./pages/learner/LearnerReviewsPage"));
 const LearnerNotificationsPage = lazy(() => import("./pages/learner/LearnerNotificationsPage"));
 
@@ -105,6 +112,8 @@ const CategoryAdminActivity = lazyNamed(() => import("./pages/category-admin/Cat
 const CategoryAdminNotifications = lazyNamed(() => import("./pages/category-admin/CategoryAdminModule"), "NotificationsPage");
 
 function RouteShell() {
+  const [,setCourseRevision] = useState(0);
+  useEffect(()=>{const refresh=()=>{refreshPublishedCourses();refreshInstructorCourses();setCourseRevision(value=>value+1);};window.addEventListener(COURSE_EVENT,refresh);window.addEventListener('storage',refresh);return()=>{window.removeEventListener(COURSE_EVENT,refresh);window.removeEventListener('storage',refresh);};},[]);
   const { pathname, hash } = useLocation();
   const { language } = usePreferences();
 
@@ -145,8 +154,10 @@ function RouteShell() {
 
   return (
     <>
+      <DevelopmentAdminAccess />
+      <StorageNotice />
       {/* Public Header only */}
-      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && <Header />}
+      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && !isAssistantPage && <Header />}
 
       <PageErrorBoundary><Suspense fallback={<main className="section container" role="status">{language === "ar" ? "جاري تحميل الصفحة…" : "Loading page…"}</main>}>
       <Routes>
@@ -208,7 +219,7 @@ function RouteShell() {
 
           <Route path="tasks" element={<LearnerTasksPage />} />
 
-          <Route path="certificates" element={<LearnerCertificatesPage/>}/><Route path="certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="progress" element={<LearnerProgressPage />} />
+          <Route path="courses/certificates" element={<LearnerCertificatesPage/>}/><Route path="courses/certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="certificates" element={<LearnerCertificatesPage/>}/><Route path="certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="progress" element={<LearnerProgressPage />} />
           <Route path="points" element={<LearnerPointsPage />} />
           <Route path="reviews" element={<LearnerReviewsPage />} />
           <Route
@@ -227,8 +238,11 @@ function RouteShell() {
 <Route path="profile" element={<AccountPage role="instructor" section="profile" />} />
 <Route path="settings" element={<AccountPage role="instructor" section="settings" />} />
 <Route path="settings/security" element={<AccountPage role="instructor" section="security" />} />
-          <Route path="notifications" element={<NotificationsPage role="instructor" />} /><Route path="certificates" element={<InstructorCertificatesPage/>}/><Route path="courses/:courseId/review-report" element={<InstructorReviewReportPage/>}/>
+          <Route path="notifications" element={<NotificationsPage role="instructor" />} /><Route path="courses/certificates" element={<InstructorCertificatesPage/>}/><Route path="certificates" element={<InstructorCertificatesPage/>}/><Route path="courses/:courseId/review-report" element={<InstructorReviewReportPage/>}/>
           <Route index element={<InstructorDashboard />} />
+          <Route path="submissions" element={<InstructorSubmissionsPage />} />
+          <Route path="points" element={<LearnerPointsPage />} />
+          <Route path="courses/:courseId/preview" element={<InstructorCoursePreviewPage />} />
 
           <Route path="courses" element={<InstructorCoursesPage />} />
 
@@ -383,7 +397,7 @@ function RouteShell() {
       )}
 
       {/* Public Footer only */}
-      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && <Footer />}
+      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && !isAssistantPage && <Footer />}
     </>
   );
 }
