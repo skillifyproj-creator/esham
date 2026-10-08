@@ -1,6 +1,6 @@
 export function recordingMimeType() {
   if (typeof MediaRecorder === 'undefined') throw new Error('recorder-unavailable');
-  return ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'].find(type => MediaRecorder.isTypeSupported(type)) || '';
+  return ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'].find(type => MediaRecorder.isTypeSupported(type)) || '';
 }
 export function validateTrim(start, end, duration) {
   if (![start, end, duration].every(Number.isFinite) || start < 0 || end > duration + 0.05 || end - start < 0.1) throw new Error('invalid-trim');

@@ -1,0 +1,11 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Routes,Route} from 'react-router';
+import {PreferencesProvider} from '../src/context/PreferencesContext';
+import LessonVideoWorkflow from '../src/pages/instructor/LessonVideoWorkflow';
+import {getInstructorCourseWorkspace} from '../src/data/instructorCourseWorkspace';
+import '../src/styles/global.css';
+if(!import.meta.env.DEV)throw Error('Development verification only');
+const section=getInstructorCourseWorkspace('photography').sections[0];
+const base='/instructor/courses/photography/sections/'+section.id+'/lessons/new/video';
+createRoot(document.getElementById('root')).render(<PreferencesProvider><MemoryRouter initialEntries={[base+'/record']}><Routes><Route path="/instructor/courses/:courseId/sections/:sectionId/lessons/:lessonId/video/record" element={<LessonVideoWorkflow mode="record"/>}/><Route path="/instructor/courses/:courseId/sections/:sectionId/lessons/:lessonId/video/preview" element={<LessonVideoWorkflow mode="preview"/>}/></Routes></MemoryRouter></PreferencesProvider>);

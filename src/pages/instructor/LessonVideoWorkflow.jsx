@@ -25,13 +25,13 @@ export default function LessonVideoWorkflow({ mode }) {
     catch { return lesson?.video || null; }
   });
   const media = useStoredMedia(metadata?.mediaId);
-  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [progress, setProgress] = useState(0);
+  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [progress, setProgress] = useState(0), [captureNotice,setCaptureNotice]=useState('');
   const [start, setStart] = useState(0), [end, setEnd] = useState(metadata?.durationSeconds || 0), [improveAudio, setImproveAudio] = useState(false);
   const [devices, setDevices] = useState([]), [cameraId, setCameraId] = useState(''), [micId, setMicId] = useState('');
   const [cameraOn, setCameraOn] = useState(true), [micOn, setMicOn] = useState(true);
   const [layout, setLayout] = useState(location.state?.selectedLayout || 'camera');
   const [recording, setRecording] = useState(false), [paused, setPaused] = useState(false), [seconds, setSeconds] = useState(0);
-  const [screenActive,setScreenActive]=useState(false),[annotations,setAnnotations]=useState(true),[presentation,setPresentation]=useState(false),[audioLevel,setAudioLevel]=useState(0);
+  const [screenActive,setScreenActive]=useState(false),[annotations,setAnnotations]=useState(true),[audioLevel,setAudioLevel]=useState(0);
   const presentationFrame=useRef(null),meterTick=useRef(0);
   const camera = useRef(null), screen = useRef(null), canvas = useRef(null), board = useRef(null), player = useRef(null);
   const resources = useRef({ streams: [], frame: null, recorder: null, audio: null, destination:null,analyser:null });
@@ -71,6 +71,11 @@ export default function LessonVideoWorkflow({ mode }) {
   const message = cause => cause?.name === 'NotAllowedError' || cause?.name === 'PermissionDeniedError'
     ? t('لم يُسمح بالوصول إلى الجهاز أو أُلغيت مشاركة الشاشة. يمكنك المحاولة مجددًا أو اختيار ملف.', 'Device access was denied or screen sharing was cancelled. Retry or choose a file.')
     : cause?.name === 'NotFoundError' ? t('لم يتم العثور على الكاميرا أو الميكروفون المطلوب.', 'The selected camera or microphone was not found.')
+    : cause?.name === 'NotReadableError' ? t('تعذّر قراءة الكاميرا أو الميكروفون. أغلق أي تطبيق يستخدمهما، أو أطفئهما لتسجيل الشاشة فقط.', 'Camera or microphone could not be read. Close other apps using them, or disable them to record the screen only.')
+    : cause?.message === 'screen-unavailable' ? t('مشاركة الشاشة غير مدعومة هنا. افتح الموقع في متصفح سطح مكتب عبر HTTPS أو localhost.', 'Screen sharing is unavailable here. Open the site in a desktop browser over HTTPS or localhost.')
+    : cause?.message === 'recorder-unavailable' ? t('المتصفح لا يدعم تسجيل الفيديو بهذا المسار. افتح الموقع بمتصفح حديث أو ارفع فيديو جاهزًا.', 'This browser cannot record video in this workflow. Use a current browser or upload a video.')
+    : cause?.message === 'empty-file' ? t('لم ينتج التسجيل ملف فيديو. أبقِ صفحة التسجيل ظاهرة، ثم أعد المحاولة.', 'No video frames were recorded. Keep the recording page visible and retry.')
+    : cause?.name === 'QuotaExceededError' ? t('مساحة التخزين المحلية ممتلئة. وفر مساحة أو استخدم متصفحًا آخر.', 'Local storage is full. Free space or use another browser.')
     : cause?.message === 'video-size' ? t('اختر فيديو غير فارغ بحجم أقصى 2GB.', 'Choose a non-empty video up to 2GB.')
     : /video-(codec|type|metadata|duration)/.test(cause?.message || '') ? t('تعذّر تشغيل صيغة الفيديو. جرّب MP4 أو WebM بترميز يدعمه المتصفح.', 'This video cannot be played. Try MP4 or WebM with a codec supported by your browser.')
     : cause?.message === 'invalid-trim' ? t('اختر بداية ونهاية ضمن مدة الفيديو، بفاصل لا يقل عن 0.1 ثانية.', 'Choose start and end within the video duration, at least 0.1 seconds apart.')
@@ -94,7 +99,7 @@ export default function LessonVideoWorkflow({ mode }) {
     } catch (cause) { if (active.current) setError(message(cause)); }
     finally { if (active.current) setBusy(false); }
   }
-  function paint() {
+  function paint(schedule=true) {
     const target = canvas.current;
     if (!target) return;
     const ctx = target.getContext('2d'), w = target.width, h = target.height;
@@ -107,11 +112,13 @@ export default function LessonVideoWorkflow({ mode }) {
     else draw(screen.current, 0, 0, w, h);
     if(settings.current.annotations && board.current)ctx.drawImage(board.current,0,0,w,h);
     if (settings.current.cameraOn && ['screen-camera', 'board','file'].includes(selected)) draw(camera.current, w * .73, h * .7, w * .25, h * .28);
+    if(resources.current.recorder?.state==='recording'&&performance.now()-(resources.current.lastVideoFrame||0)>=30){resources.current.videoTrack?.requestFrame?.();resources.current.lastVideoFrame=performance.now();}
     if(resources.current.analyser && performance.now()-meterTick.current>120){const values=new Uint8Array(resources.current.analyser.fftSize);resources.current.analyser.getByteTimeDomainData(values);const level=Math.sqrt(values.reduce((sum,value)=>sum+((value-128)/128)**2,0)/values.length);setAudioLevel(Math.min(1,level*4));meterTick.current=performance.now();}
-    resources.current.frame = requestAnimationFrame(paint);
+    if(schedule)resources.current.frame = requestAnimationFrame(()=>paint());
   }
-  function connectAudio(stream){const current=resources.current;if(!current.audio||!stream.getAudioTracks().length)return;const source=current.audio.createMediaStreamSource(stream);source.connect(current.destination);source.connect(current.analyser);}
+  function connectAudio(stream){const current=resources.current;const tracks=stream.getAudioTracks().filter(track=>track.readyState==='live');if(!current.audio||!tracks.length)return;const source=current.audio.createMediaStreamSource(new MediaStream(tracks));source.connect(current.destination);source.connect(current.analyser);}
   async function shareScreen(){
+    if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('screen-unavailable');
     const shared=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
     if(!active.current){shared.getTracks().forEach(track=>track.stop());return;}
     const old=screen.current.srcObject;old?.getTracks().forEach(track=>track.stop());
@@ -119,11 +126,12 @@ export default function LessonVideoWorkflow({ mode }) {
     shared.getVideoTracks()[0].onended=()=>{if(!active.current||screen.current?.srcObject!==shared)return;shared.getTracks().forEach(track=>track.stop());screen.current.srcObject=null;setScreenActive(false);setLayout(value=>['screen','screen-camera','side-by-side'].includes(value)?'board':value);};
   }
   async function chooseLayout(value){setError('');try{if(['screen','screen-camera','side-by-side'].includes(value)&&!screenActive)await shareScreen();if(cameraOn&&value!=='screen')await toggleCamera(true);setLayout(value);}catch(cause){setError(message(cause));}}
-  async function toggleCamera(enabled,strict=false){setError('');try{if(enabled&&!camera.current.srcObject?.getVideoTracks().length){const stream=await navigator.mediaDevices.getUserMedia({video:cameraId?{deviceId:{exact:cameraId}}:true,audio:false});if(!active.current){stream.getTracks().forEach(track=>track.stop());return;}resources.current.streams.push(stream);camera.current.srcObject=stream;await camera.current.play();}camera.current.srcObject?.getVideoTracks().forEach(track=>{track.enabled=enabled;});setCameraOn(enabled);}catch(cause){setError(message(cause));if(strict)throw cause;}}
+  async function toggleCamera(enabled,strict=false){setError('');try{if(enabled&&!camera.current.srcObject?.getVideoTracks().length){const stream=await navigator.mediaDevices.getUserMedia({video:cameraId?{deviceId:{exact:cameraId}}:true,audio:false});if(!active.current){stream.getTracks().forEach(track=>track.stop());return;}resources.current.streams.push(stream);camera.current.srcObject=stream;await camera.current.play();}camera.current.srcObject?.getVideoTracks().forEach(track=>{track.enabled=enabled;});setCameraOn(enabled);if(!enabled&&layout==='camera')setLayout(screenActive?'screen':'board');if(enabled&&screenActive&&layout==='screen')setLayout('screen-camera');}catch(cause){setError(message(cause));if(strict)throw cause;}}
   async function toggleMicrophone(enabled,strict=false){setError('');try{const microphones=resources.current.streams.flatMap(stream=>stream.getAudioTracks()).filter(track=>track.getSettings().deviceId);if(enabled&&!microphones.length){const stream=await navigator.mediaDevices.getUserMedia({video:false,audio:micId?{deviceId:{exact:micId}}:true});if(!active.current){stream.getTracks().forEach(track=>track.stop());return;}resources.current.streams.push(stream);connectAudio(stream);}else microphones.forEach(track=>{track.enabled=enabled;});setMicOn(enabled);}catch(cause){setError(message(cause));if(strict)throw cause;}}
   useEffect(()=>{if(mode==='record'||mode==='setup')paint();return()=>cancelAnimationFrame(resources.current.frame);},[mode]);
   async function startDevices(record = false) {
     setError(''); setBusy(true);
+    let stage='devices',output;
     try {
       if (!navigator.mediaDevices?.getUserMedia || !canvas.current?.captureStream) throw new Error('recorder-unavailable');
       const needsCamera = cameraOn && layout !== 'screen';
@@ -133,17 +141,20 @@ export default function LessonVideoWorkflow({ mode }) {
       if (needsCamera && !existingCamera) await toggleCamera(true,true);
       if (micOn && !existingMic) await toggleMicrophone(true,true);
       if (!active.current) { release(); return; }
-      if (['screen', 'screen-camera', 'side-by-side'].includes(layout) && !screen.current.srcObject?.active) await shareScreen();
-      if (!resources.current.audio) {
-        const audio=new AudioContext();resources.current.audio=audio;resources.current.destination=audio.createMediaStreamDestination();resources.current.analyser=audio.createAnalyser();resources.current.analyser.fftSize=512;for(const stream of resources.current.streams)connectAudio(stream);
+      if (['screen', 'screen-camera', 'side-by-side'].includes(layout) && !screen.current.srcObject?.active) {stage='screen';await shareScreen();}
+      stage='audio';
+      const hasAudio=resources.current.streams.some(stream=>stream.getAudioTracks().some(track=>track.readyState==='live'));
+      if (hasAudio && !resources.current.audio) {
+        const audio=new AudioContext();resources.current.audio=audio;resources.current.destination=audio.createMediaStreamDestination();resources.current.analyser=audio.createAnalyser();resources.current.analyser.fftSize=512;for(const stream of resources.current.streams){try{connectAudio(stream);}catch(cause){if(stream!==screen.current.srcObject)throw cause;setCaptureNotice(t('تعذّر إدخال صوت الشاشة. سيستمر تسجيل الصورة والرسم، مع صوت الميكروفون إن كان مفعّلًا.','Screen audio is unavailable. Video and drawings will still be recorded, with microphone audio if enabled.'));}}
       }
-      await resources.current.audio.resume();
+      if(resources.current.audio)await resources.current.audio.resume();
       setDevices(await navigator.mediaDevices.enumerateDevices());
       cancelAnimationFrame(resources.current.frame);paint();
       if (record) {
-        const output = canvas.current.captureStream(30);
+        stage='recorder';output = canvas.current.captureStream(30);
+        resources.current.videoTrack=output.getVideoTracks()[0];
         resources.current.streams.push(output);
-        for(const track of resources.current.destination.stream.getAudioTracks())output.addTrack(track);
+        for(const track of resources.current.destination?.stream.getAudioTracks()||[])output.addTrack(track);
         const mimeType = recordingMimeType(), chunks = [];
         const recorder = new MediaRecorder(output, mimeType ? { mimeType } : {});
         resources.current.recorder = recorder;
@@ -161,12 +172,17 @@ export default function LessonVideoWorkflow({ mode }) {
             const file = await saveMedia(blob, { name: `recording-${Date.now()}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`, durationSeconds: length, width: 1280, height: 720 });
             const value = { ...file, mediaId: file.id, size: formatBytes(file.sizeBytes), quality: '1280×720', encoding: blob.type };
             if (active.current) { keep(value); move('preview', value); }
-          } catch (cause) { if (active.current) setError(message(cause)); }
+          } catch (cause) { if(import.meta.env.DEV)console.error('Recording save failed:',cause);if (active.current) setError(message(cause)); }
           finally { if (active.current) setBusy(false); }
         };
-        recorder.start(250); setSeconds(0); setPaused(false); setRecording(true);
+        recorder.start(250);paint(false); setSeconds(0); setPaused(false); setRecording(true);
       }
-    } catch (cause) { release(); if (active.current) { setRecording(false); setError(message(cause)); } }
+    } catch (cause) {
+      if(import.meta.env.DEV)console.error(`Recording setup failed (${stage}):`,cause);
+      if(screen.current?.srcObject?.active){output?.getTracks().forEach(track=>track.stop());resources.current.streams=resources.current.streams.filter(stream=>stream!==output);resources.current.recorder=null;resources.current.audio?.close().catch(()=>{});resources.current.audio=null;resources.current.destination=null;resources.current.analyser=null;cancelAnimationFrame(resources.current.frame);paint();}
+      else release();
+      if (active.current) { setRecording(false);setError(`${message(cause)} ${t('مرحلة التعذّر:','Failed during:')} ${({devices:t('الأجهزة','devices'),screen:t('مشاركة الشاشة','screen sharing'),audio:t('تجهيز الصوت','audio setup'),recorder:t('بدء مسجل الفيديو','recorder startup')})[stage]}${import.meta.env.DEV&&cause?.name?` (${cause.name})`:''}`); }
+    }
     finally { if (active.current) setBusy(false); }
   }
   function pauseRecording() {
@@ -197,22 +213,28 @@ export default function LessonVideoWorkflow({ mode }) {
   }
   if (!workspace || !section || (lessonId !== 'new' && !lesson)) return <main className="container section"><h1>{t('لم يتم العثور على الدرس أو القسم', 'Lesson or section not found')}</h1><Link to="/instructor/courses">{t('دوراتي', 'My courses')}</Link></main>;
   const capturing = mode === 'record' || mode === 'setup';
-  return <main className="container video-workflow" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+  return <main className={`container video-workflow${capturing ? ' video-workflow-recording' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <nav aria-label={t('مسار الصفحة', 'Breadcrumb')}><Link to={`/instructor/courses/${courseId}/curriculum`}>{localized(workspace.course.title, language)}</Link><span> / {localized(section.title, language)}</span></nav>
     <h1>{titles[mode]}</h1>
     <p>{t('الفيديو محفوظ على هذا الجهاز. الرفع إلى الحساب والمزامنة يتطلبان خدمة التخزين.', 'Videos are saved on this device. Account uploads and synchronization require the storage service.')}</p>
-    {error && <p className="video-error" role="alert">{error}</p>}
+    {error && <p className="video-error" role="alert">{error}</p>}{captureNotice&&<p role="status">{captureNotice}</p>}
     {mode === 'source' && <div className="video-options"><section><h2>{t('رفع فيديو', 'Choose video')}</h2><label className="video-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); upload(event.dataTransfer.files[0]); }}>{t('اختر فيديو أو اسحبه هنا · MP4 / WebM / MOV · حتى 2GB', 'Choose or drop a video · MP4 / WebM / MOV · up to 2GB')}<input aria-label={t('اختيار فيديو', 'Choose video')} type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" disabled={busy} onChange={event => { upload(event.target.files[0]); event.target.value = ''; }}/></label></section><section><h2>{t('تسجيل فيديو جديد', 'Record a new video')}</h2><p>{t('الكاميرا أو الشاشة أو السبورة، مع صوت الميكروفون.', 'Camera, screen or whiteboard with microphone audio.')}</p><button className="button" disabled={busy} onClick={() => move('record')}>{t('إعداد التسجيل', 'Recording setup')}</button></section></div>}
     {capturing && <>
       <div className="video-device-options"><label>{t('شكل الفيديو', 'Video layout')}<select value={layout} disabled={busy} onChange={event => chooseLayout(event.target.value)}>{[['camera',t('الكاميرا','Camera')],['screen',t('الشاشة','Screen')],['screen-camera',t('الشاشة مع الكاميرا','Screen and camera')],['side-by-side',t('جنبًا إلى جنب','Side by side')],['board',t('السبورة مع الكاميرا','Whiteboard and camera')],['file',t('ملف مع الكاميرا','File and camera')]].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label>{t('الكاميرا', 'Camera')}<select value={cameraId} disabled={recording || busy} onChange={event => {release();setCameraId(event.target.value);paint();}}><option value="">{t('الافتراضية', 'Default')}</option>{devices.filter(device => device.kind === 'videoinput').map(device => <option value={device.deviceId} key={device.deviceId}>{device.label || t('كاميرا', 'Camera')}</option>)}</select></label><label>{t('الميكروفون', 'Microphone')}<select value={micId} disabled={recording || busy} onChange={event => {release();setMicId(event.target.value);paint();}}><option value="">{t('الافتراضي', 'Default')}</option>{devices.filter(device => device.kind === 'audioinput').map(device => <option value={device.deviceId} key={device.deviceId}>{device.label || t('ميكروفون', 'Microphone')}</option>)}</select></label>
-      <label><input type="checkbox" checked={cameraOn} disabled={busy} onChange={event=>toggleCamera(event.target.checked)}/>{t('تفعيل الكاميرا','Camera enabled')}</label><label><input type="checkbox" checked={micOn} disabled={busy} onChange={event=>toggleMicrophone(event.target.checked)}/>{t('تفعيل الميكروفون','Microphone enabled')}</label></div>
-      <div className="video-actions"><button type="button" className="button button-outline" disabled={busy} onClick={async()=>{try{await shareScreen();setLayout('screen-camera');}catch(cause){setError(message(cause));}}}>{screenActive?t('تغيير الشاشة المشاركة','Change shared screen'):t('مشاركة الشاشة داخل الفيديو','Share screen inside video')}</button>{screenActive&&<button type="button" onClick={()=>{const shared=screen.current.srcObject;screen.current.srcObject=null;shared?.getTracks().forEach(track=>track.stop());setScreenActive(false);setLayout('board');}}>{t('إيقاف مشاركة الشاشة','Stop screen sharing')}</button>}<button type="button" onClick={()=>setLayout('board')}>{t('عرض الوايت بورد','Show whiteboard')}</button><label><input type="checkbox" checked={annotations} onChange={event=>setAnnotations(event.target.checked)}/>{t('إظهار الرسم والتعليقات في الفيديو','Include drawings and annotations in video')}</label></div>
+      <label><input type="checkbox" checked={cameraOn} disabled={busy} onChange={event=>toggleCamera(event.target.checked)}/>{t('تفعيل الكاميرا','Camera enabled')}</label><label><input type="checkbox" checked={micOn} disabled={busy||(recording&&!resources.current.destination)} onChange={event=>toggleMicrophone(event.target.checked)}/>{t('تفعيل الميكروفون','Microphone enabled')}</label></div>
+      <div className="video-actions"><button type="button" className="button button-outline" disabled={busy} onClick={async()=>{try{setError('');await shareScreen();const hasCamera=camera.current?.srcObject?.getVideoTracks().some(track=>track.readyState==='live'&&track.enabled);setLayout(hasCamera?'screen-camera':'screen');if(!hasCamera)setCameraOn(false);}catch(cause){setError(message(cause));}}}>{screenActive?t('تغيير الشاشة المشاركة','Change shared screen'):t('مشاركة الشاشة داخل الفيديو','Share screen inside video')}</button>{screenActive&&<button type="button" onClick={()=>{const shared=screen.current.srcObject;screen.current.srcObject=null;shared?.getTracks().forEach(track=>track.stop());setScreenActive(false);setLayout('board');}}>{t('إيقاف مشاركة الشاشة','Stop screen sharing')}</button>}<button type="button" onClick={()=>{setAnnotations(true);if(!screenActive)setLayout('board');document.getElementById('recording-whiteboard')?.scrollIntoView({behavior:'smooth',block:'nearest'});}}>{t('عرض الوايت بورد','Show whiteboard')}</button><label><input type="checkbox" checked={annotations} onChange={event=>setAnnotations(event.target.checked)}/>{t('إظهار الرسم والتعليقات في الفيديو','Include drawings and annotations in video')}</label></div>
       <label>{t('مستوى الصوت الفعلي','Live audio level')}<meter min="0" max="1" value={audioLevel} aria-label={t('مستوى الصوت الفعلي','Live audio level')}/></label>
       <video ref={camera} muted playsInline className="video-capture-source"/><video ref={screen} muted playsInline className="video-capture-source"/>
-      <div className="video-stage"><canvas ref={canvas} width={1280} height={720} aria-label={t('معاينة التسجيل','Recording preview')}/></div>
-      <VideoPresentation storageKey={`${key}:presentation`} language={language} onFrame={frame=>{presentationFrame.current=frame;setPresentation(Boolean(frame));if(frame)setLayout('file');}}/>
-      <VideoWhiteboard sceneId={`${key}:whiteboard`} language={language} overlay={layout!=='board'||presentation} onFrame={frame=>{board.current=frame;}}/>
+      <div className="video-record-workspace">
+        <section className="video-live-preview" aria-label={t('معاينة الفيديو المباشرة','Live video preview')}>
+          <h2>{t('شاشة العرض','Video preview')}</h2>
+          <div className="video-stage"><canvas ref={canvas} width={1280} height={720} aria-label={t('معاينة التسجيل','Recording preview')}/></div>
+          <p>{t('اكتب على الوايت بورد بجانبك وتابع مكان الكتابة هنا. الرسم يظهر فوق الشاشة المشاركة أثناء التسجيل.','Write on the whiteboard alongside and follow the result here. Drawings appear over the shared screen while recording.')}</p>
+        </section>
+        <div id="recording-whiteboard"><VideoWhiteboard sceneId={`${key}:whiteboard`} language={language} overlay={layout!=='board'} onFrame={frame=>{board.current=frame;paint(false);}}/></div>
+      </div>
+      <VideoPresentation storageKey={`${key}:presentation`} language={language} onFrame={frame=>{presentationFrame.current=frame;if(frame)setLayout('file');}}/>
       <p role="status">{recording ? (paused ? t('متوقف مؤقتًا', 'Paused') : t('جاري التسجيل', 'Recording')) : t('ابدأ المعاينة أو التسجيل للسماح بالوصول للأجهزة.', 'Start preview or recording to allow device access.')} {recording && ` · ${seconds} ${t('ثانية','seconds')}`}</p>
       <div className="video-actions video-record-controls">{!recording ? <><button className="button button-outline" disabled={busy} onClick={() => startDevices(false)}>{t('معاينة الأجهزة', 'Preview devices')}</button><button className="button" disabled={busy} onClick={() => startDevices(true)}>{t('بدء التسجيل', 'Start recording')}</button></> : <><button className="button button-outline" onClick={pauseRecording}>{paused ? t('متابعة التسجيل', 'Resume recording') : t('إيقاف مؤقت', 'Pause')}</button><button className="button" onClick={() => {const recorder=resources.current.recorder;if(recorder&&recorder.state!=='inactive')recorder.stop();}}>{t('إنهاء التسجيل', 'Stop recording')}</button></>}</div>
     </>}
