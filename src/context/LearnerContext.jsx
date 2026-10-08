@@ -8,26 +8,26 @@ import {
 
 import { courses } from "../data/courses";
 import { learnerDemo } from "../data/learnerDemo";
+import useAccountProfile from '../hooks/useAccountProfile';
+import { accountId, getAccountWallet, POINTS_EVENT } from '../data/pointsLedger';
 
 const LearnerContext = createContext(null);
 const STORAGE_KEY = "esham-learner-progress-v1";
 
-function loadEnrollments() {
+function loadEnrollments(profile, key) {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const saved = JSON.parse(localStorage.getItem(key));
+    const base = profile.id ? [] : learnerDemo.enrollments;
+    const paid = getAccountWallet(profile).enrollments.map(item => ({ courseId: item.courseId, completedLessonIds: [], lastOpenedAt: item.enrolledAt }));
+    const all = [...base, ...paid.filter(item => !base.some(other => other.courseId === item.courseId))];
 
-    if (!Array.isArray(saved)) {
-      return learnerDemo.enrollments;
-    }
-
-    // نقرأ سجلات الدورات التجريبية الحالية فقط،
-    // ونستبعد معرفات الدروس القديمة أو غير الموجودة.
-    return learnerDemo.enrollments.map((enrollment) => {
+    // Combine legacy preview enrollments and paid registrations, preserving valid progress.
+    return all.map((enrollment) => {
       const course = courses.find(
         (item) => item.id === enrollment.courseId,
       );
 
-      const stored = saved.find(
+      const stored = (Array.isArray(saved) ? saved : []).find(
         (item) => item.courseId === enrollment.courseId,
       );
 
@@ -58,20 +58,32 @@ function loadEnrollments() {
       };
     });
   } catch {
-    return learnerDemo.enrollments;
+    return profile.id ? [] : learnerDemo.enrollments;
   }
 }
 
 export function LearnerProvider({ children }) {
-  const [enrollments, setEnrollments] = useState(loadEnrollments);
+  const profile = useAccountProfile();
+  const key = profile.id ? `${STORAGE_KEY}:${accountId(profile)}` : STORAGE_KEY;
+  const [state, setState] = useState(() => ({ key, enrollments: loadEnrollments(profile, key) }));
+  const enrollments = state.key === key ? state.enrollments : loadEnrollments(profile, key);
+  const setEnrollments = callback => setState(previous => ({ key, enrollments: callback(previous.key === key ? previous.enrollments : loadEnrollments(profile, key)) }));
+
+  useEffect(() => {
+    const refresh = () => setState({ key, enrollments: loadEnrollments(profile, key) });
+    refresh();
+    window.addEventListener(POINTS_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => { window.removeEventListener(POINTS_EVENT, refresh); window.removeEventListener('storage', refresh); };
+  }, [key, profile.role]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(enrollments));
+      if (state.key === key) localStorage.setItem(key, JSON.stringify(enrollments));
     } catch {
-      // تبقى الصفحة تعمل حتى إذا تعذّر الحفظ المحلي.
+      window.dispatchEvent(new Event('esham-storage-error'));
     }
-  }, [enrollments]);
+  }, [state, key]);
 
   const markLessonComplete = useCallback((courseId, lessonId) => {
     const course = courses.find((item) => item.id === courseId);
@@ -101,7 +113,7 @@ export function LearnerProvider({ children }) {
         };
       }),
     );
-  }, []);
+  }, [key]);
 
   return (
     <LearnerContext.Provider

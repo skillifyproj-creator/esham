@@ -1,11 +1,5 @@
-// مكافأة الإكمال منفصلة عن تكلفة التسجيل course.points.
-export const pointsPolicy = {
-  courseReward: 20,
-  openingBalance: 50,
-};
-
-// لاحقًا تأتي هذه السجلات من الباك بعد اعتماد المدرّب.
-// شكل السجل:
-// { id, courseId, points, approvedAt }
-
-export const approvedCourseAwards = [];
+export const pointsPolicy = Object.freeze({
+  openingBalance: 20,
+  enrollmentCost: 20,
+  instructorEnrollmentReward: 20,
+});

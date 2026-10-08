@@ -7,14 +7,32 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/frontend.test.mjs"
+    "test": "node --test tests/frontend.test.mjs",
+    "predev": "node scripts/video-assets.mjs",
+    "prebuild": "node scripts/video-assets.mjs"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
+    "mediabunny": "^1.61.3",
+    "pdfjs-dist": "^6.4.299",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router": "^8.4.0"
+    "react-router": "^8.4.0",
+    "wavesurfer.js": "^8.0.2"
   },
   "devDependencies": {
     "vite": "^8.0.0"
+  },
+  "overrides": {
+    "@excalidraw/excalidraw": {
+      "nanoid": "^3.3.18",
+      "sass": "^1.98.0"
+    },
+    "@excalidraw/mermaid-to-excalidraw": {
+      "nanoid": "^5.1.16"
+    },
+    "lodash-es": "^4.17.24",
+    "source-map-js": "^1.2.2",
+    "katex": "^0.18.2"
   }
 }

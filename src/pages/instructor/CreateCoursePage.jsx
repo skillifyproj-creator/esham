@@ -6,7 +6,8 @@ import useAccountProfile from "../../hooks/useAccountProfile";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorDemo } from "../../data/instructorDemo";
+import { instructorDemo, saveInstructorCourse } from "../../data/instructorDemo";
+import { pointsPolicy } from '../../data/pointsPolicy';
 import instructorCopy from "../../i18n/instructorCopy";
 import "../../styles/instructor-create-course.css";
 
@@ -23,7 +24,7 @@ export default function CreateCoursePage() {
     : null;
   const storedDraft = !isEditMode ? readInstructorCourseDraft() : null;
   const initialCourse = editCourse || storedDraft;
-  const coursePoints = 20;
+  const coursePoints = pointsPolicy.enrollmentCost;
   const categoryLabels = Object.fromEntries(categories.map(category => [category.id, category.title[language]]));
   const fileInputRef = useRef(null);
   const courseCategory = resolveCategoryId(initialCourse?.categoryKey) || resolveCategoryId(initialCourse?.category);
@@ -94,7 +95,7 @@ export default function CreateCoursePage() {
     if (!editCourse) return;
 
 
-    Object.assign(editCourse, {
+    const saved = saveInstructorCourse(courseId, {
       title: form.title,
       description: form.description,
       category: getCategory(form.category)?.title || { ar: "", en: "" },
@@ -104,7 +105,7 @@ export default function CreateCoursePage() {
       objectives,
       image: courseImage || editCourse.image,
     });
-
+    if (!saved) { setSaveStatus(language === 'ar' ? 'تعذّر الحفظ. تحقق من تخزين المتصفح أو استخدم صورة أصغر.' : 'Save failed. Check browser storage or use a smaller cover.'); return; }
     navigate(`/instructor/courses/${courseId}/curriculum`);
   };
 
@@ -115,13 +116,14 @@ export default function CreateCoursePage() {
     }
     const stored = saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title || { ar: '', en: '' }, coursePoints: 20 });
     if (!stored) { setSaveStatus(language === 'ar' ? 'تعذّر حفظ المسودة. جرّب صورة أصغر أو فعّل تخزين المتصفح.' : 'Unable to save the draft. Try a smaller cover or enable browser storage.'); return; }
-    setSaveStatus(language === "ar" ? "المسودة محفوظة في جلسة هذا المتصفح. النشر والحفظ على الحساب يحتاجان ربط خدمة الدورات." : "Draft saved in this browser session. Account storage and publishing require the course service.");
+    setSaveStatus(language === "ar" ? "المسودة محفوظة في هذا المتصفح حتى بعد إغلاقه. النشر والمزامنة على الحساب يحتاجان خدمة الدورات." : "Draft saved in this browser, including after closing it. Publishing and account synchronization require the course service.");
   };
   const continueToCurriculum = () => {
     if (isEditMode) {
       saveCourseChanges();
       return;
     }
+    if (!saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title, coursePoints })) { setSaveStatus(language === 'ar' ? 'تعذّر حفظ المسودة.' : 'Unable to save the draft.'); return; }
     navigate("/instructor/courses/new/curriculum");
   };
 
@@ -536,9 +538,9 @@ export default function CreateCoursePage() {
                 <div className="create-points-number">{coursePoints}</div>
 
                 <div className="create-points-copy">
-                  <span>{coursePoints} {c.points} {c.approvedPointsLabel}</span>
+                  <span>{coursePoints} {c.approvedPointsLabel}</span>
                   <p>
-                    {c.pointsCompletionDescription.replace("{points}", coursePoints)}
+                    {c.pointsCompletionDescription.replaceAll("{points}", coursePoints)}
                   </p>
                 </div>
 

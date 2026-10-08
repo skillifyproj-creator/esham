@@ -4,14 +4,17 @@ import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router';
-const server = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
-let certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages;
+const server = await createServer({ cacheDir:'node_modules/.vite-tests', optimizeDeps:{noDiscovery:true,include:[]}, server: { middlewareMode: true }, appType: 'custom' });
+let publishing, submissions, mediaValidation, videoValidation, accountApi, certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages, ledger, courseStorage;
 try {
   [categories, courses, profile, draft, workspace, reviews] = await Promise.all([
     '/src/data/categories.js', '/src/data/courses.js', '/src/hooks/useAccountProfile.js',
     '/src/data/instructorCourseDraft.js', '/src/data/instructorCourseWorkspace.js', '/src/services/categoryAdminService.js',
   ].map(path => server.ssrLoadModule(path)));
+  [publishing,submissions,mediaValidation,videoValidation,accountApi]=await Promise.all(['/src/services/coursePublishing.js','/src/services/taskSubmissions.js','/src/services/mediaStore.js','/src/services/videoProcessing.js','/src/services/accountApi.js'].map(path=>server.ssrLoadModule(path)));
   certificatePolicy = await server.ssrLoadModule('/src/data/certificates.js');
+  ledger = await server.ssrLoadModule('/src/data/pointsLedger.js');
+  courseStorage = await server.ssrLoadModule('/src/data/instructorCourseStorage.js');
   reportPolicy = await server.ssrLoadModule('/src/services/courseReports.js');
   newPages = await Promise.all(['/src/pages/learner/LearnerCertificatesPage.jsx','/src/pages/shared/ModerationQueuePage.jsx','/src/pages/shared/PlatformHelpPage.jsx','/src/pages/instructor/InstructorReviewReportPage.jsx','/src/pages/instructor/InstructorCertificatesPage.jsx'].map(path=>server.ssrLoadModule(path)));
   adminModules = await Promise.all(['/src/pages/admin/SuperAdminModule.jsx','/src/pages/category-admin/CategoryAdminModule.jsx'].map(path=>server.ssrLoadModule(path)));
@@ -27,6 +30,100 @@ const session = memory();
 globalThis.sessionStorage = session;
 globalThis.localStorage = memory();
 globalThis.window = { localStorage: globalThis.localStorage, sessionStorage: session };
+
+test('every catalog course costs 20 and the welcome grant is issued only once', () => {
+  localStorage.clear();
+  const learner = { id: 'new-learner', role: 'learner' };
+  assert.ok(courses.courses.every(course => course.points === 20));
+  for (let i = 0; i < 3; i++) ledger.initializeWallet(learner);
+  assert.equal(ledger.getAccountWallet(learner).balance, 20);
+  assert.equal(ledger.getAccountWallet(learner).transactions.length, 1);
+  localStorage.clear();
+});
+
+test('enrollment commits registration, debit and teacher credit once and survives reads', () => {
+  localStorage.clear();
+  const learner = { id: 'new-learner', role: 'learner' };
+  const teacher = { id: courses.courses[0].instructorId, role: 'instructor' };
+  const enrolled = ledger.enrollWithPoints(learner, 1);
+  assert.deepEqual(ledger.enrollWithPoints(learner, 1), enrolled);
+  assert.equal(ledger.getAccountWallet(learner).balance, 0);
+  assert.equal(ledger.getAccountWallet(learner).enrollments.length, 1);
+  assert.equal(ledger.getAccountWallet(teacher).balance, 40);
+  assert.equal(ledger.getAccountWallet(teacher).earned, 20);
+  assert.equal(ledger.getAccountWallet(learner).earned, 0);
+  ledger.initializeWallet({ ...learner, role: 'both' });
+  ledger.initializeWallet({ ...learner, role: 'instructor' });
+  assert.equal(ledger.getAccountWallet(learner).balance, 0);
+  assert.equal(ledger.getAccountWallet({ ...learner, role: 'both' }).enrollments.length, 1);
+  localStorage.clear();
+});
+
+test('each distinct learner gives the instructor 20 points for the same course', () => {
+  localStorage.clear();
+  ledger.enrollWithPoints({ id: 'learner-a', role: 'learner' }, 1);
+  ledger.enrollWithPoints({ id: 'learner-b', role: 'both' }, 1);
+  const teacher = { id: courses.courses[0].instructorId };
+  assert.equal(ledger.getAccountWallet(teacher).earned, 40);
+  assert.equal(ledger.getAccountWallet(teacher).balance, 60);
+  assert.equal(ledger.getAccountWallet({ id: 'learner-c' }).balance, 20);
+  localStorage.clear();
+});
+
+test('insufficient balance, invalid role and self enrollment never change the ledger', () => {
+  localStorage.clear();
+  const learner = { id: 'learner-a', role: 'learner' };
+  ledger.enrollWithPoints(learner, 1);
+  const before = localStorage.getItem('esham-points-ledger-v1');
+  assert.throws(() => ledger.enrollWithPoints(learner, 2), /balance/);
+  assert.throws(() => ledger.enrollWithPoints({ id: 'teacher', role: 'instructor' }, 2), /learner-role/);
+  assert.throws(() => ledger.enrollWithPoints({ id: courses.courses[0].instructorId, role: 'both' }, 1), /own-course/);
+  assert.throws(() => ledger.enrollWithPoints(learner, 'missing'), /course/);
+  assert.equal(localStorage.getItem('esham-points-ledger-v1'), before);
+  localStorage.clear();
+});
+
+test('storage failure cannot partially debit the learner or credit the instructor', () => {
+  localStorage.clear();
+  const learner = { id: 'learner-a', role: 'learner' };
+  ledger.initializeWallet(learner);
+  const before = localStorage.getItem('esham-points-ledger-v1');
+  const setter = localStorage.setItem;
+  try {
+    localStorage.setItem = () => { throw new Error('quota'); };
+    assert.throws(() => ledger.enrollWithPoints(learner, 1), /quota/);
+  } finally { localStorage.setItem = setter; }
+  assert.equal(localStorage.getItem('esham-points-ledger-v1'), before);
+  assert.equal(ledger.getAccountWallet(learner).balance, 20);
+  localStorage.clear();
+});
+
+test('course metadata and curriculum persist together and failed saves retain prior data', () => {
+  localStorage.clear();
+  assert.equal(courseStorage.persistInstructorCourse('digital-content', { title: { ar: 'عنوان محفوظ', en: 'Saved title' } }), true);
+  assert.equal(courseStorage.persistInstructorCourse('digital-content', { curriculum: [{ id: 'section-1', title: 'Section', lessons: [] }] }), true);
+  const saved = courseStorage.readSavedInstructorCourse('digital-content');
+  assert.equal(saved.title.en, 'Saved title');
+  assert.equal(saved.curriculum[0].id, 'section-1');
+  assert.equal(workspace.getInstructorCourseWorkspace('digital-content').course.title.en, 'Saved title');
+  assert.equal(workspace.getInstructorCourseWorkspace('digital-content').sections[0].id, 'section-1');
+  const setter = localStorage.setItem;
+  try {
+    localStorage.setItem = () => { throw new Error('quota'); };
+    assert.equal(workspace.saveWorkspaceSections('digital-content', []), false);
+    assert.deepEqual(courseStorage.readSavedInstructorCourse('digital-content'), saved);
+  } finally { localStorage.setItem = setter; localStorage.clear(); }
+});
+
+test('draft migrates from the session to durable storage without losing its content', () => {
+  localStorage.clear(); session.clear();
+  session.setItem('esham-instructor-course-draft-v1', JSON.stringify({ title: { ar: 'مسودة', en: 'Draft' }, curriculum: [] }));
+  assert.equal(draft.saveInstructorCourseDraft({ objectives: [{ ar: 'هدف', en: 'Goal' }] }), true);
+  session.clear();
+  assert.equal(draft.readInstructorCourseDraft().title.en, 'Draft');
+  assert.equal(draft.readInstructorCourseDraft().objectives[0].en, 'Goal');
+  localStorage.clear();
+});
 test('category order preserves existing profile selections and catalog labels', () => {
   assert.deepEqual(categories.categories.map(c => c.id), ['programming','design','photography','marketing','crafts','business']);
   assert.deepEqual(courses.categoryKeys, ['all', ...categories.categories.map(c => c.id)]);
@@ -45,6 +142,65 @@ test('invalid storage falls back to the next role source', () => {
   session.setItem('esham-onboarding-draft-v1', JSON.stringify({isInstructor:true}));
   assert.equal(profile.readAccountProfile().role, 'instructor');
   window.localStorage.clear(); session.clear();
+});
+test('hybrid activation preserves identity and both learning and teaching records', () => {
+  const originalDispatch = window.dispatchEvent;
+  let updates = 0;
+  window.dispatchEvent = event => { assert.equal(event.type, 'esham-profile-updated'); updates++; };
+  try {
+    for (const role of ['learner', 'instructor']) {
+      const account = { id: 'existing-user', role, name: 'Existing user', username: 'existing', interests: [1], teachingAreas: [2], customSkills: ['Design'], goal: 2 };
+      localStorage.setItem('esham-account-profile-v1', JSON.stringify(account));
+      localStorage.setItem('esham-learner-progress-v1', '[{"courseId":6,"completedLessonIds":["lesson-1"]}]');
+      localStorage.setItem('esham-task-submissions-v1', '{"task-1":{"status":"submitted"}}');
+      session.setItem('esham-instructor-course-draft-v1', '{"title":{"en":"Existing draft"}}');
+      const learning = localStorage.getItem('esham-learner-progress-v1');
+      const tasks = localStorage.getItem('esham-task-submissions-v1');
+      const teaching = session.getItem('esham-instructor-course-draft-v1');
+      const upgraded = profile.updateAccountRole('both');
+      assert.deepEqual(upgraded, { ...account, role: 'both', roles: ['learner', 'instructor'] });
+      assert.equal(profile.readAccountProfile().role, 'both');
+      assert.equal(localStorage.getItem('esham-learner-progress-v1'), learning);
+      assert.equal(localStorage.getItem('esham-task-submissions-v1'), tasks);
+      assert.equal(session.getItem('esham-instructor-course-draft-v1'), teaching);
+    }
+    assert.equal(updates, 2);
+  } finally { window.dispatchEvent = originalDispatch; localStorage.clear(); session.clear(); }
+});
+test('hybrid activation does not announce success when storage fails', () => {
+  const originalStorage = window.localStorage;
+  const originalDispatch = window.dispatchEvent;
+  let updates = 0;
+  window.localStorage = { getItem: () => JSON.stringify({ role: 'learner', id: 'existing-user' }), setItem: () => { throw new Error('Storage unavailable'); } };
+  window.dispatchEvent = () => { updates++; };
+  try { assert.throws(() => profile.updateAccountRole('both'), /Storage unavailable/); assert.equal(updates, 0); }
+  finally { window.localStorage = originalStorage; window.dispatchEvent = originalDispatch; }
+});
+test('all account type transitions preserve history and synchronize legacy flags', () => {
+  const originalDispatch = window.dispatchEvent;
+  window.dispatchEvent = () => {};
+  try {
+    for (const from of ['learner', 'instructor', 'both']) {
+      for (const to of ['learner', 'instructor', 'both']) {
+        const account = { id: 'same-user', role: from, roles: from === 'both' ? ['learner', 'instructor'] : [from], isLearner: from !== 'instructor', isInstructor: from !== 'learner', learner: from !== 'instructor', instructor: from !== 'learner', name: 'Existing user', email: 'user@example.com', interests: [1], teachingAreas: [2] };
+        localStorage.setItem('esham-account-profile-v1', JSON.stringify(account));
+        localStorage.setItem('esham-learner-progress-v1', 'existing learning history');
+        localStorage.setItem('esham-task-submissions-v1', 'existing task history');
+        session.setItem('esham-instructor-course-draft-v1', 'existing teaching history');
+        const next = profile.updateAccountRole(to);
+        assert.equal(profile.readAccountProfile().role, to);
+        for (const field of ['id', 'email', 'name', 'interests', 'teachingAreas']) assert.deepEqual(next[field], account[field]);
+        assert.equal(next.isLearner, to !== 'instructor');
+        assert.equal(next.isInstructor, to !== 'learner');
+        assert.equal(localStorage.getItem('esham-learner-progress-v1'), 'existing learning history');
+        assert.equal(localStorage.getItem('esham-task-submissions-v1'), 'existing task history');
+        assert.equal(session.getItem('esham-instructor-course-draft-v1'), 'existing teaching history');
+      }
+    }
+    const before = localStorage.getItem('esham-account-profile-v1');
+    assert.throws(() => profile.updateAccountRole('admin'), /Invalid account role/);
+    assert.equal(localStorage.getItem('esham-account-profile-v1'), before);
+  } finally { window.dispatchEvent = originalDispatch; localStorage.clear(); session.clear(); }
 });
 test('course draft preserves information while saving curriculum and rejects malformed values', () => {
   session.setItem('esham-instructor-course-draft-v1', '[]');
@@ -169,4 +325,59 @@ test('reports validate content and prevent duplicate open incidents', () => {
 test('new certificate, report, help and instructor pages render in both languages', () => {
  const paths=[['/learner/certificates','*'],['/admin/moderation','*'],['/help/support','/help/:topic'],['/instructor/courses/photography/review-report','/instructor/courses/:courseId/review-report'],['/instructor/certificates','*']];
  for(const language of ['ar','en']){localStorage.setItem('esham-language',language);newPages.forEach((module,index)=>assert.match(renderLearner(h(module.default),...paths[index]),/<h1/));}
+});
+
+
+const publishingFixture = () => ({
+ course: { id:'qa-publish',title:{ar:'دورة اختبار',en:'Test course'},description:{ar:'وصف دورة اختبار متكامل للتأكد من نشر المحتوى بعد الاعتماد فقط.',en:'A complete test description for reviewing and publishing course content.'},categoryKey:'programming',language:'ar',image:'/images/auth-learning.jpg',level:'beginner',objectives:['إتمام التطبيق'] },
+ sections:[{id:'section-test',title:'الوحدة الأولى',lessons:[{id:'lesson-test',title:'درس تجريبي',description:'محتوى مكتمل يشرح الخطوات العملية بالتفصيل المطلوب.',contentType:'article',status:'ready',minutes:5,objectives:['تطبيق الخطوات']}],task:{id:'qa-task',title:'مهمة تجريبية',description:'وصف مهمة تجريبية يتضمن التطبيق العملي والمتطلبات.',instructions:'طبّق خطوات الدرس ثم أرسل شرحًا للنتيجة التي أنجزتها.',requirements:['وضوح النتيجة'],status:'ready'}}]
+});
+test('publication stays private until scoped approval and preserves the approved snapshot during edits',()=>{
+ localStorage.clear(); const {course,sections}=publishingFixture(),owner={id:'qa-teacher',role:'instructor',name:'QA Teacher'};
+ const submitted=publishing.submitCourse(course,sections,owner);
+ assert.equal(publishing.asPublicCourse(submitted),null);
+ assert.throws(()=>publishing.submitCourse(course,sections,owner),/pending/);
+ assert.throws(()=>publishing.reviewSubmission(course.id,'approve','',{id:'wrong',categoryIds:['design']}),/scope/);
+ const approved=publishing.reviewSubmission(course.id,'approve','',{id:'reviewer',categoryIds:['programming']});
+ assert.equal(publishing.asPublicCourse(approved).instructorId,owner.id);
+ publishing.updateSubmittedCourse(course.id,{title:{ar:'عنوان معدل',en:'Edited title'}});
+ assert.equal(publishing.asPublicCourse(publishing.readSubmissions()[0]).title.en,'Test course');
+ publishing.submitCourse({...course,title:{ar:'عنوان معدل',en:'Edited title'}},sections,owner);
+ assert.equal(publishing.asPublicCourse(publishing.readSubmissions()[0]).title.en,'Test course');localStorage.clear();
+});
+test('a failed publication does not announce pending state or lose the previous queue',()=>{
+ localStorage.clear();const {course,sections}=publishingFixture(),storage=globalThis.localStorage;
+ globalThis.localStorage={getItem:storage.getItem,setItem:()=>{throw Error('quota');}};
+ assert.throws(()=>publishing.submitCourse(course,sections,{id:'qa-teacher'}),/quota/);
+ globalThis.localStorage=storage;assert.equal(publishing.readSubmissions().length,0);
+});
+test('task submission requires enrollment and only its instructor may approve; review gives no points',()=>{
+ localStorage.clear();const {course,sections}=publishingFixture();publishing.submitCourse(course,sections,{id:'qa-teacher',name:'QA Teacher'});
+ publishing.reviewSubmission(course.id,'approve','',{id:'reviewer',categoryIds:['programming']});courses.refreshPublishedCourses();
+ const learner={id:'qa-student',role:'learner'},teacher={id:'qa-teacher',role:'instructor'};
+ assert.throws(()=>submissions.saveTaskSubmission(learner,'qa-task',{answer:'Test answer',submit:true}),/locked/);
+ ledger.enrollWithPoints(learner,course.id);const record=submissions.saveTaskSubmission(learner,'qa-task',{answer:'Test answer',submit:true});
+ assert.throws(()=>submissions.saveTaskSubmission(learner,'qa-task',{answer:'Overwrite'}),/locked/);
+ assert.throws(()=>submissions.reviewTaskSubmission({...teacher,id:'another'},record.id,true),/scope/);
+ const balance=ledger.getAccountWallet(teacher).balance;submissions.reviewTaskSubmission(teacher,record.id,true,'Accepted');
+ assert.equal(submissions.readTaskSubmissions()[0].status,'completed');assert.equal(ledger.getAccountWallet(teacher).balance,balance);
+ courses.courses.splice(courses.courses.findIndex(item=>item.id===course.id),1);localStorage.clear();
+});
+test('video and attachments reject empty, oversized and unsupported files; trimming validates bounds',()=>{
+ assert.throws(()=>mediaValidation.validateVideo({name:'movie.mp4',type:'video/mp4',size:0}),/size/);
+ assert.throws(()=>mediaValidation.validateVideo({name:'bad.exe',type:'video/mp4',size:100}),/type/);
+ assert.throws(()=>mediaValidation.validateAttachments([{name:'bad.pdf',size:11*1024**2}]),/limit/);
+ assert.throws(()=>mediaValidation.validateAttachments([{name:'file.pdf',size:1}],5),/limit/);
+ assert.doesNotThrow(()=>mediaValidation.validateAttachments([{name:'file.pdf',size:1}]));
+ assert.throws(()=>videoValidation.validateTrim(-1,2,3),/trim/);assert.throws(()=>videoValidation.validateTrim(0,4,3),/trim/);assert.doesNotThrow(()=>videoValidation.validateTrim(1,2,3));
+});
+test('account requests use cookies and safely classify invalid responses, failures and timeouts',async()=>{
+ const base='/api';let request;
+ const result=await accountApi.accountRequest('/auth/login',{email:'qa@example.test',password:'test-only'},{base,fetcher:async(url,options)=>{request={url,options};return {ok:true,status:200,json:async()=>({profile:{id:'qa'}})};}});
+ assert.equal(result.profile.id,'qa');assert.equal(request.options.credentials,'include');assert.equal(request.url,'/api/auth/login');
+ await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base,fetcher:async()=>({ok:false,status:401})}),error=>error.code==='unauthorized');
+ await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base,fetcher:async()=>({ok:true,status:200,json:async()=>{throw Error('invalid');}})}),error=>error.code==='response');
+ await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base,fetcher:async()=>{throw TypeError('network');}}),error=>error.code==='network');
+ await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base,timeout:5,fetcher:async(url,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('aborted','AbortError'))))}),error=>error.code==='timeout');
+ await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base:''}),error=>error.code==='unconfigured');
 });

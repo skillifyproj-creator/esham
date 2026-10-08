@@ -1,3 +1,4 @@
+import { accountRequest, accountError, apiBase } from '../../services/accountApi';
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -10,6 +11,8 @@ import "../../styles/auth.css";
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [requestError, setRequestError] = useState('');
   const {
     language,
     theme,
@@ -51,7 +54,7 @@ export default function SignupPage() {
     setReady(false);
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
 
     const next = {};
@@ -78,12 +81,18 @@ export default function SignupPage() {
     const firstError = Object.keys(next)[0];
     inputs.current[firstError]?.focus();
 
-    if (Object.keys(next).length === 0) {
+    if (Object.keys(next).length === 0 && !busy) {
+      setBusy(true); setRequestError('');
+      let registered;
+      if (apiBase) {
+        try { registered = await accountRequest('/auth/register', { name: values.name.trim(), email: values.email.trim(), password: values.password }); if (!registered?.profile?.id) throw { code: 'response' }; }
+        catch (error) { setRequestError(accountError(error, language)); setBusy(false); return; }
+      }
       // Frontend setup only; never persist passwords or claim account creation.
       try {
-        sessionStorage.setItem('esham-onboarding-draft-v1', JSON.stringify({ name: values.name.trim(), username: '', bio: '', role: '', interests: [], teachingAreas: [], customSkills: [], goal: null }));
-      } catch { /* Setup is still available without browser storage. */ }
-      navigate('/onboarding/role');
+        sessionStorage.setItem('esham-onboarding-draft-v1', JSON.stringify({ id: registered?.profile?.id, name: values.name.trim(), username: '', bio: '', role: '', interests: [], teachingAreas: [], customSkills: [], goal: null }));
+      } catch { setRequestError(language === 'ar' ? 'تعذّر حفظ إعداد الحساب. فعّل تخزين المتصفح ثم حاول مجددًا.' : 'Unable to save account setup. Enable browser storage and retry.'); setBusy(false); return; }
+      setBusy(false); navigate('/onboarding/role');
     }
     // ربط API التسجيل يتم هنا لاحقًا.
     // لا نحفظ كلمات المرور في localStorage.
@@ -229,10 +238,12 @@ export default function SignupPage() {
               );
             })}
 
-            <button className="auth-submit" type="submit">
+            <button className="auth-submit" type="submit" disabled={busy} aria-busy={busy}>
               {t.submit}
             </button>
 
+            {requestError && <p className="auth-error" role="alert">{requestError}</p>}
+            {!apiBase && <p className="auth-status">{language === 'ar' ? 'إنشاء ملف تجريبي على هذا الجهاز لحين اتصال خدمة الحسابات.' : 'Create a demo profile on this device until the account service is connected.'}</p>}
             {ready && (
               <p className="auth-status" role="status">
                 {t.ready}

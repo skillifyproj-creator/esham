@@ -1,5 +1,5 @@
 import useAccountName from "../../hooks/useAccountName";
-import PendingFeature from "../../components/shared/PendingFeature";
+import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { Link } from "react-router";
 import Icon from "../../components/Icon";
 import { instructorDemo } from "../../data/instructorDemo";
@@ -9,6 +9,7 @@ import "../../styles/instructor-dashboard.css";
 
 export default function InstructorDashboard() {
   const accountName = useAccountName();
+  const { earned } = useLearnerWallet();
   const { language } = usePreferences();
   const c = instructorCopy[language];
   const { instructor, stats, performance, needsAttention, activities } =
@@ -25,7 +26,7 @@ export default function InstructorDashboard() {
     <section className="instructor-dashboard">
       <div className="instructor-container">
 
-        <p className="account-note">{language === 'ar' ? 'إحصاءات التدريس والنقاط المكتسبة أدناه بيانات تجريبية، ولا تمثل رصيد المحفظة الظاهر في الهيدر.' : 'Teaching statistics and earned points below are demo data and do not represent the wallet balance shown in the header.'}</p>
+        <p className="account-note">{language === 'ar' ? 'إحصاءات التدريس والنقاط المكتسبة أدناه بيانات تجريبية، ولا تمثل رصيد المحفظة الظاهر في قائمة الحساب.' : 'Teaching statistics and earned points below are demo data and do not represent the wallet balance shown in the account menu.'}</p>
         {/* Welcome */}
         <section className="instructor-welcome">
           <div>
@@ -66,7 +67,7 @@ export default function InstructorDashboard() {
 
             <div className="instructor-stat-content">
               <span>{c.myCoursesStat}</span>
-              <strong>{stats.courses}</strong>
+              <strong>{instructorDemo.courses.length}</strong>
 
               <small>
                 <b>+{stats.coursesAddedThisMonth}</b> {c.thisMonth}
@@ -99,7 +100,7 @@ export default function InstructorDashboard() {
             <div className="instructor-stat-content">
               <span>{c.earnedPoints}</span>
               <strong>
-                {stats.points.toLocaleString("en-US")}
+                {earned.toLocaleString("en-US")}
               </strong>
 
               <small className="green-text">
@@ -286,7 +287,7 @@ export default function InstructorDashboard() {
                     <Icon name="plus" size={19} />
                     <span>{c.createNewCourse}</span>
                   </Link>
-                  <Link to="/instructor/certificates"><Icon name="award" size={19}/><span>{c.learnerCertificates}</span></Link>
+
                 </div>
               </section>
             </div>

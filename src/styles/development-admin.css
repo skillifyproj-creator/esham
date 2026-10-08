@@ -1,0 +1,8 @@
+.development-admin-menu{position:fixed;inset-inline-start:18px;bottom:18px;z-index:80;max-width:calc(100vw - 36px)}
+.development-admin-access{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);box-shadow:0 4px 18px #0002;font-size:12px;text-decoration:none;cursor:pointer}
+.development-admin-menu nav{display:grid;gap:6px;padding:12px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:0 4px 18px #0002}
+.development-admin-menu nav a{padding:10px 12px;border-radius:8px;color:var(--text);text-decoration:none}
+.development-admin-menu nav a:hover,.development-admin-menu nav a:focus-visible{background:var(--surface-soft,#f0edf0)}
+.development-admin-menu small{padding:6px 12px;color:var(--muted);font-size:11px}
+.development-admin-access:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+@media print{.development-admin-menu{display:none!important}}

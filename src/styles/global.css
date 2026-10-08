@@ -176,6 +176,15 @@ html[data-theme='dark'] {
   background: #191416 !important;
 }
 
+html[data-theme='dark'] .site-logo,
+html[data-theme='dark'] .workspace-brand img,
+html[data-theme='dark'] .onboarding-header img,
+html[data-theme='dark'] .auth-topbar img {
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px;
+}
+
 html[data-theme='dark'] body {
   background: #191416 !important;
   color: #F8F1F2 !important;

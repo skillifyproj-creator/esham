@@ -1,3 +1,5 @@
+import { saveMedia, validateAttachments, formatBytes } from '../../services/mediaStore';
+import { StoredFileLink } from '../../components/shared/StoredMedia';
 /**الصفحة فيها بحث، فلترة حسب الدورة والحالة، تفاصيل المهمة، مسودة، وتسليم تجريبي. لملف مرفق حاليًا نستخدم رابط مشاركة؛ رفع الملف فعليًا يحتاج تخزينًا بالباك. */
 
 import { useState } from "react";
@@ -23,14 +25,14 @@ const copy = {
     link: "رابط العمل أو ملف مشترك",
     draft: "حفظ مسودة",
     submit: "حفظ كتسليم تجريبي",
-    error: "أضيفي حلًا أو رابطًا صالحًا يبدأ بـ https:// أو http://.",
+    error: "أضف حلًا أو ملفًا أو رابطًا صالحًا. إذا تعذّر الحفظ تحقق من تخزين المتصفح.",
     saved: "تم الحفظ محليًا.",
     empty: "لا توجد مهام مطابقة.",
     demo:
-      "تجربة فرونت: الحفظ على هذا المتصفح فقط، ولم يُرسل العمل إلى المدرّب. لملف مرفق، ضعي رابط مشاركة؛ رفع الملفات ومراجعتها يضافان مع الباك.",
+      "تجربة فرونت: الحفظ على هذا المتصفح فقط، ولم يُرسل العمل إلى المدرّب. يمكن إرفاق ملفات محفوظة على هذا الجهاز، أو إضافة رابط عمل.",
     lesson: "الانتقال إلى الدورة",
     submitted:
-      "تسليم تجريبي محفوظ، بانتظار ربط مراجعة المدرّب.",
+      "التسليم محفوظ وبانتظار مراجعة المدرّب في هذه المعاينة المحلية.",
   },
 
   en: {
@@ -48,23 +50,25 @@ const copy = {
     link: "Work or shared file URL",
     draft: "Save draft",
     submit: "Save demo submission",
-    error: "Add an answer or a valid http:// or https:// URL.",
+    error: "Add an answer, file or valid http:// or https:// URL. If saving fails, check browser storage.",
     saved: "Saved locally.",
     empty: "No matching tasks.",
     demo:
-      "Frontend demo: saved only in this browser, not sent to an instructor. Use a shared file URL; uploads and instructor review will be connected to the backend.",
+      "Frontend demo: saved only in this browser, not sent to an instructor. You can attach files saved on this device or add a work URL.",
     lesson: "Open course",
     submitted:
-      "Demo submission saved; instructor review integration is pending.",
+      "Submission saved, awaiting instructor review in this local preview.",
   },
 };
 
 function TaskEditor({ task, t, onClose }) {
   const { saveTask } = useLearnerTasks();
+  const { language } = usePreferences();
 
   const [answer, setAnswer] = useState(task.answer ?? "");
   const [link, setLink] = useState(task.link ?? "");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
+  const [files,setFiles]=useState(task.files||[]),[uploading,setUploading]=useState(false);
 
   const locked = [
     "awaitingReview",
@@ -72,11 +76,13 @@ function TaskEditor({ task, t, onClose }) {
   ].includes(task.status);
 
   function save(submit) {
+    if(uploading)return;
     const success = saveTask(
       task.id,
       answer,
       link,
       submit,
+      files,
     );
 
     if (!success) {
@@ -123,6 +129,13 @@ function TaskEditor({ task, t, onClose }) {
         />
       </label>
 
+      {task.instructions && <p style={{whiteSpace:'pre-wrap'}}>{task.instructions.ar || task.instructions.en || task.instructions}</p>}
+      {task.requirements?.length>0 && <ul>{task.requirements.map((item,index)=><li key={index}>{typeof item==='string'?item:item.ar||item.en}</li>)}</ul>}
+      {task.resources?.length>0 && <ul>{task.resources.map(file=><li key={file.id}><StoredFileLink file={file}/></li>)}</ul>}
+      <label>{t.link} · PDF / images / TXT / DOCX<input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" disabled={locked||uploading} onChange={async event=>{const selected=[...event.target.files];event.target.value='';setUploading(true);try{validateAttachments(selected,files.length);const stored=await Promise.all(selected.map(file=>saveMedia(file,{name:file.name})));setFiles(previous=>[...previous,...stored.map(file=>({...file,mediaId:file.id,size:formatBytes(file.sizeBytes)}))]);setMessage(t.saved);}catch{setMessage(t.error+' (5 files / 10MB)');}finally{setUploading(false);}}}/></label>
+      {files.map(file=><p key={file.id}><StoredFileLink file={file}/>{!locked&&<button type="button" disabled={uploading} onClick={()=>setFiles(previous=>previous.filter(item=>item.id!==file.id))}>×</button>}</p>)}
+      {uploading&&<p role="status">{language === 'ar' ? 'جاري حفظ الملفات…' : 'Saving files…'}</p>}
+      {task.feedback&&<p>{task.feedback}</p>}
       {locked && <p>{t.submitted}</p>}
 
       <p role="status">{message}</p>
@@ -132,12 +145,13 @@ function TaskEditor({ task, t, onClose }) {
           <button
             type="button"
             className="button button-outline"
+            disabled={uploading}
             onClick={() => save(false)}
           >
             {t.draft}
           </button>
 
-          <button className="button" type="submit">
+          <button className="button" type="submit" disabled={uploading}>
             {t.submit}
           </button>
         </div>

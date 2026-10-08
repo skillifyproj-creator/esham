@@ -1,5 +1,5 @@
 import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
-import PendingFeature from "../../components/shared/PendingFeature";
+import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
@@ -14,7 +14,10 @@ import "../../styles/instructor-courses.css";
 export default function InstructorCoursesPage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
-  const { courses } = instructorDemo;
+  const { transactions, earned } = useLearnerWallet();
+  const courses = useMemo(() => instructorDemo.courses.map(course => ({ ...course,
+    points: transactions.filter(item => item.type === 'teaching' && item.courseId === (instructorPublicCourseIds[course.id] || course.id)).reduce((sum, item) => sum + item.points, 0),
+  })), [transactions]);
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -116,11 +119,7 @@ export default function InstructorCoursesPage() {
     0,
   );
 
-  const totalPoints = publishedCourses.reduce(
-    (total, course) =>
-      total + (course.points || 0),
-    0
-  );
+  const totalPoints = earned;
 
   const averageRating =
     publishedCourses.length > 0
@@ -165,7 +164,7 @@ export default function InstructorCoursesPage() {
             </p>
           </div>
 
-          <div className="instructor-courses-heading-actions">
+          <div className="instructor-courses-heading-actions"><Link className="instructor-preview-button" to="/instructor/courses/certificates"><Icon name="award" size={17}/>{language === "ar" ? "شهادات المتعلّمين" : "Learner certificates"}</Link>
 
             <Link
               to="/instructor/courses/new"
@@ -490,11 +489,10 @@ function CourseCard({ course, copy: c, language }) {
             {c.reviewNeedsResponse}
           </strong>
 
-          <PendingFeature
-            className="instructor-review-link"
-          >
+          <Link to={`/instructor/courses/${course.id}/review-report`}
+            className="instructor-review-link">
             {course.category[language]}
-          </PendingFeature>
+          </Link>
 
         </div>
 
@@ -684,7 +682,7 @@ function CourseCard({ course, copy: c, language }) {
 
           {course.courseStatus === "published" && (
             <>
-              <Link to={"/courses/" + (instructorPublicCourseIds[course.id] ?? course.id)} className="instructor-course-button instructor-course-button-outline">
+              <Link to={instructorPublicCourseIds[course.id] ? `/courses/${instructorPublicCourseIds[course.id]}` : `/instructor/courses/${course.id}/preview`} className="instructor-course-button instructor-course-button-outline">
                 {c.viewCourse}<Icon name="eye" size={14} />
               </Link>
               <Link to={`/instructor/courses/${course.id}/edit`} className="instructor-course-button instructor-course-button-outline">

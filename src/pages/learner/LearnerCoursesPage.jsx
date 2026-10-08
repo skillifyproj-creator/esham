@@ -93,6 +93,7 @@ function EnrolledCourseCard({ enrollment, language, t }) {
         >
           {isComplete ? t.reviewCourse : t.continueLearning}
         </Link>
+        <Link className="button button-outline button-small" to={`/learner/courses/certificates/${course.id}`}>{language === "ar" ? "الشهادة ومتطلباتها" : "Certificate requirements"}</Link>
       </div>
     </article>
   );
@@ -173,9 +174,9 @@ const { enrollments: learnerEnrollments } = useLearner();
             <p>{t.myCoursesIntro}</p>
           </div>
 
-          <Link className="button button-outline" to="/courses">
+          <div className="account-actions"><Link className="button button-outline" to="/learner/courses/certificates">{language === "ar" ? "شهاداتي" : "My certificates"}</Link><Link className="button button-outline" to="/courses">
             {t.explore}
-          </Link>
+          </Link></div>
         </header>
 
         <p className="learner-demo-label">{t.demo}</p>

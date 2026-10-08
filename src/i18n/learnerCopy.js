@@ -24,7 +24,7 @@ export const learnerCopy = {
       "استخدم نقاطك للتعلّم، وطوّر مهاراتك داخل مجتمع إسهام.",
     pointsDetails: "تفاصيل النقاط",
     pointsDemo:
-      "هذا رصيد تجريبي. محفظة النقاط وسجل الحركات سنضيفهما في صفحة مستقلة، ثم نربطهما بالباك.",
+      "المحفظة وسجل التسجيل محفوظان في هذا المتصفح للتجربة.",
 
     tasks: "مهامك القادمة",
     tasksIntro: "طبّق ما تعلّمته من خلال مهام عملية.",
@@ -76,7 +76,7 @@ continueLearning: "متابعة التعلّم",
       "Use your points to learn and grow within the Esham community.",
     pointsDetails: "Points details",
     pointsDemo:
-      "This is a demo balance. The points wallet and transaction history will be added as a separate page and connected to the backend.",
+      "Wallet and enrollment history are saved in this browser for preview.",
 
     tasks: "Your upcoming tasks",
     tasksIntro: "Put what you learn into practice.",
