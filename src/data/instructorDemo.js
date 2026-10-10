@@ -432,8 +432,8 @@ export const instructorDemo = {
       id: 3,
 
       text: {
-        ar: "تمت إضافة 20 نقطة إلى رصيدك من نشاط تعليمي مميز.",
-        en: "20 points were added to your balance for an outstanding learning activity.",
+        ar: "تمت إضافة 20 نقطة إلى رصيدك عن تسجيل متعلّم في دورتك.",
+        en: "20 points were added to your balance for a learner enrollment in your course.",
       },
 
       time: { ar: "منذ 4 ساعات", en: "4 hours ago" },

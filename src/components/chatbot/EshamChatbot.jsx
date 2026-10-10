@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../../styles/esham-chatbot.css";
 import { usePreferences } from "../../context/PreferencesContext";
+import { pointsPolicy } from "../../data/pointsPolicy";
+import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 const copy = {
   ar: {
     title: "إسهام للمهارات والتعلّم",
@@ -34,13 +36,12 @@ const copy = {
       "قد يخطئ المساعد أحيانًا؛ تحقّق من المعلومات المهمة. التسجيل وصرف النقاط يتمان داخل إسهام.",
     demo: "بيانات توضيحية للمعاينة",
     wallet: "محفظة نقاط التعلم",
-    sampleBalance: "80",
     points: "نقطة",
     balance: "رصيد تجريبي",
-    walletNote: "الرصيد الحقيقي يظهر بعد ربط حسابك.",
+    walletNote: "الرصيد المحلي لحسابك؛ المزامنة بين الأجهزة تحتاج ربط الخدمة.",
     rules: "ضوابط استبدال النقاط",
     rulesBody:
-      "يمكنك معرفة التكلفة والشروط في صفحة الدورة. المساعد يرشدك إلى الخطوات ولا يخصم النقاط نيابة عنك.",
+      "التسجيل في أي دورة يكلف 20 نقطة، ويكسب صاحبها 20 نقطة عن كل متعلّم يسجّل فيها. المساعد يرشدك ولا يخصم النقاط نيابة عنك.",
     context: "المساعد العام • اسأل عن أي مجال",
     contextLesson: "مساعدة في التعلّم • الدرس الحالي",
     contextAttachment: "تحليل مرفق • نسخة تجريبية",
@@ -63,7 +64,8 @@ const copy = {
       "وصلني سؤالك. هذه نسخة فرونت إند تجريبية، لذلك لا أقدّم جوابًا معرفيًا مختلقًا. بعد ربط نموذج عام ستظهر الإجابة المناسبة هنا، سواء تعلق السؤال بدورة أو بأي موضوع آخر.",
     courseCard: "دورة توضيحية",
     courseName: "تصميم الواجهات وتجربة المستخدم",
-    cost: "45 نقطة • مثال تصميمي",
+    cost: `${pointsPolicy.enrollmentCost} نقطة • تكلفة التسجيل الموحدة`,
+    enrollmentCost: "تكلفة التسجيل",
     cardAction: "كيف أسجّل باستخدام النقاط؟",
     stepTitle: "خطوات استخدام النقاط",
     stepItems: [
@@ -113,13 +115,12 @@ const copy = {
       "The assistant may make mistakes. Verify important information. Enrollment and point redemption happen within Es’ham.",
     demo: "Sample data for preview",
     wallet: "Learning points wallet",
-    sampleBalance: "80",
     points: "points",
     balance: "Sample balance",
-    walletNote: "Your real balance appears after account integration.",
+    walletNote: "Your local account balance; cross-device synchronization requires the account service.",
     rules: "Point redemption rules",
     rulesBody:
-      "Check costs and conditions on the course page. The assistant guides you but cannot redeem points for you.",
+      "Every course costs 20 points to enroll; its instructor earns 20 points per learner enrollment. The assistant guides you but cannot redeem points for you.",
     context: "General assistant • ask about anything",
     contextLesson: "Learning support • current lesson",
     contextAttachment: "Attachment analysis • demo",
@@ -143,7 +144,8 @@ const copy = {
       "I received your question. This frontend demo does not invent factual answers. A general AI model can respond here after integration, whether your question relates to a course or any other subject.",
     courseCard: "Sample course",
     courseName: "Interface and UX Design",
-    cost: "45 points • sample",
+    cost: `${pointsPolicy.enrollmentCost} points • fixed enrollment cost`,
+    enrollmentCost: "Enrollment cost",
     cardAction: "How do I enroll with points?",
     stepTitle: "Using points",
     stepItems: [
@@ -224,6 +226,7 @@ function Icon({ children }) {
 }
 export default function EshamChatbot() {
   const { language: lang, toggleLanguage } = usePreferences();
+  const { balance: walletBalance } = useLearnerWallet();
 
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
@@ -451,9 +454,9 @@ export default function EshamChatbot() {
                   </div>
                 </div>
                 <div className="balance-panel">
-                  <span>{w.balance}</span>
+                  <span>{hasCourse ? w.enrollmentCost : w.balance}</span>
                   <strong>
-                    {hasCourse ? "45" : w.sampleBalance}{" "}
+                    {hasCourse ? pointsPolicy.enrollmentCost : walletBalance}{" "}
                     <small>{w.points}</small>
                   </strong>
                   <p>{w.walletNote}</p>
@@ -572,7 +575,7 @@ export default function EshamChatbot() {
                               <small>{w.demo}</small>
                               <strong>{w.wallet}</strong>
                               <div className="balance-line">
-                                {w.sampleBalance} {w.points}
+                                {walletBalance} {w.points}
                               </div>
                               <p>{w.walletNote}</p>
                             </div>

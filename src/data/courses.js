@@ -9,7 +9,7 @@ const courseRecords = [
     "id": 1,
     "category": "programming",
     "rating": "4.8",
-    "points": 40,
+    "points": pointsPolicy.enrollmentCost,
     "image": "/images/دليلك-الكامل-لتعلم-لغات-تطوير-الويب.webp",
     "icon": "code",
     "title": {
@@ -213,7 +213,7 @@ const courseRecords = [
     "id": 2,
     "category": "design",
     "rating": "4.9",
-    "points": 60,
+    "points": pointsPolicy.enrollmentCost,
     "image": "/images/UX course cover.png",
     "icon": "design",
     "title": {
@@ -380,7 +380,7 @@ const courseRecords = [
     "id": 3,
     "category": "crafts",
     "rating": "5.0",
-    "points": 45,
+    "points": pointsPolicy.enrollmentCost,
     "image": "/images/Palestinian Tatreez course cover.png",
     "icon": "leaf",
     "title": {
@@ -528,7 +528,7 @@ const courseRecords = [
     "id": 4,
     "category": "business",
     "rating": "4.7",
-    "points": 55,
+    "points": pointsPolicy.enrollmentCost,
     "image": "/images/Mastering-Time-with-Effective-Management-5-Unbeatable-Techniques-1.png",
     "icon": "grid",
     "title": {
@@ -712,7 +712,7 @@ const courseRecords = [
     "id": 5,
     "category": "marketing",
     "rating": "4.8",
-    "points": 50,
+    "points": pointsPolicy.enrollmentCost,
     "image": "/images/digital markiting.jpg",
     "icon": "chart",
     "title": {
@@ -869,7 +869,7 @@ const courseRecords = [
     "id": 6,
     "category": "photography",
     "rating": "4.6",
-    "points": 35,
+    "points": pointsPolicy.enrollmentCost,
     "image": "/images/التصوير-الفوتوغرافي-1024x575.jpeg",
     "icon": "camera",
     "title": {
