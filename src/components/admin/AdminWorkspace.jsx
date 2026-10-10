@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import Icon from '../Icon';
+import Footer from '../Footer';
 import { usePreferences } from '../../context/PreferencesContext';
 import { adminCopy, translateAdminText } from '../../i18n/adminCopy';
 import logo from '../../assets/esham-logo.png';
@@ -163,7 +164,7 @@ export default function AdminWorkspace({
         </div>
       </aside>
 
-      <main className={`${variant}-main admin-main`}>
+      <div className={`${variant}-main admin-main`}>
         <header className={`${variant}-topbar admin-topbar`}>
           <button
             className="admin-menu-button"
@@ -187,11 +188,12 @@ export default function AdminWorkspace({
           </div>
           <div className="admin-topbar-right">{utilities}</div>
         </header>
-        <div className={`${variant}-content admin-content`}>
+        <main className={`${variant}-content admin-content`}>
           <p className="admin-demo-notice" role="note">{language === 'ar' ? 'معاينة ببيانات تجريبية: بعض التعديلات مؤقتة، والبلاغات والتحذيرات تُحفظ على هذا الجهاز فقط. صلاحيات الأدمن تحتاج ربط خدمة الحسابات.' : 'Demo preview: some changes are temporary; reports and warnings are saved only on this device. Admin permissions require the account service.'}</p>
           <Outlet key={location.pathname} />
-        </div>
-      </main>
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }

@@ -182,22 +182,7 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-      <footer className="footer">
-        <a href="#home" className="footer-brand">
-          {c.brand}
-        </a>
-        <p>{c.footerText}</p>
-        <nav aria-label={c.footerLinks}>
-          <a href="#home">{c.home}</a>
-          <Link to="/courses">{c.courses}</Link>
-          <a href="#how">{c.how}</a>
-          <a href="#why">{c.why}</a>
-        </nav>
-        <div className="footer-line" />
-        <small>
-          © {new Date().getFullYear()} {c.brand}. {c.rights}
-        </small>
-      </footer>
+
       {modal && (
         <Modal title={title} onClose={() => setModal(null)}>
 

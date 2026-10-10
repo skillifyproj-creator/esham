@@ -703,10 +703,7 @@ export default function EshamChatbot() {
           </main>
         </div>
       </div>
-      <footer className="site-footer">
-        <span>© 2026 {w.title}</span>
-        <span>{w.demo}</span>
-      </footer>
+
     </div>
   );
 }

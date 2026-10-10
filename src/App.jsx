@@ -135,8 +135,8 @@ function RouteShell() {
    * Each user area has its own Layout:
    *
    * Public     → Header + Footer
-   * Learner    → LearnerNavigation + LearnerFooter
-   * Instructor → InstructorNavigation + InstructorFooter
+   * Learner    → LearnerNavigation + shared Footer
+   * Instructor → InstructorNavigation + shared Footer
    */
 
   const isHome = pathname === "/";
@@ -396,8 +396,8 @@ function RouteShell() {
         </Link>
       )}
 
-      {/* Public Footer only */}
-      {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && !isAssistantPage && <Footer />}
+      {/* Areas with their own layout render the same shared Footer internally. */}
+      {!isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && <Footer />}
     </>
   );
 }

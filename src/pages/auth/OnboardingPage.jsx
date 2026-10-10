@@ -106,7 +106,7 @@ export default function OnboardingPage() {
       </form>}
       <p className="onboarding-demo">{t.demo}</p>
     </main>
-    <footer className="onboarding-footer">© {new Date().getFullYear()} {t.footer}</footer>
+
     {help && <Modal title={t.helpTitle} onClose={() => setHelp(false)}><p>{t.helpText}</p><button className="button" onClick={() => setHelp(false)}>{t.close}</button></Modal>}
   </div>;
 }
