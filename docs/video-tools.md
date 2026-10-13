@@ -1,5 +1,6 @@
 # Video tools
 
+Source code and test fixtures live under `frontend/`. Root npm commands delegate to that directory; browser routes such as `/tests/...` are unchanged.
 ## Licenses and browser compatibility (verified 2026-10-08)
 
 | Installed library | License | Browser use |

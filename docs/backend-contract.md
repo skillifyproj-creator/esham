@@ -1,5 +1,6 @@
 # Frontend handoff
 
+Source code and test fixtures live under `frontend/`. Root npm commands delegate to that directory; browser routes such as `/tests/...` are unchanged.
 The site supports a local browser preview. Course publishing, task assessment, files, points and progress currently use browser storage; they are not a shared, authoritative platform. Do not deploy the demo as an authenticated production service.
 
 ## Account API already connected in the forms

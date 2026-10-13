@@ -1,5 +1,6 @@
 # Experimental local video screening — 2026-10-13
 
+Source code and test fixtures live under `frontend/`. Root npm commands delegate to that directory; browser routes such as `/tests/...` are unchanged.
 ## Use
 
 Record or upload a video, open its preview, and select **Screen video now**. Saving a video to its lesson also runs the scan when there is no matching result. First use downloads model files (hundreds of MB may be needed) from Hugging Face plus the ONNX runtime assets; subsequent use can reuse browser caches. HTTPS or localhost and a modern browser with WebAssembly/Workers are required. Low-memory devices may fail; failure never counts as approval in the video save workflow.

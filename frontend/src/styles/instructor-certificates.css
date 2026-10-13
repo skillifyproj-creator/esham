@@ -1,0 +1,45 @@
+.instructor-certificates { padding: 32px 24px 72px; color: var(--text); background: var(--background); font-family: var(--font-body); }
+.instructor-certificates-container { max-width: 1120px; margin-inline: auto; }
+.instructor-certificates h1, .instructor-certificates h2, .instructor-certificates h3 { font-family: var(--font-body); color: var(--text); margin: 0; }
+.instructor-certificates-back { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); text-decoration: none; font-size: 15px; line-height: 1.8; }
+.instructor-certificates-header { display: flex; align-items: flex-start; gap: 22px; padding-block: 34px 36px; }
+.instructor-certificates-heading-icon { display: grid; place-items: center; width: 68px; height: 68px; flex-shrink: 0; background: var(--surface-soft); color: var(--primary); border-radius: 20px; }
+.instructor-certificates-eyebrow { display: block; color: var(--primary); font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.instructor-certificates h1 { font-size: clamp(27px, 3vw, 38px); font-weight: 800; line-height: 1.5; }
+.instructor-certificates-header p { color: var(--muted); font-size: 17px; line-height: 1.9; margin: 12px 0 0; max-width: 720px; }
+.instructor-certificates-policy { border: 1px solid var(--border); border-radius: 20px; background: var(--surface); padding: 30px; }
+.instructor-certificates-policy-heading h2 { font-size: 22px; line-height: 1.6; }
+.instructor-certificates-policy-heading p { margin: 12px 0 0; color: var(--muted); font-size: 16px; line-height: 1.9; max-width: 850px; }
+.instructor-certificates-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
+.instructor-certificates-step { display: flex; align-items: flex-start; gap: 12px; }
+.instructor-certificates-step > span { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 10px; background: var(--surface-soft); color: var(--primary); font-weight: 700; font-size: 13px; }
+.instructor-certificates-step h3 { font-size: 16px; font-weight: 700; line-height: 1.8; }
+.instructor-certificates-step p { font-size: 14px; color: var(--muted); line-height: 1.85; margin: 6px 0 0; }
+.instructor-certificates-courses { margin-top: 40px; }
+.instructor-certificates-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; }
+.instructor-certificates-section-heading h2 { font-size: 23px; line-height: 1.65; }
+.instructor-certificates-section-heading > span { white-space: nowrap; font-size: 14px; color: var(--muted); padding: 6px 12px; background: var(--surface-soft); border-radius: 20px; }
+.instructor-certificates-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.instructor-certificate-course { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; }
+.instructor-certificate-course-icon { display: grid; place-items: center; width: 48px; height: 48px; background: var(--surface-soft); color: var(--primary); border-radius: 14px; margin-bottom: 18px; }
+.instructor-certificate-course h3 { font-size: 20px; line-height: 1.75; font-weight: 700; overflow-wrap: anywhere; }
+.instructor-certificate-course p { margin: 12px 0 24px; color: var(--muted); font-size: 16px; line-height: 1.9; }
+.instructor-certificate-course a { display: inline-flex; justify-content: space-between; align-items: center; gap: 16px; align-self: stretch; margin-top: auto; padding: 12px 16px; background: var(--surface-soft); color: var(--primary); border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 1.8; transition: background .15s, color .15s; }
+.instructor-certificate-course a:hover { background: var(--primary); color: var(--on-primary); }
+.instructor-certificates-back:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 5px; }
+.instructor-certificates a:focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
+@media (max-width: 800px) {
+  .instructor-certificates-steps { grid-template-columns: 1fr; gap: 18px; }
+  .instructor-certificates-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .instructor-certificates { padding: 24px 16px 48px; }
+  .instructor-certificates-header { gap: 14px; padding-block: 26px 28px; }
+  .instructor-certificates-heading-icon { width: 48px; height: 48px; border-radius: 14px; }
+  .instructor-certificates-header p { font-size: 16px; }
+  .instructor-certificates-policy, .instructor-certificate-course { padding: 22px 20px; }
+  .instructor-certificates-section-heading { align-items: flex-start; }
+  .instructor-certificates-section-heading h2 { font-size: 20px; }
+  .instructor-certificates-section-heading > span { padding-inline: 10px; }
+  .instructor-certificates-courses { margin-top: 30px; }
+}
