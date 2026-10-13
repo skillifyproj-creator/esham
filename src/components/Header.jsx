@@ -2,9 +2,21 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import Icon from "./Icon";
 import logo from "../assets/esham-logo.png";
+import useAccountProfile from "../hooks/useAccountProfile";
+import { accountWorkspace } from "../data/accountNavigation";
+import LearnerNavigation from "./learner/LearnerNavigation";
+import InstructorNavigation from "./instructor/InstructorNavigation";
 
 import { usePreferences } from "../context/PreferencesContext";
 export default function Header() {
+  const profile = useAccountProfile();
+  const role = accountWorkspace(profile);
+  if (role === 'learner') return <LearnerNavigation />;
+  if (role === 'instructor') return <InstructorNavigation />;
+  return <VisitorHeader />;
+}
+
+function VisitorHeader() {
   const [open, setOpen] = useState(false);
 
   const {

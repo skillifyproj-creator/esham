@@ -10,6 +10,7 @@ export default function InstructorNavigation() {
     { to: '/instructor', label: c.dashboard, icon: 'grid', end: true },
     { to: '/instructor/courses', label: c.myCourses, icon: 'book' },
     { to: '/instructor/courses/new', label: c.createCourse, icon: 'plus' },
+    { to: '/courses', label: language === 'ar' ? 'استكشف الدورات' : 'Explore courses', icon: 'search' },
     { to: '/instructor/submissions', label: language === 'ar' ? 'تسليمات المتعلّمين' : 'Learner submissions', icon: 'check' },
     { to: '/instructor/performance', label: c.performance, icon: 'chart' },
     { to: '/instructor/feedback', label: c.feedback, icon: 'star' },

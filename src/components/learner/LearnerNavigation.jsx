@@ -10,6 +10,7 @@ export default function LearnerNavigation() {
   const links = [
     { to: '/learner', label: c.dashboard, icon: 'grid', end: true },
     { to: '/learner/courses', label: c.myCourses, icon: 'book' },
+    { to: '/courses', label: t('استكشف الدورات', 'Explore courses'), icon: 'search' },
     { to: '/learner/tasks', label: c.tasks, icon: 'lesson' },
     { to: '/learner/progress', label: t('تقدّم التعلّم', 'Learning progress'), icon: 'chart' },
     { to: '/learner/reviews', label: t('التقييمات', 'Reviews'), icon: 'star' },

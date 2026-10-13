@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { accountWorkspace, rememberAccountWorkspace } from '../src/data/accountNavigation.js';
 import { SCREENING_LABELS, sampleVideoTimes, summarizeFrame, makeScreeningResult } from '../src/services/videoSafetyPolicy.js';
 import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router';
 const server = await createServer({ cacheDir:'node_modules/.vite-tests', optimizeDeps:{noDiscovery:true,include:[]}, server: { middlewareMode: true }, appType: 'custom' });
-let publishing, submissions, mediaValidation, videoValidation, accountApi, certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages, ledger, courseStorage;
+let sharedHeader, publishing, submissions, mediaValidation, videoValidation, accountApi, certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages, ledger, courseStorage;
 try {
   [categories, courses, profile, draft, workspace, reviews] = await Promise.all([
     '/src/data/categories.js', '/src/data/courses.js', '/src/hooks/useAccountProfile.js',
@@ -24,6 +25,7 @@ try {
   providers = await Promise.all(['/src/context/PreferencesContext.jsx','/src/context/LearnerContext.jsx','/src/context/LearnerTasksContext.jsx','/src/context/NotificationsContext.jsx'].map(path => server.ssrLoadModule(path)));
   learnerPages = await Promise.all(['LearnerDashboard','LearnerCoursesPage','LearnerLessonPage','LearnerTasksPage','LearnerProgressPage','LearnerPointsPage','LearnerReviewsPage','LearnerNotificationsPage'].map(name=>server.ssrLoadModule('/src/pages/learner/'+name+'.jsx')));
   learnerNavigation = await server.ssrLoadModule('/src/components/learner/LearnerNavigation.jsx');
+  sharedHeader = await server.ssrLoadModule('/src/components/Header.jsx');
   instructorPages = await Promise.all(['InstructorDashboard','InstructorCoursesPage','CreateCoursePage','CourseCurriculumPage','CourseReviewPage','EditLessonPage','InstructorTaskPage','InstructorPerformancePage','InstructorFeedbackPage','InstructorVideoSourcePage','InstructorVideoRecordingSetupPage','InstructorVideoRecordingPage','InstructorVideoPreviewPage','InstructorVideoEditorPage'].map(name=>server.ssrLoadModule('/src/pages/instructor/'+name+'.jsx')));
 } finally { await server.close(); }
 const memory = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), clear: () => values.clear() }; };
@@ -246,6 +248,34 @@ test('role switch is available only to hybrid accounts',()=>{
   localStorage.setItem('esham-language','en');
   for(const role of ['learner','both']) {localStorage.setItem('esham-account-profile-v1',JSON.stringify({role,name:'Test learner'})); const html=renderLearner(h(learnerNavigation.default));assert.equal(html.includes('Switch to instructor'),role==='both');}
   localStorage.clear();
+});
+
+test('course browsing keeps account navigation and identity for learner, instructor and both hybrid modes',()=>{
+ localStorage.clear(); sessionStorage.clear(); localStorage.setItem('esham-language','en');
+ for(const [role,active] of [['learner','learner'],['instructor','instructor'],['both','learner'],['both','instructor']]) {
+  const account={id:'browse-'+role,role,name:'Browsing account'};
+  localStorage.setItem('esham-account-profile-v1',JSON.stringify(account)); rememberAccountWorkspace(account,active);
+  const savedProfile=localStorage.getItem('esham-account-profile-v1'),savedLedger=localStorage.getItem('esham-points-ledger-v1');
+  for(const path of ['/courses','/courses/3','/']) {
+   const html=renderLearner(h(sharedHeader.default),path);
+   assert.match(html,/Browsing account/);assert.match(html,/Account menu/);assert.match(html,/Explore courses/);
+   assert.ok(!html.includes('>Log in<'));assert.ok(!html.includes('>Sign up<'));
+   assert.ok(html.includes(`href="/${active}/settings"`));
+   assert.equal(localStorage.getItem('esham-account-profile-v1'),savedProfile);assert.equal(localStorage.getItem('esham-points-ledger-v1'),savedLedger);
+  }
+ }
+ localStorage.clear();sessionStorage.clear();localStorage.setItem('esham-language','en');
+ const visitor=renderLearner(h(sharedHeader.default),'/courses');assert.match(visitor,/Log in/);assert.match(visitor,/Sign up/);localStorage.clear();
+});
+test('hybrid browsing remembers its own workspace and single roles ignore incompatible remembered modes',()=>{
+ sessionStorage.clear();const hybrid={id:'one',role:'both'};
+ rememberAccountWorkspace(hybrid,'instructor');assert.equal(accountWorkspace(hybrid),'instructor');
+ assert.equal(accountWorkspace({id:'two',role:'both'}),'learner');
+ assert.equal(accountWorkspace({...hybrid,role:'learner'}),'learner');
+ assert.equal(accountWorkspace({role:''}),null);
+ const storage=globalThis.sessionStorage;globalThis.sessionStorage={getItem:()=>{throw Error('blocked');},setItem:()=>{throw Error('blocked');}};
+ assert.equal(accountWorkspace(hybrid),'learner');assert.doesNotThrow(()=>rememberAccountWorkspace(hybrid,'instructor'));
+ globalThis.sessionStorage=storage;sessionStorage.clear();
 });
 
 test('readiness validates content rather than trusting an existing ready status',()=>{

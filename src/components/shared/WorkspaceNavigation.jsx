@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { accountRequest, accountError, apiBase } from '../../services/accountApi';
 import { usePreferences } from '../../context/PreferencesContext';
 import useAccountProfile from '../../hooks/useAccountProfile';
+import { rememberAccountWorkspace } from '../../data/accountNavigation';
 import useAccountName from '../../hooks/useAccountName';
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import NotificationBell from './NotificationBell';
@@ -35,6 +36,7 @@ export default function WorkspaceNavigation({ role, name, links, activityLabel }
     setOpen(value => value === menu ? null : menu);
   }
   useEffect(close, [location.pathname, location.hash]);
+  useEffect(() => { rememberAccountWorkspace(profile, role); }, [profile.id, profile.username, profile.role, role]);
   useEffect(() => {
     if (!open) return;
     const outside = event => { if (!header.current?.contains(event.target)) close(); };
