@@ -31,7 +31,7 @@ Use Secure HttpOnly cookies, explicit CORS origins when cross-origin, CSRF prote
 - Learner progress, reviews, replies, notifications, administrator records, reporting and moderation remain local preview adapters. Wire shared persistence and delivery to the server.
 - Certificates: Arabic/English preview and one-page landscape A4 PDF work in browser. Issue date, approval, verification ID, English course/instructor translations and authoritative eligibility come from the server. Names are supplied by the learner; English spelling can be set separately.
 
-Development admin shortcut and category admin preview selector are excluded from production builds. They help test UI only. Email delivery, AI assistance, authoritative moderation and cross-device data need backend services. Experimental local CLIP visual screening is implemented; its scores are not authoritative, it samples at most 60 frames, omits audio, and can be bypassed. See local-video-screening.md.
+The administrator shortcut and category admin selector are available in development or when VITE_ADMIN_PREVIEW=true. The current .env.production enables them for the public project demonstration. They are demo navigation, not authorization; disable for a non-demo deployment and enforce server permissions. Email delivery, AI assistance, authoritative moderation and cross-device data need backend services. Experimental local CLIP visual screening is implemented; its scores are not authoritative, it samples at most 60 frames, omits audio, and can be bypassed. See local-video-screening.md.
 
 ## Local QA
 

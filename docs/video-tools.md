@@ -30,7 +30,7 @@ Screen/camera/microphone capture uses native browser APIs and requires the user'
 
 Verification: 34 frontend tests; production build; real 4.171-second canvas recording trimmed to 2 seconds and persisted; Excalidraw rectangle exported into a 1280×720 frame; PDF page rendered in the presentation frame. Physical camera/microphone and OS screen-picker flows require manual device testing.
 
-Temporary development admin menu exposes `/admin` and `/category-admin` and is omitted from production builds. This is a preview, not production authorization.
+Temporary development admin menu exposes `/admin` and `/category-admin` and is enabled in deployed project previews by VITE_ADMIN_PREVIEW=true (.env.production). This is a preview, not production authorization.
 
 The recording workspace now places the whiteboard beside a sticky live preview. Screen sharing stays active when opening the board, annotation exports have a transparent background, and changing layouts preserves the active drawing session. Below 700px, the preview remains visible above the board while scrolling.
 
