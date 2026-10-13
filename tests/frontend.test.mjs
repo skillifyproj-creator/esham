@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { SCREENING_LABELS, sampleVideoTimes, summarizeFrame, makeScreeningResult } from '../src/services/videoSafetyPolicy.js';
 import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
@@ -344,6 +345,20 @@ test('publication stays private until scoped approval and preserves the approved
  assert.equal(publishing.asPublicCourse(publishing.readSubmissions()[0]).title.en,'Test course');
  publishing.submitCourse({...course,title:{ar:'عنوان معدل',en:'Edited title'}},sections,owner);
  assert.equal(publishing.asPublicCourse(publishing.readSubmissions()[0]).title.en,'Test course');localStorage.clear();
+});
+test('flagged video blocks lesson readiness and administrator approval without changing the publication',()=>{
+ localStorage.clear(); const {course,sections}=publishingFixture();
+ const owner={id:'qa-teacher',role:'instructor'};
+ publishing.submitCourse(course,sections,owner);
+ const scores=SCREENING_LABELS.map(label=>({label:label.text,score:label.id==='burn'?0.8:0.02}));
+ const video={mediaId:'qa-media',durationSeconds:4,screening:makeScreeningResult(sampleVideoTimes(4).map(time=>summarizeFrame(scores,time)),'qa-media',4)};
+ const videoLesson={title:'Video lesson',contentType:'video',objectives:['Learning goal'],status:'ready',minutes:1,video};
+ assert.equal(workspace.lessonIsReady(videoLesson,'en'),false);
+ const updated=structuredClone(sections); updated[0].lessons.push(videoLesson);
+ publishing.updateSubmittedCourse(course.id,{curriculum:updated});
+ assert.throws(()=>publishing.reviewSubmission(course.id,'approve','',{id:'reviewer',categoryIds:['programming']}),/screening-review/);
+ assert.equal(publishing.readSubmissions()[0].status,'pending'); assert.equal(publishing.asPublicCourse(publishing.readSubmissions()[0]),null);
+ localStorage.clear();
 });
 test('a failed publication does not announce pending state or lose the previous queue',()=>{
  localStorage.clear();const {course,sections}=publishingFixture(),storage=globalThis.localStorage;

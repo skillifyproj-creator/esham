@@ -1,9 +1,11 @@
+import { matchingScreening } from '../services/videoSafetyPolicy';
 export function localized(value, language) {
   return typeof value === 'string' ? value : value?.[language] || value?.ar || value?.en || '';
 }
 export function lessonIsReady(lesson, language) {
   const reading = ['article', 'reading'].includes(lesson.contentType);
   return lesson.status !== 'draft' && localized(lesson.title, language).trim().length >= 2
+    && (reading || matchingScreening(lesson.video)?.status !== 'review')
     && (reading ? localized(lesson.description, language).trim().length >= 20 : Boolean(lesson.video?.mediaId || /^https?:\/\//i.test(lesson.videoUrl || '')))
     && Array.isArray(lesson.objectives) && lesson.objectives.length > 0
     && Number(lesson.minutes) >= 1 && Number(lesson.minutes) <= 600;

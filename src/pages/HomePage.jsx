@@ -6,6 +6,7 @@ import CourseCard from "../components/CourseCard";
 import Modal from "../components/Modal";
 import { categoryKeys, courses } from "../data/courses";
 import { usePreferences } from "../context/PreferencesContext";
+import "../styles/landing-theme.css";
 const featureStyle = [
   ["leaf", "green"],
   ["coins", "cream"],

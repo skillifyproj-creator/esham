@@ -1,0 +1,59 @@
+/* Landing content uses semantic surfaces instead of the fixed light palette. */
+body:has(#home) .modal-close { left: auto; right: auto; inset-inline-end: 12px; }
+body:has(#home) .modal h2 { padding-inline-end: 36px; }
+
+html[data-theme='dark'] #home :is(.step, .path-steps, .filter:not(.active)) {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+html[data-theme='dark'] #home .path-steps > div {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+
+html[data-theme='dark'] #home :is(.eyebrow, .hero-note, .section-kicker, .rating, .course-bottom > span, .path-steps span, .path-tip svg, .ornament) {
+  color: var(--green);
+}
+
+html[data-theme='dark'] #home .path-steps > div::after { color: var(--green); }
+html[data-theme='dark'] #home .step-number { color: var(--rose); }
+
+html[data-theme='dark'] #home .image-caption {
+  background: var(--caption-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+html[data-theme='dark'] #home .filter.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+
+html[data-theme='dark'] #home .filter:hover { border-color: var(--rose); }
+html[data-theme='dark'] #home .icon-box.cream { background: var(--surface-soft); color: var(--rose); }
+html[data-theme='dark'] #home .icon-box.green { background: #27412f; color: #b7dfbf; }
+html[data-theme='dark'] #home .icon-box.purple { background: #383044; color: #ddd0f2; }
+
+html[data-theme='dark'] body:has(#home) :is(.preference-button, .modal-close, .quiz-options label) {
+  background: var(--surface-soft);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+html[data-theme='dark'] body:has(#home) .modal {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+html[data-theme='dark'] body:has(#home) .button-outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--rose);
+}
+
+html[data-theme='dark'] body:has(#home) .button-outline:hover { background: var(--hover-bg); }
+html[data-theme='dark'] body:has(#home) .navigation.open { background: var(--surface); }

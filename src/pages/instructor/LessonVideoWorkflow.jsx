@@ -1,3 +1,6 @@
+import VideoScreeningPanel from "../../components/video/VideoScreeningPanel";
+import { screenVideo } from "../../services/videoScreening";
+import { matchingScreening } from "../../services/videoSafetyPolicy";
 import VideoTimeline from '../../components/video/VideoTimeline';
 import VideoWhiteboard from '../../components/video/VideoWhiteboard';
 import VideoPresentation from '../../components/video/VideoPresentation';
@@ -21,11 +24,15 @@ export default function LessonVideoWorkflow({ mode }) {
   const base = `/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/video`;
   const key = `esham-video-draft:${courseId}:${sectionId}:${lessonId}`;
   const [metadata, setMetadata] = useState(() => {
-    try { return location.state?.video || JSON.parse(localStorage.getItem(key)) || lesson?.video || null; }
+    try {
+      const saved = JSON.parse(localStorage.getItem(key)), incoming = location.state?.video;
+      return incoming && incoming.mediaId !== saved?.mediaId ? incoming : saved || incoming || lesson?.video || null;
+    }
     catch { return lesson?.video || null; }
   });
   const media = useStoredMedia(metadata?.mediaId);
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [progress, setProgress] = useState(0), [captureNotice,setCaptureNotice]=useState('');
+  const [scanning, setScanning] = useState(false), [scanProgress, setScanProgress] = useState(null);
   const [start, setStart] = useState(0), [end, setEnd] = useState(metadata?.durationSeconds || 0), [improveAudio, setImproveAudio] = useState(false);
   const [devices, setDevices] = useState([]), [cameraId, setCameraId] = useState(''), [micId, setMicId] = useState('');
   const [cameraOn, setCameraOn] = useState(true), [micOn, setMicOn] = useState(true);
@@ -68,7 +75,9 @@ export default function LessonVideoWorkflow({ mode }) {
     const timer = setInterval(() => setSeconds(value => value + 1), 1000);
     return () => clearInterval(timer);
   }, [recording, paused]);
-  const message = cause => cause?.name === 'NotAllowedError' || cause?.name === 'PermissionDeniedError'
+  const message = cause => /^screening-/.test(cause?.message || '')
+    ? t('تعذّر إكمال فحص AI. تحقق من الإنترنت ومساحة الذاكرة ودعم المتصفح ثم أعد الفحص. لم يتم اعتماد الفيديو، والملف ما زال محفوظًا كمسودة.', 'AI screening could not finish. Check internet, memory and browser support, then retry. Video was not approved and remains a saved draft.')
+    : cause?.name === 'NotAllowedError' || cause?.name === 'PermissionDeniedError'
     ? t('لم يُسمح بالوصول إلى الجهاز أو أُلغيت مشاركة الشاشة. يمكنك المحاولة مجددًا أو اختيار ملف.', 'Device access was denied or screen sharing was cancelled. Retry or choose a file.')
     : cause?.name === 'NotFoundError' ? t('لم يتم العثور على الكاميرا أو الميكروفون المطلوب.', 'The selected camera or microphone was not found.')
     : cause?.name === 'NotReadableError' ? t('تعذّر قراءة الكاميرا أو الميكروفون. أغلق أي تطبيق يستخدمهما، أو أطفئهما لتسجيل الشاشة فقط.', 'Camera or microphone could not be read. Close other apps using them, or disable them to record the screen only.')
@@ -191,6 +200,27 @@ export default function LessonVideoWorkflow({ mode }) {
     if (recorder.state === 'recording') { recorder.pause(); setPaused(true); }
     else if (recorder.state === 'paused') { recorder.resume(); setPaused(false); }
   }
+  async function analyzeVideo(blob, value) {
+    const { screening: ignored, ...unscanned } = value;
+    keep(unscanned);
+    setScanning(true); setScanProgress({ phase: 'loading', percent: 0 });
+    try {
+      const screening = await screenVideo(blob, value, { signal: abort.current.signal, onProgress: update => { if (active.current) setScanProgress(update); } });
+      const next = { ...value, screening };
+      if (active.current) keep(next);
+      return next;
+    } finally { if (active.current) setScanning(false); }
+  }
+  async function runScreening() {
+    if (busy || !metadata?.mediaId) return;
+    setBusy(true); setError(''); abort.current = new AbortController();
+    try {
+      const stored = await readMedia(metadata.mediaId);
+      if (!stored) throw new Error('screening-file');
+      await analyzeVideo(stored.blob, metadata);
+    } catch (cause) { if (active.current && cause.name !== 'AbortError') setError(message(cause)); }
+    finally { if (active.current) setBusy(false); }
+  }
   async function exportVideo() {
     setError(''); setBusy(true); setProgress(0); abort.current = new AbortController();
     try {
@@ -198,14 +228,18 @@ export default function LessonVideoWorkflow({ mode }) {
       const stored = await readMedia(metadata.mediaId);
       if (!stored) throw new Error('missing-file');
       const changed = start > .05 || end < duration - .05 || improveAudio;
-      let value = metadata;
+      let value = metadata, outputBlob = stored.blob;
       if (changed) {
         const blob = await trimVideo(stored.blob, { start, end, duration, improveAudio, signal: abort.current.signal, onProgress: setProgress });
+        outputBlob = blob;
         const file = await saveMedia(blob, { name: `edited-${Date.now()}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`, durationSeconds: end - start, width: metadata.width, height: metadata.height });
         value = { ...file, mediaId: file.id, durationSeconds: end - start, size: formatBytes(file.sizeBytes), quality: metadata.quality, encoding: blob.type };
       }
       if (!active.current) return;
       keep(value);
+      if (!matchingScreening(value)) value = await analyzeVideo(outputBlob, value);
+      if (!active.current) return;
+      if (matchingScreening(value)?.status !== 'no-flags') { move('preview', value); return; }
       const draft = flow.lessonDraft || lesson || {};
       navigate(`/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/edit`, { state: { lessonDraft: { ...draft, contentType: 'video', video: value, minutes: Math.max(1, Math.ceil(value.durationSeconds / 60)) } } });
     } catch (cause) { if (active.current && cause.name !== 'AbortError') setError(message(cause)); }
@@ -241,6 +275,7 @@ export default function LessonVideoWorkflow({ mode }) {
     {['preview','edit'].includes(mode) && <>
       {media.loading ? <p role="status">{t('تحميل الفيديو…','Loading video…')}</p> : media.url ? <video ref={player} src={media.url} controls playsInline className="video-player" onError={() => setError(t('تعذّر تشغيل الفيديو. اختر ملفًا بترميز مدعوم.','Unable to play this video. Choose a supported codec.'))} onTimeUpdate={event => { if (mode === 'edit' && event.currentTarget.currentTime > end) event.currentTarget.pause(); }}/> : <section className="video-empty"><p>{t('لم يُحفظ ملف فيديو لهذا الدرس بعد.','No video file is saved for this lesson yet.')}</p><Link className="button" to={base}>{t('اختيار فيديو','Choose video')}</Link></section>}
       {metadata?.mediaId && <p>{metadata.name} · {formatBytes(metadata.sizeBytes)} · {duration.toFixed(1)} {t('ثانية','seconds')} · {metadata.quality}</p>}
+      {metadata?.mediaId && <VideoScreeningPanel video={metadata} running={scanning} progress={scanProgress} disabled={busy || media.loading} onScan={runScreening} onCancel={() => abort.current?.abort()} onSeek={time => { if (player.current) { player.current.currentTime = time; player.current.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }}/>}
       {mode === 'preview' ? <div className="video-actions"><Link className="button button-outline" to={base}>{t('اختيار فيديو آخر','Choose another video')}</Link><button className="button" disabled={!media.url || busy} onClick={() => move('edit')}>{t('تعديل وحفظ الفيديو','Edit and save video')}</button><a className="button button-outline" href={media.url || undefined} download={metadata?.name} aria-disabled={!media.url}>{t('تنزيل نسخة','Download a copy')}</a></div> : <>
         <VideoTimeline url={media.url} videoRef={player} duration={duration} start={start} end={end} onRange={(from,to)=>{setStart(from);setEnd(to);}} disabled={busy} language={language} sizeBytes={metadata?.sizeBytes}/>
         <div className="video-device-options"><label>{t('البداية بالثواني','Start in seconds')}<input type="number" min={0} max={duration} step="0.1" value={start} disabled={busy} onChange={event => setStart(Number(event.target.value))}/></label><label>{t('النهاية بالثواني','End in seconds')}<input type="number" min={0} max={duration} step="0.1" value={end} disabled={busy} onChange={event => setEnd(Number(event.target.value))}/></label><label><input type="checkbox" checked={improveAudio} disabled={busy} onChange={event => setImproveAudio(event.target.checked)}/>{t('تسوية مستوى الصوت','Level audio')}</label></div>
@@ -248,8 +283,8 @@ export default function LessonVideoWorkflow({ mode }) {
         <div className="video-actions"><button type="button" className="button button-outline" disabled={busy} onClick={()=>move('preview')}>{t('العودة إلى المعاينة','Back to preview')}</button><button className="button button-outline" disabled={busy || !media.url} onClick={() => { try { validateTrim(start,end,duration); player.current.currentTime = start; player.current.play().catch(cause => setError(message(cause))); } catch (cause) { setError(message(cause)); } }}>{t('معاينة الجزء المحدد','Preview selected segment')}</button><button className="button" disabled={busy || !media.url} onClick={exportVideo}>{t('حفظ الفيديو للدرس','Save video to lesson')}</button>{busy && <button className="button button-outline" onClick={() => abort.current?.abort()}>{t('إلغاء التصدير','Cancel export')}</button>}</div>
       </>}
     </>}
-    {busy && <p role="status">{t('جاري المعالجة والحفظ…','Processing and saving…')} {progress > 0 && `${Math.round(progress * 100)}%`}</p>}
-    {busy && mode === 'edit' && <progress value={progress} max={1} aria-label={t('تقدّم تصدير الفيديو','Video export progress')}/>}
+    {busy && !scanning && <p role="status">{t('جاري المعالجة والحفظ…','Processing and saving…')} {progress > 0 && `${Math.round(progress * 100)}%`}</p>}
+    {busy && !scanning && mode === 'edit' && <progress value={progress} max={1} aria-label={t('تقدّم تصدير الفيديو','Video export progress')}/>}
     {!recording && !busy && <Link to={`/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/edit`}>{t('العودة إلى الدرس','Back to lesson')}</Link>}
   </main>;
 }

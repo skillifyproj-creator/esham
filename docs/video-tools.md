@@ -35,3 +35,7 @@ Temporary development admin menu exposes `/admin` and `/category-admin` and is o
 The recording workspace now places the whiteboard beside a sticky live preview. Screen sharing stays active when opening the board, annotation exports have a transparent background, and changing layouts preserves the active drawing session. Below 700px, the preview remains visible above the board while scrolling.
 
 Recording correction: requestFrame is called explicitly for the recording canvas, including the first frame, to prevent empty recordings of static content. AudioContext is only created when live audio exists. Sharing starts as screen-only unless a camera is already active, and failed startup retains the shared stream for retry. Deleted Excalidraw elements are excluded from exported frames and board changes immediately repaint the preview. Browser verification through the actual LessonVideoWorkflow: 7.7-second 1280x720 WebM, 91KB, saved and reached preview; a rectangle was drawn then deleted and disappeared from both board and preview. Physical display-picker permission was not automated.
+
+## Local AI screening (2026-10-13)
+
+Transformers.js 4.3.1 (Apache-2.0) and CLIP add a real visual-only local experiment in video preview/save. A real three-frame generated WebM scan completed in the browser. No moderation accuracy is asserted. See [local-video-screening.md](local-video-screening.md) for sampling limits, network downloads, cancellation, flag handling, server enforcement gaps and evaluation needs.

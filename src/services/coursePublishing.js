@@ -1,4 +1,5 @@
 import { getCategory } from '../data/categories';
+import { courseHasFlaggedVideo } from './videoSafetyPolicy';
 import { pointsPolicy } from '../data/pointsPolicy';
 import { lessonIsReady, taskIsReady, localized } from '../data/courseReadiness';
 import { instructorPublicCourseIds } from '../data/instructorCourseLinks';
@@ -31,6 +32,7 @@ export function reviewSubmission(id, decision, comment, reviewer) {
   const list = readSubmissions(), record = list.find(item=>item.id===String(id));
   if (!record || record.status !== 'pending' || !reviewer?.categoryIds?.includes(record.course.categoryKey)) throw new Error('scope');
   if (!['approve','reject','request_changes'].includes(decision) || (decision !== 'approve' && !comment?.trim())) throw new Error('decision');
+  if (decision === 'approve' && courseHasFlaggedVideo(record.course)) throw new Error('screening-review');
   const next = {...record,status:{approve:'approved',reject:'rejected',request_changes:'changes_requested'}[decision],reviewComment:comment?.trim()||'',reviewedAt:new Date().toISOString(),reviewerId:reviewer.id};
   if (decision === 'approve') next.publicCourse = structuredClone(record.course);
   write(list.map(item=>item.id===record.id ? next : item)); return next;
