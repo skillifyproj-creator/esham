@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
 import { onboardingCopy, getOnboardingGoals } from '../../i18n/onboardingCopy';
+import { getInstructorGoalGuidance } from '../../data/instructorGoalGuidance';
 import Icon from '../../components/Icon';
 import Modal from '../../components/Modal';
 import logo from '../../assets/esham-logo.png';
@@ -82,6 +83,7 @@ export default function OnboardingPage() {
   const firstIncomplete = !draft.role ? 0 : draft.name.trim().length < 2 || !validUsername(draft.username) ? 1 : skillRequirement ? 2 : draft.goal === null ? 3 : 4;
   if ((complete ? 4 : current) > firstIncomplete) return <Navigate to={`/onboarding/${steps[firstIncomplete]}`} replace />;
   const goalCopy = getOnboardingGoals(language, draft.role);
+  const guidance = getInstructorGoalGuidance(draft, language);
   const title = [t.title, profileSetupCopy[language].title, draft.role === "instructor" ? teachingSkillsCopy[language].title : interestsCopy[language].titles[draft.role], goalCopy.title][current];
   const intro = [t.intro, profileSetupCopy[language].intro, draft.role === "instructor" ? teachingSkillsCopy[language].intro : interestsCopy[language].intro, goalCopy.intro][current];
   return <div className="onboarding-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -101,6 +103,7 @@ export default function OnboardingPage() {
         {current === 1 && <ProfileSetup draft={draft} update={update} error={error} photo={photo} setPhoto={setPhoto} />}
         {current === 2 && <>{draft.role !== "instructor" && <InterestsSetup key="learning" mode="learning" draft={draft} update={update} />}{draft.role !== "learner" && <InterestsSetup key="teaching" mode="teaching" draft={draft} update={update} />}</>}
         {current === 3 && <fieldset className="onboarding-choice-grid goals"><legend className="sr-only">{title}</legend>{goalCopy.goals.map((goal, index) => <label key={index} className={draft.goal === index ? 'selected' : ''}><input type="radio" name="goal" checked={draft.goal === index} onChange={() => update({ goal: index })} /><span>{goal}</span></label>)}</fieldset>}
+        {current === 3 && guidance && <aside className="onboarding-note" aria-live="polite"><p><strong>{guidance.title}</strong> — {guidance.description}</p></aside>}
         {error && <p ref={errorRef} tabIndex={-1} role="alert" className="onboarding-error">{error === "teachingError" ? teachingSkillsCopy[language].required : t[error] || profileSetupCopy[language][error] || error}</p>}
         <div className="onboarding-actions">{current > 0 && <button type="button" className="onboarding-back" onClick={() => move(steps[current - 1])}>{t.back}</button>}<button className="onboarding-next" type="submit" disabled={busy} aria-busy={busy}>{current === 3 ? t.finish : t.next}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button></div>
       </form>}

@@ -327,3 +327,4 @@
 /* Place the illustration at the reading start: right in Arabic, left in English. */
 .auth-page .auth-visual { order: 1; }
 .auth-page .auth-form-panel { order: 2; }
+.auth-google{margin-block:24px}.auth-google-button{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:48px;padding:12px 20px;border:1px solid #747775;border-radius:8px;background:#fff;color:#1f1f1f;font:500 16px Arial,sans-serif;cursor:pointer}.auth-google-button:disabled{opacity:.6;cursor:default}.auth-google small{display:block;margin-top:8px;line-height:1.7}.auth-divider{display:flex;align-items:center;gap:12px;margin-block:20px;color:var(--text-muted,#65737b);font-size:14px}.auth-divider:before,.auth-divider:after{content:'';height:1px;background:var(--line,#dce3e6);flex:1}

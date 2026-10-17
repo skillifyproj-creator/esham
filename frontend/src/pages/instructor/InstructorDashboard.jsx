@@ -1,4 +1,6 @@
 import useAccountName from "../../hooks/useAccountName";
+import useAccountProfile from '../../hooks/useAccountProfile';
+import { getInstructorGoalGuidance } from '../../data/instructorGoalGuidance';
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { Link } from "react-router";
 import Icon from "../../components/Icon";
@@ -12,6 +14,8 @@ export default function InstructorDashboard() {
   const { earned } = useLearnerWallet();
   const { language } = usePreferences();
   const c = instructorCopy[language];
+  const profile = useAccountProfile();
+  const guidance = getInstructorGoalGuidance(profile, language);
   const { instructor, stats, performance, needsAttention, activities } =
     instructorDemo;
 
@@ -56,6 +60,13 @@ export default function InstructorDashboard() {
             </Link>
           </div>
         </section>
+
+        {guidance && <section className="instructor-goal-guidance" aria-labelledby="instructor-goal-title">
+          <p>{language === 'ar' ? 'خطوة مقترحة بناءً على هدفك:' : 'A suggested step based on your goal:'} <strong>{guidance.goal}</strong></p>
+          <h2 id="instructor-goal-title">{guidance.title}</h2>
+          <p>{guidance.description}</p>
+          <Link className="instructor-button" to={guidance.to}>{guidance.action}</Link>
+        </section>}
 
         {/* Stats */}
         <section className="instructor-stats">

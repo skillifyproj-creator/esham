@@ -25,6 +25,16 @@ Use Secure HttpOnly cookies, explicit CORS origins when cross-origin, CSRF prote
 
 ## Business service boundaries to replace with server adapters
 
+### Google sign-in
+
+The login and signup screens share a Google entry point and retain email/password. Enable `VITE_GOOGLE_AUTH_ENABLED=true` only with `VITE_API_BASE_URL` and these implemented endpoints. Otherwise the Google button clearly states it is unavailable.
+
+- `GET /auth/google/start?returnTo=<frontend-origin>/auth/google/complete`: allowlist the exact frontend callback URL. Create server-bound, single-use state and nonce, then redirect to Google for `openid email profile` using the authorization code flow. Configure the Google client and its exact backend redirect URI in Google Cloud; keep the client secret on the server.
+- `GET /auth/google/callback`: validate state/nonce, exchange the code server-side, validate issuer/audience/expiry and verified identity, and use Google's subject ID as the provider identifier. Never automatically link an existing account solely by a matching email. Establish the same HttpOnly cookie session as password login, then redirect to the allowlisted frontend completion page. On denial/failure redirect there with `?error=cancelled`; no tokens or profile data in URLs.
+- `GET /auth/session`: return `{profile, onboardingRequired:false}` for an existing complete account or `{profile:{id,name}, onboardingRequired:true}` for an authenticated new account. Return 401 without a valid session. The frontend restores identity from this endpoint, routes complete accounts to their workspace, and sends new users through role/profile/interests/goals setup. `/me` must permit authenticated onboarding while validating the submitted fields.
+
+Use Google's [OpenID Connect server flow](https://developers.google.com/identity/openid-connect/openid-connect). Backend implementation and Google project credentials are still required; the repository currently contains no running account server.
+
 - `pointsLedger.js`: grant **20 once per account**; registration costs **20**; credit course owner **20 per distinct registration**. Enforce atomically and idempotently on the server. No points for lesson/task completion. Preserve ledger on role changes; reject self-enrollment and insufficient balance.
 - `coursePublishing.js`: validate, submit, scoped admin review, publish approved snapshot. Draft edits do not mutate an already approved public snapshot until approval. Replace local queue with API; reviewers must be authenticated and category scope validated server-side.
 - `taskSubmissions.js`: enrolled learner draft/submit, owner-only assessment, revisions, approved completion. No completion reward. Persist files in shared object storage and return authorized URLs.

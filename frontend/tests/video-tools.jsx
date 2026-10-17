@@ -1,5 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import ScreenAnnotations from "../src/components/video/ScreenAnnotations";
 import VideoWhiteboard from "../src/components/video/VideoWhiteboard";
 import VideoPresentation from "../src/components/video/VideoPresentation";
 import VideoTimeline from "../src/components/video/VideoTimeline";
@@ -12,9 +13,12 @@ function Tools() {
     [frame, setFrame] = useState(""),
     [url, setUrl] = useState(""),
     [range, setRange] = useState([0, 12]),
-    [capturing, setCapturing] = useState(false);
+    [capturing, setCapturing] = useState(false),
+    [enabled, setEnabled] = useState(true);
+  const enabledRef = useRef(enabled); enabledRef.current = enabled;
+  useEffect(() => { if (annotation.current) draw(annotation.current); }, [enabled]);
   function draw(canvas) {
-    if (!canvas) return;
+    if (!canvas) { annotation.current = null; return; }
     annotation.current = canvas;
     const out = preview.current;
     out.width = canvas.width;
@@ -25,7 +29,7 @@ function Tools() {
     ctx.fillStyle = "white";
     ctx.font = "40px Arial";
     ctx.fillText("Synthetic shared screen", 60, 110);
-    ctx.drawImage(canvas, 0, 0);
+    if (enabledRef.current) ctx.drawImage(canvas, 0, 0);
     setFrame(`${canvas.width} × ${canvas.height}`);
   }
   return (
@@ -39,16 +43,15 @@ function Tools() {
         <section className="video-live-preview">
           <h2>Live video preview</h2>
           <p>Synthetic screen source • no device access</p>
-          <div className="video-stage">
+          <ScreenAnnotations language="en" enabled={enabled} onEnabled={setEnabled} onFrame={draw}>
             <canvas ref={preview} />
-          </div>
+          </ScreenAnnotations>
         </section>
         <div>
           <VideoWhiteboard
             sceneId="qa-screen-annotation-whiteboard"
             language="en"
-            overlay={true}
-            onFrame={draw}
+            onFrame={() => {}}
           />
         </div>
       </div>
@@ -97,7 +100,7 @@ function Tools() {
               20,
               60,
             );
-            if (annotation.current)
+            if (enabledRef.current && annotation.current)
               ctx.drawImage(annotation.current, 0, 0, 640, 360);
             tick = requestAnimationFrame(paint);
           }

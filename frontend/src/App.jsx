@@ -1,3 +1,4 @@
+import GoogleAuthComplete from './pages/auth/GoogleAuthComplete';
 const PlatformHelpPage = lazy(() => import('./pages/shared/PlatformHelpPage'));
 const InstructorReviewReportPage = lazy(() => import('./pages/instructor/InstructorReviewReportPage'));
 const InstructorCertificatesPage = lazy(() => import('./pages/instructor/InstructorCertificatesPage'));
@@ -144,7 +145,7 @@ function RouteShell() {
   const isLearner = pathname.startsWith("/learner");
   const isAdmin = pathname.startsWith("/admin");
   const isCategoryAdmin = pathname.startsWith("/category-admin");
-  const isAuth = ["/signup", "/login", "/forgot-password", "/reset-password"].includes(pathname) || pathname.startsWith("/onboarding");
+  const isAuth = ["/signup", "/login", "/forgot-password", "/reset-password"].includes(pathname) || pathname.startsWith("/onboarding") || pathname.startsWith("/auth/google/");
   const assistantPath = isLearner
     ? "/learner/assistant"
     : isInstructor
@@ -198,6 +199,7 @@ function RouteShell() {
         <Route path="/onboarding" element={<Navigate to="/onboarding/role" replace />} />
         <Route path="/onboarding/:step" element={<OnboardingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/google/complete" element={<GoogleAuthComplete />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 

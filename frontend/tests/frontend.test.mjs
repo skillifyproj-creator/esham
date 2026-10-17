@@ -8,7 +8,9 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router';
 const server = await createServer({ cacheDir:'node_modules/.vite-tests', optimizeDeps:{noDiscovery:true,include:[]}, server: { middlewareMode: true }, appType: 'custom' });
 let sharedHeader, publishing, submissions, mediaValidation, videoValidation, accountApi, certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages, ledger, courseStorage;
+let googleAuth, goalGuidance;
 try {
+  [googleAuth, goalGuidance] = await Promise.all(['/src/services/googleAuth.js', '/src/data/instructorGoalGuidance.js'].map(path => server.ssrLoadModule(path)));
   [categories, courses, profile, draft, workspace, reviews] = await Promise.all([
     '/src/data/categories.js', '/src/data/courses.js', '/src/hooks/useAccountProfile.js',
     '/src/data/instructorCourseDraft.js', '/src/data/instructorCourseWorkspace.js', '/src/services/categoryAdminService.js',
@@ -28,11 +30,49 @@ try {
   sharedHeader = await server.ssrLoadModule('/src/components/Header.jsx');
   instructorPages = await Promise.all(['InstructorDashboard','InstructorCoursesPage','CreateCoursePage','CourseCurriculumPage','CourseReviewPage','EditLessonPage','InstructorTaskPage','InstructorPerformancePage','InstructorFeedbackPage','InstructorVideoSourcePage','InstructorVideoRecordingSetupPage','InstructorVideoRecordingPage','InstructorVideoPreviewPage','InstructorVideoEditorPage'].map(name=>server.ssrLoadModule('/src/pages/instructor/'+name+'.jsx')));
 } finally { await server.close(); }
-const memory = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), clear: () => values.clear() }; };
+const memory = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key), clear: () => values.clear() }; };
 const session = memory();
 globalThis.sessionStorage = session;
 globalThis.localStorage = memory();
 globalThis.window = { localStorage: globalThis.localStorage, sessionStorage: session };
+
+test('Google sign-in uses a fixed callback and refuses insecure remote API origins', () => {
+  const url = new URL(googleAuth.googleSignInUrl('https://api.example.com/v1', 'https://esham.example'));
+  assert.equal(url.pathname, '/v1/auth/google/start');
+  assert.equal(url.searchParams.get('returnTo'), 'https://esham.example/auth/google/complete');
+  assert.throws(() => googleAuth.googleSignInUrl('', 'https://esham.example'));
+  assert.throws(() => googleAuth.googleSignInUrl('http://api.example.com', 'https://esham.example'));
+  assert.throws(() => googleAuth.googleSignInUrl('javascript:alert(1)', 'https://esham.example'));
+});
+
+test('Google session restores existing roles and routes new accounts through clean onboarding', () => {
+  const dispatch = window.dispatchEvent; window.dispatchEvent = () => {};
+  try {
+    for (const role of ['learner', 'instructor', 'both']) {
+      assert.equal(googleAuth.acceptGoogleSession({ profile: { id: 'google-user', role } }), role === 'instructor' ? '/instructor' : '/learner');
+    }
+    assert.throws(() => googleAuth.acceptGoogleSession({ profile: { name: 'Unverified' } }));
+    assert.throws(() => googleAuth.acceptGoogleSession({ onboardingRequired: true, profile: {} }));
+    session.setItem('esham-onboarding-draft-v1', JSON.stringify({ role: 'instructor', name: 'Old user', goal: 2 }));
+    assert.equal(googleAuth.acceptGoogleSession({ onboardingRequired: true, profile: { id: 'new-id', name: 'New user' } }), '/onboarding/role');
+    const draft = JSON.parse(session.getItem('esham-onboarding-draft-v1'));
+    assert.equal(draft.id, 'new-id'); assert.equal(draft.name, 'New user'); assert.equal(draft.role, ''); assert.equal(draft.goal, null);
+    assert.equal(localStorage.getItem('esham-account-profile-v1'), null);
+  } finally { window.dispatchEvent = dispatch; localStorage.clear(); session.clear(); }
+});
+
+test('instructor goals produce relevant actions in both languages without reinterpreting hybrid goals', () => {
+  for (const language of ['ar', 'en']) {
+    const suggestions = [0, 1, 2, 3].map(goal => goalGuidance.getInstructorGoalGuidance({ role: 'instructor', goal }, language));
+    assert.equal(suggestions[1].to, '/instructor/courses/new');
+    assert.equal(suggestions[2].to, '/instructor/feedback');
+    assert.equal(suggestions[3].to, '/instructor/profile');
+    assert.ok(suggestions.every(item => item.title && item.description && item.action && item.goal));
+    assert.equal(goalGuidance.getInstructorGoalGuidance({ role: 'both', goal: 2 }, language).to, '/instructor/courses/new');
+    for (const goal of [null, -1, 4, '1']) assert.equal(goalGuidance.getInstructorGoalGuidance({ role: 'instructor', goal }, language), null);
+    assert.equal(goalGuidance.getInstructorGoalGuidance({ role: 'learner', goal: 1 }, language), null);
+  }
+});
 
 test('every catalog course costs 20 and the welcome grant is issued only once', () => {
   localStorage.clear();

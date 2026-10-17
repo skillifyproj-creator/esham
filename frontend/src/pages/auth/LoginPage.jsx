@@ -1,3 +1,4 @@
+import GoogleSignIn from '../../components/GoogleSignIn';
 import { accountRequest, accountError, acceptAccountSession } from '../../services/accountApi';
 import useAccountProfile from '../../hooks/useAccountProfile';
 import { useRef, useState } from "react";
@@ -128,6 +129,7 @@ export default function LoginPage() {
           <h1 id="login-title">{t.title}</h1>
           <p className="auth-intro">{t.intro}</p>
 
+          <GoogleSignIn language={language} disabled={busy}/>
           <form onSubmit={submit} noValidate>
             {["email", "password"].map((name) => {
               const secret = name === "password";

@@ -1,3 +1,4 @@
+import GoogleSignIn from '../../components/GoogleSignIn';
 import { accountRequest, accountError, apiBase } from '../../services/accountApi';
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -149,6 +150,7 @@ export default function SignupPage() {
           <h1 id="signup-title">{t.title}</h1>
           <p className="auth-intro">{t.intro}</p>
 
+          <GoogleSignIn language={language} disabled={busy}/>
           <form onSubmit={submit} noValidate>
             {["name", "email", "password", "confirm"].map((name) => {
               const secret = name === "password" || name === "confirm";

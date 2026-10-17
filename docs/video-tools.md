@@ -33,7 +33,11 @@ Verification: 34 frontend tests; production build; real 4.171-second canvas reco
 
 Temporary development admin menu exposes `/admin` and `/category-admin` and is enabled in deployed project previews by VITE_ADMIN_PREVIEW=true (.env.production). This is a preview, not production authorization.
 
-The recording workspace now places the whiteboard beside a sticky live preview. Screen sharing stays active when opening the board, annotation exports have a transparent background, and changing layouts preserves the active drawing session. Below 700px, the preview remains visible above the board while scrolling.
+The recording workspace places a whiteboard beside a live preview. The whiteboard always has a white background, including restored/imported scenes; background/theme controls are disabled. Opening the board selects its own recording layout while preserving the active screen stream for switching back.
+
+The preview has direct pen, translucent highlighter, text placement, eraser, undo/redo and clear controls, with mouse/touch input mapped to the recording's 1280 × 720 coordinates. Preview annotations are composited after the source and camera, so they appear in recordings as shown. Turning annotations off hides them without clearing them. Whiteboard drawings and screen annotations are separate; board drawings only enter the whiteboard layout. Annotations last for the active recording session. On mobile, the preview keeps a 16:9 ratio for accurate drawing and scrolls with the tools.
+
+The separate-panel layout explicitly labels the screen (left 65%) and camera (right 35%), distinct from the camera-in-corner layout.
 
 Recording correction: requestFrame is called explicitly for the recording canvas, including the first frame, to prevent empty recordings of static content. AudioContext is only created when live audio exists. Sharing starts as screen-only unless a camera is already active, and failed startup retains the shared stream for retry. Deleted Excalidraw elements are excluded from exported frames and board changes immediately repaint the preview. Browser verification through the actual LessonVideoWorkflow: 7.7-second 1280x720 WebM, 91KB, saved and reached preview; a rectangle was drawn then deleted and disappeared from both board and preview. Physical display-picker permission was not automated.
 
