@@ -16,7 +16,8 @@ export async function screenVideoWithGemini(blob, metadata, { signal, onProgress
   try {
     if (signal?.aborted) cancel();
     const health = await fetch(`${cloudReviewUrl}/health`, { signal: controller.signal, credentials: 'include' });
-    if (!health.ok || !(await health.json()).configured) throw new Error('screening-key-missing');
+    if (!health.ok) throw new Error('screening-cloud-unavailable');
+    if (!(await health.json()).configured) throw new Error('screening-key-missing');
     onProgress({ phase: 'cloud', percent: 0 });
     const response = await fetch(`${cloudReviewUrl}/video/review`, {
       method: 'POST', signal: controller.signal, credentials: 'include', body: blob,

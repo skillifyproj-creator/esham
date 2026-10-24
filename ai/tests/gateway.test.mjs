@@ -6,7 +6,8 @@ import {aiEndpoint} from '../../frontend/src/services/aiEndpoint.js';
 test('deployment URLs reject insecure origins, credentials, queries and frontend secrets',()=>{
   assert.equal(aiEndpoint('/ai/assistant',false,8001),'/ai/assistant');
   assert.equal(aiEndpoint('',false,8001),'');
-  assert.equal(aiEndpoint('',true,8001),'http://127.0.0.1:8001');
+  assert.equal(aiEndpoint('',true,8001),'/ai/assistant');
+  assert.equal(aiEndpoint('',true,8000),'/ai');
   for(const value of ['http://public.example','https://key@api.example','https://api.example?key=secret','//evil.test'])assert.equal(aiEndpoint(value,false,8001),'');
   assert.throws(()=>gatewayConfig({PUBLIC_ORIGIN:'http://website.example',BACKEND_SESSION_URL:'https://api.example/auth/session'}));
   assert.throws(()=>gatewayConfig({PUBLIC_ORIGIN:'https://website.example',BACKEND_SESSION_URL:'http://api.example/auth/session'}));

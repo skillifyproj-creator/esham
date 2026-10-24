@@ -1,6 +1,6 @@
 // Only public endpoint addresses belong in Vite configuration, never API keys.
 export function aiEndpoint(configured, development, localPort) {
-  if (!configured) return development ? `http://127.0.0.1:${localPort}` : '';
+  if (!configured) return development ? (localPort === 8001 ? '/ai/assistant' : '/ai') : '';
   if (/^\/(?!\/)[a-zA-Z0-9/_-]*$/.test(configured)) return configured.replace(/\/$/, '');
   try {
     const url = new URL(configured);

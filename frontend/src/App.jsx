@@ -1,3 +1,4 @@
+import LogoThemeFilter from './components/LogoThemeFilter';
 import GoogleAuthComplete from './pages/auth/GoogleAuthComplete';
 const PlatformHelpPage = lazy(() => import('./pages/shared/PlatformHelpPage'));
 const InstructorReviewReportPage = lazy(() => import('./pages/instructor/InstructorReviewReportPage'));
@@ -155,6 +156,7 @@ function RouteShell() {
 
   return (
     <>
+      <LogoThemeFilter />
       <DevelopmentAdminAccess />
       <StorageNotice />
       {/* Public Header only */}

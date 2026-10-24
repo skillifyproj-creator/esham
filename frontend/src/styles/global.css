@@ -180,9 +180,10 @@ html[data-theme='dark'] .site-logo,
 html[data-theme='dark'] .workspace-brand img,
 html[data-theme='dark'] .onboarding-header img,
 html[data-theme='dark'] .auth-topbar img {
-  background: #fff;
-  border-radius: 8px;
-  padding: 4px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  filter: url(#esham-light-wordmark);
 }
 
 html[data-theme='dark'] body {

@@ -44,6 +44,7 @@ test('client rejects unsafe source links and invalid provider responses',async()
  const mock=async()=>new Response(JSON.stringify({answer:'x',sources:[{id:'x',title:'x',source:'external',url:'javascript:alert(1)'}]}));
  await assert.rejects(assistantRequest('/chat',{}, {base:'http://test',fetcher:mock}),/assistant-result/);
  await assert.rejects(assistantRequest('/chat',{}, {base:''}),/assistant-unavailable/);
+ await assert.rejects(assistantRequest('/chat',{}, {base:'http://test',fetcher:async()=>new Response('Proxy unavailable',{status:502})}),/assistant-unavailable/);
 });
 test('general model answers do not require catalog references and survive missing external dataset',async()=>{
  const retriever=async(_,{external})=>{if(external!==false)throw new Error('assistant-data-missing');return [];};

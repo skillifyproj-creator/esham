@@ -16,7 +16,8 @@ export async function assistantRequest(path,payload,{signal,base=assistantBase,f
   try{
     if(signal?.aborted)abort();
     const response=await fetcher(`${base}${path}`,{method:'POST',credentials:'include',signal:controller.signal,headers:{'Content-Type':'application/json','X-AI-Request':'esham-assistant'},body:JSON.stringify(payload)});
-    const value=await response.json();
+    let value;
+    try { value=await response.json(); } catch { throw new Error('assistant-unavailable'); }
     if(!response.ok)throw new Error(/^assistant-[a-z-]+$/.test(value?.error)?value.error:'assistant-unavailable');
     if(path==='/chat'){
       if(typeof value.answer!=='string'||!value.answer.trim()||value.answer.length>12000||!['general','grounded','mixed'].includes(value.answerType)||!Array.isArray(value.sources)||value.sources.length>12||value.sources.some(s=>!safeAssistantSource(s)))throw new Error('assistant-result');
