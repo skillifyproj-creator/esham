@@ -16,3 +16,6 @@ backend/uploads/
 *.log
 ai/models/*
 !ai/models/.gitkeep
+
+**/bin/
+**/obj/

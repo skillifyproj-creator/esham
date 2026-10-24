@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <ProjectReference Include="..\esham.BLL\esham.BLL.csproj" />
@@ -16,6 +16,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>a664d104-d79c-4946-b86e-44581734e3b3</UserSecretsId>
   </PropertyGroup>
 
 </Project>

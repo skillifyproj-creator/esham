@@ -5,15 +5,26 @@ using Microsoft.EntityFrameworkCore;
 using esham.BLL.Interfaces;
 using esham.BLL.Services;
 using esham.PL.Endpoints;
+using esham.PL.Development;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' is not configured. " +
+        "Set 'ConnectionStrings:DefaultConnection' using User Secrets for local development " +
+        "or 'ConnectionStrings__DefaultConnection' in the deployment environment.");
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null)));
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
         options.User.RequireUniqueEmail = true;
@@ -26,6 +37,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "Esham.Identity";
@@ -60,6 +75,16 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+if (await DevelopmentIdentityRoles.RunCommandAsync(app, args)) return;
+
+if (app.Environment.IsDevelopment())
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await DevelopmentIdentityRoles.SeedAsync(
+        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
+}
+
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -79,6 +104,8 @@ var summaries = new[]
 };
 
 app.MapAccountEndpoints();
+app.MapCategoryEndpoints();
+app.MapCourseEndpoints();
 
 app.MapGet("/weatherforecast", () =>
 {

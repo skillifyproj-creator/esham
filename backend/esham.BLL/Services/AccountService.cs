@@ -118,7 +118,10 @@ public sealed class AccountService : IAccountService
             return new AccountResult(null, AccountFailure.InvalidCredentials);
         }
 
-        if (user.Role is null || !SupportedRoles.Contains(user.Role))
+        var identityRoles = await _userManager.GetRolesAsync(user);
+        var isAdministrator = identityRoles.Any(role =>
+            role is "GeneralAdmin" or "CategoryAdmin");
+        if (!isAdministrator && (user.Role is null || !SupportedRoles.Contains(user.Role)))
         {
             return new AccountResult(null, AccountFailure.OnboardingRequired);
         }
