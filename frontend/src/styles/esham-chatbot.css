@@ -964,3 +964,26 @@
     transform: none;
   }
 }
+
+.esham-chatbot .assistant-sources{margin-top:18px;border-top:1px solid var(--line,#ddd);padding-top:12px}.esham-chatbot .assistant-sources li{margin-block:8px;overflow-wrap:anywhere}.esham-chatbot .assistant-sources a{color:#005f49;text-decoration:underline}.esham-chatbot .assistant-sources small{color:#475569}
+
+/* Keep assistant navigation available on small screens as well. */
+.esham-chatbot .desktop-nav{display:flex;flex-wrap:wrap;gap:6px}
+.esham-chatbot .desktop-nav button{border:0;background:transparent;color:#475569;padding:10px 12px;border-radius:10px;white-space:nowrap}
+.esham-chatbot .desktop-nav button.active{background:#def4e9;color:#005f49}
+.esham-chatbot .desktop-nav button:focus-visible,.esham-chatbot .assistant-library button:focus-visible{outline:2px solid #0d7a5f;outline-offset:3px}
+.esham-chatbot .assistant-library{width:min(100%,850px);margin:28px auto 50px;padding:clamp(16px,3vw,28px);border:1px solid #e5eeea;border-radius:18px;background:#fff;color:#131b2e}
+.esham-chatbot .assistant-library h1{font-size:26px;margin:0 0 12px;color:#005f49}
+.esham-chatbot .assistant-library p{line-height:1.9;color:#475569}
+.esham-chatbot .assistant-library ul{list-style:none;padding:0;display:grid;gap:12px}
+.esham-chatbot .assistant-library li{display:flex;gap:10px;padding:12px;border:1px solid #e5eeea;border-radius:12px;align-items:center}
+.esham-chatbot .assistant-library li>button:first-child,.esham-chatbot .assistant-library li>a{flex:1;min-width:0;text-align:start;border:0;background:transparent;color:#005f49;padding:8px;overflow-wrap:anywhere}
+.esham-chatbot .assistant-library strong,.esham-chatbot .assistant-library small{display:block}
+.esham-chatbot .assistant-library small{margin-top:8px;color:#475569;font-size:12px}
+.esham-chatbot .session-delete{border:1px solid #edd6d6;border-radius:8px;background:#fff4f4;color:#8a2525;padding:8px 12px}
+@media(max-width:1050px){.esham-chatbot .desktop-nav{display:flex;order:3;flex-basis:100%;justify-content:center}.esham-chatbot .topbar{flex-wrap:wrap}}
+
+.esham-chatbot .attachment-preview{flex-wrap:wrap}
+.esham-chatbot .attachment-preview small{flex:1 1 100%;max-width:100%;line-height:1.7;color:#475569;padding:4px}
+.esham-chatbot .guest-help-note{line-height:1.8;font-size:13px;color:#475569}
+.esham-chatbot .guest-help-note a{color:#005f49;text-decoration:underline}

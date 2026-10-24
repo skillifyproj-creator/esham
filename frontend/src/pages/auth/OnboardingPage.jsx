@@ -92,6 +92,13 @@ export default function OnboardingPage() {
       <nav aria-label={t.progress}><ol className="onboarding-stepper">{steps.map((id, index) => <li key={id} className={complete || index < current ? 'done' : index === current ? 'active' : ''} aria-current={index === current ? 'step' : undefined}><span className="onboarding-step-line" /><button type="button" disabled={!complete && index > current} onClick={() => move(id)}><span className="onboarding-step-number">{complete || index < current ? '✓' : index + 1}</span>{index === 2 && draft.role !== "learner" ? language === "ar" ? draft.role === "instructor" ? "مهاراتك" : "اهتماماتك وخبرتك" : draft.role === "instructor" ? "Your expertise" : "Interests & expertise" : t.steps[index]}</button></li>)}</ol></nav>
       {complete ? <SetupComplete draft={draft} photo={photo} onEdit={() => move("role")} /> : <form onSubmit={submit} noValidate>
         <div className="onboarding-heading"><span className="onboarding-kicker">{t.label}</span><h1>{title}</h1><p>{intro}</p></div>
+        <div className="onboarding-navigation">
+          <div className="onboarding-actions">
+            {current > 0 && <button type="button" className="onboarding-back" onClick={() => move(steps[current - 1])}>{t.back}</button>}
+            <button className="onboarding-next" type="submit" disabled={busy} aria-busy={busy}>{current === 3 ? t.finish : t.next}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
+          </div>
+          {error && <p ref={errorRef} tabIndex={-1} role="alert" className="onboarding-error">{error === "teachingError" ? teachingSkillsCopy[language].required : t[error] || profileSetupCopy[language][error] || error}</p>}
+        </div>
         {current === 0 && <fieldset className="onboarding-role-grid"><legend className="sr-only">{t.title}</legend>{t.roles.map(role => <label key={role.id} className={`onboarding-role-card ${draft.role === role.id ? 'selected' : ''} ${role.id === 'both' ? 'combined' : ''}`}>
           <input type="radio" name="role" value={role.id} checked={draft.role === role.id} onChange={() => update({ role: role.id })} aria-label={role.title} aria-describedby={`role-${role.id}-description`} />
           {role.id === 'both' && <span className="onboarding-recommended">✧ {t.recommended}</span>}
@@ -104,8 +111,6 @@ export default function OnboardingPage() {
         {current === 2 && <>{draft.role !== "instructor" && <InterestsSetup key="learning" mode="learning" draft={draft} update={update} />}{draft.role !== "learner" && <InterestsSetup key="teaching" mode="teaching" draft={draft} update={update} />}</>}
         {current === 3 && <fieldset className="onboarding-choice-grid goals"><legend className="sr-only">{title}</legend>{goalCopy.goals.map((goal, index) => <label key={index} className={draft.goal === index ? 'selected' : ''}><input type="radio" name="goal" checked={draft.goal === index} onChange={() => update({ goal: index })} /><span>{goal}</span></label>)}</fieldset>}
         {current === 3 && guidance && <aside className="onboarding-note" aria-live="polite"><p><strong>{guidance.title}</strong> — {guidance.description}</p></aside>}
-        {error && <p ref={errorRef} tabIndex={-1} role="alert" className="onboarding-error">{error === "teachingError" ? teachingSkillsCopy[language].required : t[error] || profileSetupCopy[language][error] || error}</p>}
-        <div className="onboarding-actions">{current > 0 && <button type="button" className="onboarding-back" onClick={() => move(steps[current - 1])}>{t.back}</button>}<button className="onboarding-next" type="submit" disabled={busy} aria-busy={busy}>{current === 3 ? t.finish : t.next}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button></div>
       </form>}
       
     </main>

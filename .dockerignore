@@ -1,0 +1,8 @@
+**
+!ai/
+!ai/package.json
+!ai/Dockerfile
+!ai/src/
+!ai/src/**
+!ai/scripts/
+!ai/scripts/prepare_courses.py

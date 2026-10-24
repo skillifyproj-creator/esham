@@ -1,0 +1,47 @@
+{
+  "source_url": "https://www.kaggle.com/datasets/elvinrustam/coursera-dataset",
+  "source_version": 1,
+  "listed_license": "CC0: Public Domain",
+  "source_sha256": "33ce46426b14039cd7e5b3c65f0fc6fd6bb2102d8d460ef6ed1241c21ec93539",
+  "input_rows": 9595,
+  "exact_duplicate_rows": 900,
+  "output_courses": 6403,
+  "consolidated_rows": 3191,
+  "quarantined_rows": 1,
+  "list_parse_issues": 0,
+  "title_variant_groups": 3,
+  "missing_skills": 2183,
+  "missing_outcomes": 3050,
+  "missing_rating": 1249,
+  "missing_hours": 1129,
+  "subjects": {
+    "Information Technology": 982,
+    "Math and Logic": 486,
+    "Business": 984,
+    "Arts and Humanities": 482,
+    "Physical Science and Engineering": 812,
+    "Computer Science": 988,
+    "Data Science": 979,
+    "Personal Development": 993,
+    "Health": 992,
+    "Social Sciences": 996
+  },
+  "policy": [
+    "Original source unchanged.",
+    "URLs are identities; multiple categories and list values are merged.",
+    "Missing facts remain null or empty lists.",
+    "Rating and reviews come from the same highest-review source row.",
+    "Duration in weeks or months is never silently converted to hours.",
+    "Title variants are retained for review.",
+    "External Coursera data is not an Esham enrollment catalog.",
+    "No user histories or labelled video examples are included."
+  ],
+  "complete_feature_rows": 6403,
+  "imputed_feature_counts": {
+    "rating": 1249,
+    "hours": 1129,
+    "level": 856,
+    "topics": 2183,
+    "summary": 3050
+  }
+}

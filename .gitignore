@@ -15,6 +15,8 @@ backend/uploads/
 **/.venv/
 *.log
 ai/models/*
+ai/data/processed/
+ai/data/raw/
 !ai/models/.gitkeep
 
 **/bin/

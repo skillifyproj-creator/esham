@@ -10,7 +10,10 @@ const copy = {
 export default function SetupComplete({ draft, photo, onEdit }) {
  const { language } = usePreferences();
  const t = copy[language], c = onboardingCopy[language];
- const role = c.roles.find(item => item.id === draft.role);
+ const roleLabel = {
+  ar: { learner: 'متعلّم', instructor: 'مدرّب', both: 'هايبرد' },
+  en: { learner: 'Learner', instructor: 'Instructor', both: 'Hybrid' },
+ }[language][draft.role];
  const initials = draft.name.trim().split(/\s+/).slice(0,2).map(word => Array.from(word)[0]).join('');
  const learning = draft.interests.map(id => c.categories[id]);
  const teaching = [...draft.teachingAreas.map(id => c.categories[id]), ...draft.customSkills];
@@ -20,7 +23,7 @@ export default function SetupComplete({ draft, photo, onEdit }) {
   <div className="setup-celebration" aria-hidden="true"><Icon name="leaf" size={38} /><span>✓</span></div>
   <header className="setup-complete-heading"><h1 id="setup-complete-title">{t.title}</h1><p>{t.intro}</p></header>
   <article className="setup-summary" aria-label={t.profile}>
-   <div className="setup-summary-person"><span className="setup-summary-avatar">{photo ? <img src={photo} alt={draft.name} /> : <span aria-hidden="true">{initials}</span>}</span><div><span className="setup-summary-eyebrow">{t.preview}</span><h2>{draft.name.trim() || t.fallback}</h2><p className="setup-summary-username" dir="ltr">@{draft.username}</p></div><span className="setup-summary-role">{role?.title}</span></div>
+   <div className="setup-summary-person"><span className="setup-summary-avatar">{photo ? <img src={photo} alt={draft.name} /> : <span aria-hidden="true">{initials}</span>}</span><div><span className="setup-summary-eyebrow">{t.preview}</span><h2>{draft.name.trim() || t.fallback}</h2><p className="setup-summary-username" dir="ltr">@{draft.username}</p></div><span className="setup-summary-role">{roleLabel}</span></div>
    <div className={`setup-summary-grid ${draft.role === 'both' ? '' : 'single'}`}>{draft.role !== 'instructor' && skills(t.learning, learning, 'learning')}{draft.role !== 'learner' && skills(t.teaching, teaching, 'teaching')}</div>
    <div className="setup-summary-goal"><Icon name="award" size={23} /><div><strong>{t.goal}</strong><p>{getOnboardingGoals(language, draft.role).goals[draft.goal]}</p></div></div>
    {draft.role === 'both' && <aside className="setup-summary-both"><Icon name="swap" size={23} /><div><strong>{t.both}</strong><p>{t.bothText}</p></div></aside>}

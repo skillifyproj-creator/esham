@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../../styles/esham-chatbot.css";
 import { usePreferences } from "../../context/PreferencesContext";
+import { assistantRequest, publicCatalog } from '../../services/learningAssistant';
+import useAccountProfile from '../../hooks/useAccountProfile';
+import { cleanSessions, loadSessions, saveSessions, sessionKey } from '../../services/assistantSessions';
+import { extractChatDocument, prepareChatImage } from '../../services/chatDocuments';
+import { courses } from '../../data/courses';
 import { pointsPolicy } from "../../data/pointsPolicy";
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 const copy = {
@@ -225,26 +230,42 @@ function Icon({ children }) {
   );
 }
 export default function EshamChatbot() {
+  const profile = useAccountProfile();
+  const identity = String(profile.id || profile.username || 'guest');
+  return <ChatWorkspace key={identity} identity={identity} />;
+}
+function ChatWorkspace({identity}) {
   const { language: lang, toggleLanguage } = usePreferences();
   const { balance: walletBalance } = useLearnerWallet();
 
-  const [messages, setMessages] = useState([]);
+  const storageKey = sessionKey(identity);
+  const [initial] = useState(() => { try { return loadSessions(window.sessionStorage, storageKey); } catch { return []; } });
+  const [sessions, setSessions] = useState(initial);
+  const [sessionId, setSessionId] = useState(() => initial[0]?.id || crypto.randomUUID());
+  const [messages, setMessages] = useState(() => initial[0]?.messages || []);
+  const [view, setView] = useState('chat');
+  const [storageFailed, setStorageFailed] = useState(false);
   const [draft, setDraft] = useState("");
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState("");
-  const timer = useRef(null),
+  const request = useRef(null),
     fileInput = useRef(null),
     end = useRef(null),
     textArea = useRef(null),
     urls = useRef(new Set());
   const w = copy[lang];
   useEffect(() => {
+    if (!messages.length) return;
+    setSessions(prev => cleanSessions([{id:sessionId, updated:Date.now(), messages}, ...prev.filter(s => s.id !== sessionId)]));
+  }, [messages, sessionId]);
+  useEffect(() => { try { setStorageFailed(!saveSessions(window.sessionStorage, storageKey, sessions)); } catch { setStorageFailed(true); } }, [sessions, storageKey]);
+  const sources = [...new Map(messages.flatMap(m => m.sources || []).map(s => [s.id, s])).values()];
+  useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
   }, [messages, busy]);
   useEffect(
     () => () => {
-      clearTimeout(timer.current);
+      request.current?.abort();
       urls.current.forEach((url) => URL.revokeObjectURL(url));
     },
     [],
@@ -256,21 +277,24 @@ export default function EshamChatbot() {
     hasLesson = messages.some(
       (m) => m.kind === "lesson" || m.kind === "attachment",
     );
-  function answer(sent, kind) {
+  async function answer(sent, kind) {
+    request.current?.abort();
+    const controller = new AbortController(); request.current = controller;
     setBusy(true);
-    timer.current = setTimeout(() => {
-      setBusy(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          kind,
-          text: w[kind + "Answer"] || w.generalAnswer,
-          time: time(lang),
-        },
-      ]);
-    }, 900);
+    try {
+      let document, image;
+      if (sent.file) {
+        if (!sent.file.raw) throw new Error('document-format');
+        if (sent.file.type.startsWith('image/')) image = await prepareChatImage(sent.file.raw);
+        else document = await extractChatDocument(sent.file.raw);
+        if(controller.signal.aborted)return;
+      }
+      const history = messages.filter(m => !m.file && m.kind !== 'error').slice(-6).map(m => ({ role: m.role, text: m.text.slice(0, 4000) }));
+      const result = await assistantRequest('/chat', { message: sent.text, language: lang, history, document, image, catalog: publicCatalog(courses) }, { signal: controller.signal });
+      if (!controller.signal.aborted) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', kind: 'answer', text: result.answer, sources: result.sources, time: time(lang) }]);
+    } catch (cause) {
+      if (!controller.signal.aborted) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', kind: 'error', source: sent, error: cause.message, time: time(lang) }]);
+    } finally { if (request.current === controller && !controller.signal.aborted) setBusy(false); }
   }
   function send(value = draft, selected = file) {
     if (busy) return;
@@ -279,11 +303,12 @@ export default function EshamChatbot() {
     const sent = {
       id: crypto.randomUUID(),
       role: "user",
-      text,
+      text: text || (lang === 'ar' ? 'اشرح محتوى المرفق وأهم أفكاره.' : 'Explain the attachment and its main ideas.'),
       file: selected && {
         name: selected.name,
         type: selected.type,
         url: selected.url,
+        raw: selected.raw,
       },
       time: time(lang),
     };
@@ -293,13 +318,18 @@ export default function EshamChatbot() {
     if (fileInput.current) fileInput.current.value = "";
     answer(sent, classify(sent));
   }
+  function openSession(session) {
+    request.current?.abort();
+    setBusy(false);setSessionId(session.id);setMessages(session.messages);setDraft('');setFile(null);setView('chat');
+    if (fileInput.current) fileInput.current.value = '';
+  }
   function reset() {
-    clearTimeout(timer.current);
+    request.current?.abort();
+    setSessionId(crypto.randomUUID());setView('chat');
     setBusy(false);
     setMessages([]);
     setDraft("");
     setFile(null);
-    setPreview("");
     if (fileInput.current) fileInput.current.value = "";
   }
   function selectFile(e) {
@@ -319,60 +349,6 @@ export default function EshamChatbot() {
     if (url) urls.current.add(url);
     setFile({ name: f.name, type: f.type, raw: f, url });
   }
-  function showPreview(index) {
-    reset();
-    setPreview(String(index));
-    if (index === 0) return;
-    const kinds = [
-      "",
-      "points",
-      "course",
-      "lesson",
-      "attachment",
-      "loading",
-      "error",
-    ];
-    const kind = kinds[index];
-    const example = w.suggestions[index === 1 ? 0 : index === 2 ? 2 : 3][0];
-    const sent = {
-      id: crypto.randomUUID(),
-      role: "user",
-      text: kind === "attachment" ? "اشرح محتوى الصورة" : example,
-      time: time(lang),
-      file:
-        kind === "attachment"
-          ? { name: "lesson-diagram.png", type: "image/png", url: null }
-          : null,
-    };
-    setMessages([sent]);
-    if (kind === "loading") {
-      setBusy(true);
-      return;
-    }
-    if (kind === "error") {
-      setMessages([
-        sent,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          kind: "error",
-          source: sent,
-          time: time(lang),
-        },
-      ]);
-      return;
-    }
-    setMessages([
-      sent,
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        kind,
-        text: w[kind + "Answer"] || w.generalAnswer,
-        time: time(lang),
-      },
-    ]);
-  }
   return (
     <div className="esham-chatbot">
       <header className="topbar">
@@ -387,9 +363,7 @@ export default function EshamChatbot() {
           </div>
         </div>
         <nav className="desktop-nav" aria-label={w.chat}>
-          <span className="active">{w.chat}</span>
-          <span>{w.history}</span>
-          <span>{w.sources}</span>
+          {['chat','history','sources'].map(tab => <button type="button" key={tab} className={view === tab ? 'active' : ''} aria-pressed={view === tab} onClick={() => setView(tab)}>{w[tab]}</button>)}
         </nav>
         <div className="header-actions">
           <div className="language-switch">
@@ -410,24 +384,21 @@ export default function EshamChatbot() {
               English
             </button>
           </div>
-          <select
-            aria-label={w.preview}
-            value={preview}
-            onChange={(e) => showPreview(Number(e.target.value))}
-          >
-            <option value="">{w.preview}</option>
-            {w.previewNames.map((name, i) => (
-              <option value={i} key={i}>
-                {name}
-              </option>
-            ))}
-          </select>
           <button className="subtle-button" onClick={reset}>
             {w.newChat}
           </button>
         </div>
       </header>
       <div className="workspace">
+        {identity === 'guest' && <p className="guest-help-note">{lang === 'ar' ? 'يمكنك السؤال عن إسهام دون حساب. للمحادثة العامة وتحليل المرفقات، ' : 'Ask about Esham without an account. For general chat and attachment analysis, '}<a href="/login">{lang === 'ar' ? 'سجّل الدخول' : 'sign in'}</a>.</p>}
+        {storageFailed && <p role="status">{lang === 'ar' ? 'تعذّر حفظ سجل الجلسات في هذا التبويب. المحادثة الحالية ما زالت متاحة.' : 'Session history could not be saved in this tab. Your current conversation remains available.'}</p>}
+        {view === 'history' && <section className="assistant-library" aria-label={w.history}>
+          <h1>{w.history}</h1><p>{lang === 'ar' ? 'آخر 20 محادثة محفوظة في هذا التبويب لهذا الحساب، حتى 100 رسالة للمحادثة. المرفقات نفسها لا تُحفظ.' : 'The latest 20 conversations are saved in this tab for this account, up to 100 messages each. Attachments themselves are not saved.'}</p>
+          {!sessions.length && <p>{lang === 'ar' ? 'لا توجد محادثات محفوظة بعد. ابدأ محادثتك الأولى.' : 'No saved conversations yet. Start your first chat.'}</p>}
+          <ul>{sessions.map(session => <li key={session.id}><button type="button" onClick={() => openSession(session)}><strong>{session.messages.find(m => m.role === 'user')?.text.slice(0,90) || w.chat}</strong><small>{new Intl.DateTimeFormat(lang,{dateStyle:'medium',timeStyle:'short'}).format(session.updated)} · {session.messages.length} {lang === 'ar' ? 'رسالة' : 'messages'}</small></button><button type="button" className="session-delete" aria-label={(lang === 'ar' ? 'حذف المحادثة: ' : 'Delete conversation: ') + (session.messages.find(m => m.role === 'user')?.text.slice(0,90) || w.chat)} onClick={() => { if(session.id === sessionId) {reset();setView('history');} setSessions(prev => prev.filter(s => s.id !== session.id)); }}>{lang === 'ar' ? 'حذف' : 'Delete'}</button></li>)}</ul>
+        </section>}
+        {view === 'sources' && <section className="assistant-library" aria-label={w.sources}><h1>{w.sources}</h1><p>{lang === 'ar' ? 'المراجع المستخدمة في المحادثة المفتوحة حاليًا.' : 'References used in the currently open conversation.'}</p>{!sources.length && <p>{lang === 'ar' ? 'لم تُستخدم مراجع في هذه المحادثة بعد. الإجابات العامة قد لا تحتاج مرجعًا.' : 'No references used in this conversation yet. General answers may not require references.'}</p>}<ul>{sources.map(source => <li key={source.id}><a href={source.url} target={source.source === 'external' ? '_blank' : undefined} rel={source.source === 'external' ? 'noopener noreferrer' : undefined}><strong>{source.title}</strong><small>{source.source === 'external' ? (lang === 'ar' ? 'مرجع خارجي · Coursera' : 'External resource · Coursera') : (lang === 'ar' ? 'إسهام' : 'Esham')}</small></a></li>)}</ul></section>}
+        <div hidden={view !== 'chat'}>
         <div className="context-strip">
           <span className="status-dot" />
           {hasLesson
@@ -545,7 +516,7 @@ export default function EshamChatbot() {
                       {m.kind === "error" ? (
                         <>
                           <strong>{w.error}</strong>
-                          <p>{w.errorBody}</p>
+                          <p>{m.error === 'assistant-unauthorized' ? (lang === 'ar' ? 'سجّل الدخول لتحليل المرفقات واستخدام المحادثة العامة. يمكنك السؤال عن إسهام دون حساب.' : 'Sign in for attachment analysis and general chat. You can ask about Esham without an account.') : m.error?.startsWith('image-') ? (lang === 'ar' ? 'تعذّر تجهيز الصورة. جرّب صورة أصغر بصيغة JPG أو PNG أو WebP.' : 'Unable to prepare the image. Try a smaller JPG, PNG or WebP image.') : m.error?.startsWith('document-') ? (lang === 'ar' ? 'تعذّر قراءة الملف. اختر TXT أو PDF غير محمي يحتوي على نص، وليس صورًا ممسوحة، بحجم حتى 10 ميغابايت.' : 'Unable to read the document. Choose a TXT or an unprotected PDF with extractable text, not scanned images, up to 10 MB.') : m.error === "assistant-data-missing" ? (lang === "ar" ? "بيانات الدورات غير مجهزة؛ شغّل إعداد بيانات خدمة المساعد." : "Course data is not prepared. Run the assistant data setup.") : m.error === "assistant-unavailable" || m.error === "Failed to fetch" ? (lang === "ar" ? "خدمة المساعد غير متاحة حاليًا. حاول لاحقًا." : "The assistant service is unavailable. Try again later.") : w.errorBody}</p>
                           <div className="followups">
                             <button
                               onClick={() => {
@@ -569,7 +540,8 @@ export default function EshamChatbot() {
                         </>
                       ) : (
                         <>
-                          {m.text}
+                          <span style={{whiteSpace:"pre-wrap"}}>{m.text}</span>
+                          {m.sources?.length > 0 && <div className="assistant-sources"><strong>{w.sources}</strong><ul>{m.sources.map(source => <li key={source.id}><a href={source.url} target={source.source === "external" ? "_blank" : undefined} rel={source.source === "external" ? "noopener noreferrer" : undefined}>{source.title}</a><small> · {source.source === "external" ? (lang === "ar" ? "مرجع خارجي — Coursera" : "External resource — Coursera") : (lang === "ar" ? "إسهام" : "Esham")}</small></li>)}</ul></div>}
                           {m.kind === "points" && (
                             <div className="result-card">
                               
@@ -646,6 +618,7 @@ export default function EshamChatbot() {
                     <Icon>description</Icon>
                   )}
                   <span>{file.name}</span>
+                  <small>{['application/pdf','text/plain'].includes(file.type) ? (lang === 'ar' ? 'سيُرسل النص المستخرج للتحليل عند الإرسال (حتى 20 صفحة و16000 حرف).' : 'Extracted text is sent for analysis on Send (up to 20 pages and 16,000 characters).') : (lang === 'ar' ? 'ستُرسل نسخة مصغّرة من الصورة للتحليل عند الإرسال. GIF: أول إطار فقط.' : 'A resized image is sent for analysis on Send. GIF: first frame only.')}</small>
                   <button
                     aria-label={w.remove}
                     onClick={() => {
@@ -704,6 +677,7 @@ export default function EshamChatbot() {
               <p className="disclaimer">{w.disclaimer}</p>
             </div>
           </main>
+        </div>
         </div>
       </div>
 

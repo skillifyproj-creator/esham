@@ -1,5 +1,5 @@
 import VideoScreeningPanel from "../../components/video/VideoScreeningPanel";
-import { screenVideo } from "../../services/videoScreening";
+import { screenVideoWithGemini } from '../../services/cloudVideoReview';
 import { matchingScreening } from "../../services/videoSafetyPolicy";
 import VideoTimeline from '../../components/video/VideoTimeline';
 import VideoWhiteboard from '../../components/video/VideoWhiteboard';
@@ -76,7 +76,16 @@ export default function LessonVideoWorkflow({ mode }) {
     const timer = setInterval(() => setSeconds(value => value + 1), 1000);
     return () => clearInterval(timer);
   }, [recording, paused]);
-  const message = cause => /^screening-/.test(cause?.message || '')
+  const cloudErrors = {
+    'screening-consent': t('وافق أولًا على إرسال نسخة الفيديو إلى Google، أو اختر الفحص المحلي.', 'Consent to send the video to Google first, or select local screening.'),
+    'screening-key-missing': t('مفتاح خدمة فحص الفيديو غير مضبوط. لم يُرسل الفيديو إلى Google.', 'The video review service key is missing. Video was not sent to Google.'),
+    'screening-cloud-unavailable': t('خدمة فحص الفيديو غير متاحة. شغّل خدمة AI على المنفذ 8000 ثم أعد المحاولة.', 'The video review service is unavailable. Start the AI service on port 8000 and retry.'),
+    'screening-cloud-size': t('فحص الفيديو الحالي يدعم فيديو حتى 20MB. استخدم ملفًا أصغر أو الفحص المحلي.', 'Video review currently supports videos up to 20MB. Use a smaller file or local screening.'),
+    'screening-cloud-format': t('فحص الفيديو الحالي يدعم MP4 وWebM حتى 10 دقائق.', 'Video review currently supports MP4 and WebM up to 10 minutes.'),
+    'screening-rate-limit': t('الخدمة مشغولة أو وصلت حد الطلبات. انتظر قليلًا ثم أعد المحاولة.', 'The service is busy or the request limit was reached. Wait and retry.'),
+    'screening-timeout': t('انتهت مهلة فحص الفيديو؛ لم تُعتمد نتيجة للفيديو.', 'Video review timed out; no result was approved.'),
+  };
+  const message = cause => cloudErrors[cause?.message] || (/^screening-/.test(cause?.message || '')
     ? t('تعذّر إكمال فحص AI. تحقق من الإنترنت ومساحة الذاكرة ودعم المتصفح ثم أعد الفحص. لم يتم اعتماد الفيديو، والملف ما زال محفوظًا كمسودة.', 'AI screening could not finish. Check internet, memory and browser support, then retry. Video was not approved and remains a saved draft.')
     : cause?.name === 'NotAllowedError' || cause?.name === 'PermissionDeniedError'
     ? t('لم يُسمح بالوصول إلى الجهاز أو أُلغيت مشاركة الشاشة. يمكنك المحاولة مجددًا أو اختيار ملف.', 'Device access was denied or screen sharing was cancelled. Retry or choose a file.')
@@ -90,7 +99,7 @@ export default function LessonVideoWorkflow({ mode }) {
     : /video-(codec|type|metadata|duration)/.test(cause?.message || '') ? t('تعذّر تشغيل صيغة الفيديو. جرّب MP4 أو WebM بترميز يدعمه المتصفح.', 'This video cannot be played. Try MP4 or WebM with a codec supported by your browser.')
     : cause?.message === 'invalid-trim' ? t('اختر بداية ونهاية ضمن مدة الفيديو، بفاصل لا يقل عن 0.1 ثانية.', 'Choose start and end within the video duration, at least 0.1 seconds apart.')
     : cause?.message === 'device-selection' ? t('فعّل الكاميرا لهذا الشكل، أو اختر السبورة لتسجيل الصوت دون كاميرا.', 'Enable the camera for this layout, or choose whiteboard to record without a camera.')
-    : t('تعذّرت العملية. تحقق من دعم المتصفح ومساحة التخزين، ثم حاول مجددًا.', 'The operation failed. Check browser support and available storage, then retry.');
+    : t('تعذّرت العملية. تحقق من دعم المتصفح ومساحة التخزين، ثم حاول مجددًا.', 'The operation failed. Check browser support and available storage, then retry.'));
   function keep(value) {
     localStorage.setItem(key, JSON.stringify(value));
     setMetadata(value);
@@ -207,7 +216,7 @@ export default function LessonVideoWorkflow({ mode }) {
     keep(unscanned);
     setScanning(true); setScanProgress({ phase: 'loading', percent: 0 });
     try {
-      const screening = await screenVideo(blob, value, { signal: abort.current.signal, onProgress: update => { if (active.current) setScanProgress(update); } });
+      const screening = await screenVideoWithGemini(blob, value, { consent: true, signal: abort.current.signal, onProgress: update => { if (active.current) setScanProgress(update); } });
       const next = { ...value, screening };
       if (active.current) keep(next);
       return next;
@@ -239,7 +248,8 @@ export default function LessonVideoWorkflow({ mode }) {
       }
       if (!active.current) return;
       keep(value);
-      if (!matchingScreening(value)) value = await analyzeVideo(outputBlob, value);
+      const previous = matchingScreening(value);
+      if (!previous || previous.provider !== 'gemini') value = await analyzeVideo(outputBlob, value);
       if (!active.current) return;
       if (matchingScreening(value)?.status !== 'no-flags') { move('preview', value); return; }
       const draft = flow.lessonDraft || lesson || {};

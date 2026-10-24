@@ -42,7 +42,9 @@
 .onboarding-note { display: flex; align-items: center; gap: 14px; max-width: 780px; margin: 30px auto 0; padding: 17px 22px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; color: var(--muted); }
 .onboarding-note > span { font-size: 23px; color: var(--green); }
 .onboarding-note p { margin: 0; font-size: 14px; line-height: 1.8; }
-.onboarding-actions { display: flex; justify-content: center; gap: 14px; padding-top: 28px; border-top: 1px solid var(--line); margin-top: 34px; }
+.onboarding-navigation { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: -18px 0 32px; }
+.onboarding-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; }
+.onboarding-navigation .onboarding-error { margin: 0; }
 .onboarding-next,.onboarding-back { min-height: 52px; padding: 13px 25px; display: flex; align-items: center; gap: 28px; border-radius: 14px; border: 1px solid var(--primary-300); background: var(--primary-300); color: var(--white-00); font: inherit; font-weight: 700; cursor: pointer; }
 .onboarding-next:hover { background: var(--primary-200); }
 .onboarding-back { border-color: var(--line); background: var(--surface); color: var(--text); }

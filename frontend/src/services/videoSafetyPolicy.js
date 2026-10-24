@@ -1,3 +1,4 @@
+import { validCloudReview } from './cloudReviewPolicy.js';
 export const SCREENING_VERSION = 'clip-local-v2';
 export const SCREENING_MODEL = 'Xenova/clip-vit-base-patch32';
 // These are similarity prompts, not a trained or calibrated moderation taxonomy.
@@ -41,6 +42,7 @@ export function makeScreeningResult(frames, mediaId, duration) {
 
 export function matchingScreening(video) {
   const result = video?.screening;
+  if (validCloudReview(result, video?.mediaId, video?.durationSeconds)) return result;
   return result?.version === SCREENING_VERSION && Number.isFinite(result.duration) && result.duration > 0 && result.mediaId === video.mediaId && result.duration === video.durationSeconds && Array.isArray(result.findings) &&
     ['no-flags', 'review'].includes(result.status) && result.sampledFrames === sampleVideoTimes(result.duration).length ? result : null;
 }
