@@ -39,7 +39,7 @@ public static class AccountEndpoints
                 return ToError(result);
             }
 
-            return Results.Ok(new { profile = ToResponse(result.Profile) });
+            return Results.Ok(new AccountSessionResponse(ToResponse(result.Profile), result.OnboardingRequired));
         })
         .AllowAnonymous()
         .WithName("LoginAccount");
@@ -59,18 +59,9 @@ public static class AccountEndpoints
                 return ToError(result);
             }
 
-            if (result.OnboardingRequired)
-            {
-                return Results.Ok(new
-                {
-                    profile = new { result.Profile.Id, result.Profile.Name },
-                    onboardingRequired = true,
-                });
-            }
-
             return Results.Ok(new AccountSessionResponse(
                 ToResponse(result.Profile),
-                OnboardingRequired: false));
+                result.OnboardingRequired));
         })
         .RequireAuthorization()
         .WithName("GetCurrentAccountSession");
@@ -92,7 +83,11 @@ public static class AccountEndpoints
                     request.Interests,
                     request.TeachingAreas,
                     request.CustomSkills,
-                    request.Goal));
+                    request.Goal)
+                {
+                    LearningCategoryIds = request.LearningCategoryIds,
+                    TeachingCategoryIds = request.TeachingCategoryIds,
+                });
 
             if (result.Failure != AccountFailure.None)
             {
@@ -103,6 +98,13 @@ public static class AccountEndpoints
         })
         .RequireAuthorization()
         .WithName("UpdateCurrentProfile");
+
+        endpoints.MapPatch("/me/role", async (UpdateRoleRequest request,
+            IAccountService accountService, HttpContext context) =>
+        {
+            var result = await accountService.UpdateCurrentRoleAsync(context.User, request.Role);
+            return result.Failure == AccountFailure.None ? Results.NoContent() : ToError(result);
+        }).RequireAuthorization().WithName("UpdateCurrentAccountRole");
 
         return endpoints;
     }
@@ -119,7 +121,12 @@ public static class AccountEndpoints
         profile.Interests,
         profile.TeachingAreas,
         profile.CustomSkills,
-        profile.Goal);
+        profile.Goal)
+    {
+        LearningCategoryIds = profile.LearningCategoryIds,
+        TeachingCategoryIds = profile.TeachingCategoryIds,
+        Roles = profile.Roles,
+    };
 
     private static IResult ToError(AccountResult result) => result.Failure switch
     {
@@ -143,6 +150,12 @@ public static class AccountEndpoints
         AccountFailure.OnboardingRequired => Results.Problem(
             title: "Account onboarding must be completed before signing in.",
             statusCode: StatusCodes.Status409Conflict),
+        AccountFailure.Conflict => Results.Problem(
+            title: result.Errors?.FirstOrDefault() ?? "Account data conflicts with its initialization records. No changes were made.",
+            statusCode: StatusCodes.Status409Conflict),
+        AccountFailure.Unavailable => Results.Problem(
+            title: "Required account roles have not been provisioned.",
+            statusCode: StatusCodes.Status503ServiceUnavailable),
         _ => Results.Problem(
             title: "Authentication is required.",
             statusCode: StatusCodes.Status401Unauthorized),

@@ -1,4 +1,5 @@
 using esham.DAL.Entities;
+using esham.BLL.Security;
 using Microsoft.AspNetCore.Identity;
 
 namespace esham.PL.Development;
@@ -7,7 +8,7 @@ namespace esham.PL.Development;
 public static class DevelopmentIdentityRoles
 {
     public static IReadOnlyList<string> KnownRoles { get; } =
-        Array.AsReadOnly(new[] { "Learner", "Instructor", "GeneralAdmin", "CategoryAdmin" });
+        AccountRoles.Known;
 
     public static async Task SeedAsync(RoleManager<IdentityRole> manager)
     {
@@ -48,15 +49,7 @@ public static class DevelopmentIdentityRoles
 
     public static string? LegacyPersona(IEnumerable<string> roles)
     {
-        var learner = roles.Contains("Learner", StringComparer.OrdinalIgnoreCase);
-        var instructor = roles.Contains("Instructor", StringComparer.OrdinalIgnoreCase);
-        return (learner, instructor) switch
-        {
-            (true, true) => "both",
-            (true, false) => "learner",
-            (false, true) => "instructor",
-            _ => null
-        };
+        return AccountRoles.Persona(roles);
     }
 
     public static async Task AuditAsync(

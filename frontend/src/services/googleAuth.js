@@ -1,4 +1,5 @@
 import { accountRequest, AccountApiError, acceptAccountSession, apiBase } from './accountApi';
+import { reconcileCategoryProfile } from './categorySelections';
 
 export const googleAuthEnabled = Boolean(apiBase && import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true');
 
@@ -15,7 +16,8 @@ export function acceptGoogleSession(result) {
   if (result?.onboardingRequired === true) {
     const profile = result.profile;
     if (typeof profile?.id !== 'string' || !profile.id) throw new AccountApiError('response');
-    const draft = { id: profile.id, name: typeof profile.name === 'string' ? profile.name.slice(0, 80) : '', username: '', bio: '', role: '', interests: [], teachingAreas: [], customSkills: [], goal: null };
+    const draft = reconcileCategoryProfile({ username: '', bio: '', role: '', customSkills: [], goal: null, ...profile,
+      name: typeof profile.name === 'string' ? profile.name.slice(0, 80) : '' });
     localStorage.removeItem('esham-account-profile-v1');
     sessionStorage.setItem('esham-onboarding-draft-v1', JSON.stringify(draft));
     window.dispatchEvent(new Event('esham-profile-updated'));

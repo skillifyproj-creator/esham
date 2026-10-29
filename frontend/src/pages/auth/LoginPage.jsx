@@ -1,6 +1,7 @@
 import GoogleSignIn from '../../components/GoogleSignIn';
-import { accountRequest, accountError, acceptAccountSession } from '../../services/accountApi';
-import useAccountProfile from '../../hooks/useAccountProfile';
+import { accountRequest, accountError } from '../../services/accountApi';
+import { useAccountSession } from '../../context/AccountSessionContext';
+import { accountDestination } from '../../services/adminUsers';
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -21,10 +22,10 @@ export default function LoginPage() {
   } = usePreferences();
 
   const navigate = useNavigate();
+  const sessionState = useAccountSession();
   const [busy, setBusy] = useState(false);
   const [requestError, setRequestError] = useState('');
   const t = loginCopy[language];
-  const profile = useAccountProfile();
 
   const [values, setValues] = useState({
     email: "",
@@ -74,7 +75,7 @@ export default function LoginPage() {
 
     if (firstError || busy) return;
     setBusy(true); setRequestError('');
-    try { const account = acceptAccountSession(await accountRequest('/auth/login', { email: values.email.trim(), password: values.password })); setValues({ email: '', password: '' }); navigate(account.role === 'instructor' ? '/instructor' : '/learner'); }
+    try { await accountRequest('/auth/login', { email: values.email.trim(), password: values.password }); const session = await sessionState.refresh(); setValues({ email: '', password: '' }); navigate(accountDestination(session)); }
     catch (error) { setRequestError(accountError(error, language)); } finally { setBusy(false); }
   }
 

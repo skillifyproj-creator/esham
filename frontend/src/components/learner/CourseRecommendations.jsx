@@ -3,14 +3,16 @@ import { Link } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
 import useAccountProfile from '../../hooks/useAccountProfile';
 import { courses } from '../../data/courses';
-import { categories } from '../../data/categories';
+import { useCategoryCatalog } from '../../context/CategoryCatalogContext';
+import { categoryLabel } from '../../services/categorySelections';
 import { recommendCourses } from '../../data/courseRecommendations';
 import { assistantBase, assistantRequest, publicCatalog } from '../../services/learningAssistant';
 export default function CourseRecommendations({ course, review, enrollments = [] }) {
   const {language}=usePreferences();const profile=useAccountProfile();const t=(a,e)=>language==='ar'?a:e;
+  const { categories } = useCategoryCatalog();
   const fallback=recommendCourses({catalog:courses,completedCourse:course,review,enrollments});
   const [remote,setRemote]=useState(null),[external,setExternal]=useState([]),[loading,setLoading]=useState(false);
-  const interests=(profile.interests||[]).map(id=>categories[id]?.title?.[language]).filter(Boolean);
+  const interests=(profile.learningCategoryIds||[]).filter(id=>categories.some(item=>item.id===id)).map(id=>categoryLabel(categories,id,language));
   const query=[review?.text?.trim() || course.title?.[language] || '',course.category].join(' ');
   const exclude=[String(course.id),...enrollments.map(e=>String(e.courseId))];
   const signature=JSON.stringify({query,interests,exclude,language,level:course.level});

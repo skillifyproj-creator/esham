@@ -201,7 +201,7 @@ test('hybrid activation preserves identity and both learning and teaching record
       const tasks = localStorage.getItem('esham-task-submissions-v1');
       const teaching = session.getItem('esham-instructor-course-draft-v1');
       const upgraded = profile.updateAccountRole('both');
-      assert.deepEqual(upgraded, { ...account, role: 'both', roles: ['learner', 'instructor'] });
+      assert.deepEqual(upgraded, { ...account, role: 'both', roles: ['learner', 'instructor'], interests: [], teachingAreas: [], learningCategoryIds: [], teachingCategoryIds: [], categoryReselectionRequired: true });
       assert.equal(profile.readAccountProfile().role, 'both');
       assert.equal(localStorage.getItem('esham-learner-progress-v1'), learning);
       assert.equal(localStorage.getItem('esham-task-submissions-v1'), tasks);
@@ -232,7 +232,9 @@ test('all account type transitions preserve history and synchronize legacy flags
         session.setItem('esham-instructor-course-draft-v1', 'existing teaching history');
         const next = profile.updateAccountRole(to);
         assert.equal(profile.readAccountProfile().role, to);
-        for (const field of ['id', 'email', 'name', 'interests', 'teachingAreas']) assert.deepEqual(next[field], account[field]);
+        for (const field of ['id', 'email', 'name']) assert.deepEqual(next[field], account[field]);
+        assert.deepEqual(next.interests, []); assert.deepEqual(next.teachingAreas, []);
+        assert.equal(next.categoryReselectionRequired, true);
         assert.equal(next.isLearner, to !== 'instructor');
         assert.equal(next.isInstructor, to !== 'learner');
         assert.equal(localStorage.getItem('esham-learner-progress-v1'), 'existing learning history');

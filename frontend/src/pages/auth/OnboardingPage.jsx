@@ -1,4 +1,7 @@
 import { accountRequest, accountError, apiBase } from '../../services/accountApi';
+import { useAccountSession, onboardingDraft } from '../../context/AccountSessionContext';
+import { useCategoryCatalog } from '../../context/CategoryCatalogContext';
+import { reconcileCategoryProfile, profileRequest, validateCategoryDraft } from '../../services/categorySelections';
 import SetupComplete from "./SetupComplete";
 import { teachingSkillsCopy } from "../../i18n/teachingSkillsCopy";
 import InterestsSetup from "./InterestsSetup";
@@ -17,23 +20,25 @@ import '../../styles/onboarding.css';
 
 const steps = ['role', 'profile', 'interests', 'goals'];
 const storageKey = 'esham-onboarding-draft-v1';
-const emptyDraft = { role: '', name: '', username: '', bio: '', interests: [], teachingAreas: [], customSkills: [], goal: null };
+const emptyDraft = { role: '', name: '', username: '', bio: '', learningCategoryIds: [], teachingCategoryIds: [], customSkills: [], goal: null };
 function loadDraft() {
   try {
     const data = JSON.parse(sessionStorage.getItem(storageKey));
     if (!data || typeof data !== 'object') return emptyDraft;
-    return {
+    return reconcileCategoryProfile({
       id: typeof data.id === 'string' ? data.id : undefined,
       avatar: typeof data.avatar === 'string' && data.avatar.startsWith('data:image/jpeg;base64,') ? data.avatar : '',
       role: ['learner', 'instructor', 'both'].includes(data.role) ? data.role : '',
       name: typeof data.name === 'string' ? data.name.slice(0, 80) : '',
       username: typeof data.username === 'string' ? data.username.slice(0, 24) : '',
       bio: typeof data.bio === 'string' ? data.bio.slice(0, 500) : '',
-      interests: Array.isArray(data.interests) ? [...new Set(data.interests.filter(n => Number.isInteger(n) && n >= 0 && n < 6))] : [],
-      teachingAreas: Array.isArray(data.teachingAreas) ? [...new Set(data.teachingAreas.filter(n => Number.isInteger(n) && n >= 0 && n < 6))] : [],
+      interests: data.interests, teachingAreas: data.teachingAreas,
+      learningCategoryIds: data.learningCategoryIds, teachingCategoryIds: data.teachingCategoryIds,
+      categoryReselectionRequired: data.categoryReselectionRequired,
+      pendingPersona: data.pendingPersona,
       customSkills: Array.isArray(data.customSkills) ? [...new Set(data.customSkills.filter(value => typeof value === "string" && value.trim().length >= 2 && Array.from(value).length <= 80).map(value => value.trim()))].slice(0,10) : [],
       goal: Number.isInteger(data.goal) && data.goal >= 0 && data.goal < 4 ? data.goal : null,
-    };
+    });
   } catch { return emptyDraft; }
 }
 function RoleIcon({ role }) {
@@ -46,12 +51,17 @@ export default function OnboardingPage() {
   const t = onboardingCopy[language];
   const { step = 'role' } = useParams();
   const navigate = useNavigate();
+  const sessionState = useAccountSession();
+  const catalog = useCategoryCatalog();
   const [draft, setDraft] = useState(loadDraft);
   const [error, setError] = useState('');
   const [busy,setBusy]=useState(false);
   const [help, setHelp] = useState(false);
   const errorRef = useRef(null);
   const [photo, setPhoto] = useState("");
+  useEffect(() => {
+    if (sessionState.status === 'authenticated') setDraft(previous => onboardingDraft(sessionState.session, previous));
+  }, [sessionState.status, sessionState.session?.profile?.id]);
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo); }, [photo]);
   const current = steps.indexOf(step);
   const complete = step === 'complete';
@@ -61,25 +71,29 @@ export default function OnboardingPage() {
     try { sessionStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* The flow also works without storage. */ }
   }
   function move(target) { setError(''); navigate(`/onboarding/${target}`); }
-  const skillRequirement = draft.role !== "instructor" && !draft.interests.length ? "interestError" : draft.role !== "learner" && !draft.teachingAreas.length && !draft.customSkills.length ? "teachingError" : "";
+  const categoryIssue = validateCategoryDraft(draft, catalog.categories);
+  const skillRequirement = categoryIssue === 'learning' ? 'interestError' : categoryIssue === 'teaching' ? 'teachingError' : categoryIssue ? (language === 'ar' ? 'أعد اختيار المجالات غير المتاحة.' : 'Reselect unavailable categories.') : '';
   async function submit(event) {
     event.preventDefault();
     const invalid = current === 0 && !draft.role ? 'roleError' : current === 1 && draft.name.trim().length < 2 ? 'nameError' : current === 1 && !validUsername(draft.username) ? 'usernameError' : current === 2 && skillRequirement ? skillRequirement : current === 3 && draft.goal === null ? 'goalError' : '';
     if (invalid) { setError(invalid); requestAnimationFrame(() => errorRef.current?.focus()); return; }
     if (current === 3) {
-      const completedProfile = { ...draft, id: draft.id || `user:${draft.username.toLowerCase()}` };
       try {
         if(busy)return;setBusy(true);
-        if(apiBase)await accountRequest('/me',completedProfile,{method:'PATCH'});
-        localStorage.setItem('esham-account-profile-v1', JSON.stringify(completedProfile));
-        sessionStorage.setItem(storageKey, JSON.stringify(completedProfile));
+        await accountRequest('/me', profileRequest(draft, { includeCategories: true }), { method:'PATCH' });
+        const verified = await sessionState.refresh();
+        if (verified.onboardingRequired) throw { code: 'response' };
+        const completedProfile = onboardingDraft(verified);
+        try { sessionStorage.setItem(storageKey, JSON.stringify(completedProfile)); } catch { /* Saved on the server. */ }
         setDraft(completedProfile);
       } catch (cause) { setError(apiBase ? accountError(cause,language) : language === 'ar' ? 'تعذّر حفظ الحساب. فعّل تخزين المتصفح ثم حاول مجددًا.' : 'Unable to save your account. Enable browser storage and retry.'); return; } finally {setBusy(false);}
       window.dispatchEvent(new Event('esham-profile-updated'));
     }
     move(steps[current + 1] || 'complete');
   }
+  if (sessionState.status !== 'authenticated') return <main className="section container empty-state"><p role="status">{sessionState.status === 'loading' ? (language === 'ar' ? 'جارٍ تحميل الحساب…' : 'Loading account…') : (language === 'ar' ? 'سجّل الدخول لمتابعة إعداد حسابك.' : 'Sign in to continue account setup.')}</p>{sessionState.error && <p role="alert">{accountError(sessionState.error, language)}</p>}<Link className="button" to="/login">{language === 'ar' ? 'تسجيل الدخول' : 'Sign in'}</Link><button type="button" onClick={() => sessionState.refresh().catch(() => {})}>{language === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></main>;
   if (current < 0 && !complete) return <main className="section container empty-state"><h1>{t.title}</h1><Link className="button" to="/onboarding/role">{t.label}</Link></main>;
+  if (catalog.loading && (current >= 2 || complete)) return <main className="section container empty-state"><p role="status">{language === 'ar' ? 'جارٍ تحميل المجالات…' : 'Loading categories…'}</p></main>;
   const firstIncomplete = !draft.role ? 0 : draft.name.trim().length < 2 || !validUsername(draft.username) ? 1 : skillRequirement ? 2 : draft.goal === null ? 3 : 4;
   if ((complete ? 4 : current) > firstIncomplete) return <Navigate to={`/onboarding/${steps[firstIncomplete]}`} replace />;
   const goalCopy = getOnboardingGoals(language, draft.role);
@@ -95,7 +109,7 @@ export default function OnboardingPage() {
         <div className="onboarding-navigation">
           <div className="onboarding-actions">
             {current > 0 && <button type="button" className="onboarding-back" onClick={() => move(steps[current - 1])}>{t.back}</button>}
-            <button className="onboarding-next" type="submit" disabled={busy} aria-busy={busy}>{current === 3 ? t.finish : t.next}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
+            <button className="onboarding-next" type="submit" disabled={busy || (current >= 2 && (catalog.loading || Boolean(catalog.error)))} aria-busy={busy}>{current === 3 ? t.finish : t.next}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
           </div>
           {error && <p ref={errorRef} tabIndex={-1} role="alert" className="onboarding-error">{error === "teachingError" ? teachingSkillsCopy[language].required : t[error] || profileSetupCopy[language][error] || error}</p>}
         </div>

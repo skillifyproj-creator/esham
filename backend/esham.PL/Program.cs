@@ -37,6 +37,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IUserCategoryService, UserCategoryService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
+builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
@@ -44,6 +49,7 @@ builder.Services.AddProblemDetails();
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "Esham.Identity";
+    options.Events.OnValidatePrincipal = AccountCookieValidation.ValidateAsync;
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
@@ -104,6 +110,9 @@ var summaries = new[]
 };
 
 app.MapAccountEndpoints();
+app.MapUserCategoryEndpoints();
+app.MapAdminUserEndpoints();
+app.MapNotificationEndpoints();
 app.MapCategoryEndpoints();
 app.MapCourseEndpoints();
 

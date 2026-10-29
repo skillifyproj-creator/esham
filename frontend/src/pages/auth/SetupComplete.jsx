@@ -2,6 +2,8 @@ import { Link } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
 import { onboardingCopy, getOnboardingGoals } from '../../i18n/onboardingCopy';
 import Icon from '../../components/Icon';
+import { useCategoryCatalog } from '../../context/CategoryCatalogContext';
+import { categoryLabel } from '../../services/categorySelections';
 import '../../styles/onboarding-complete.css';
 const copy = {
  ar: { title: 'خطوتك الأولى اكتملت', intro: 'جمعت ملامح رحلتك في إسهام. راجع اختياراتك، ثم اكتشف ما يمكنك تعلّمه ومشاركته.', profile: 'ملخص إعداد ملفك', learning: 'مجالات ترغب بتعلّمها', teaching: 'خبرات ترغب بمشاركتها', goal: 'هدفك الأساسي', start: 'استكشف الدورات', teach: 'ابدأ إعداد دورة', dashboard: 'واجهة المتعلّم', instructor: 'واجهة المدرّب', edit: 'تعديل اختياراتي', note: 'تفضيلاتك محفوظة على هذا الجهاز عند توفر التخزين. إنشاء الحساب واعتماده وتفعيل رصيد النقاط يتطلب ربط خدمة الحسابات.', both: 'رحلة تجمع التعلّم والتعليم', bothText: 'اختر واجهة التعلّم أو التعليم للمتابعة.', empty: 'لم تُضف بعد', preview: 'ملف قيد الإعداد', fallback: 'عضو إسهام' },
@@ -9,14 +11,15 @@ const copy = {
 };
 export default function SetupComplete({ draft, photo, onEdit }) {
  const { language } = usePreferences();
+ const { categories } = useCategoryCatalog();
  const t = copy[language], c = onboardingCopy[language];
  const roleLabel = {
   ar: { learner: 'متعلّم', instructor: 'مدرّب', both: 'هايبرد' },
   en: { learner: 'Learner', instructor: 'Instructor', both: 'Hybrid' },
  }[language][draft.role];
  const initials = draft.name.trim().split(/\s+/).slice(0,2).map(word => Array.from(word)[0]).join('');
- const learning = draft.interests.map(id => c.categories[id]);
- const teaching = [...draft.teachingAreas.map(id => c.categories[id]), ...draft.customSkills];
+ const learning = (draft.learningCategoryIds || []).map(id => categoryLabel(categories, id, language));
+ const teaching = [...(draft.teachingCategoryIds || []).map(id => categoryLabel(categories, id, language)), ...draft.customSkills];
  const primary = draft.role === 'instructor' ? { to: '/instructor', label: t.instructor } : { to: '/learner', label: t.dashboard };
  function skills(title, items, type) { return <section className={`setup-summary-section ${type}`}><h3><Icon name={type === 'learning' ? 'book' : 'user'} size={20} />{title}</h3><div className="setup-summary-tags">{items.length ? items.map(value => <span key={value}>{value}</span>) : <p>{t.empty}</p>}</div></section>; }
  return <section className="setup-complete" aria-labelledby="setup-complete-title">

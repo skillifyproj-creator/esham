@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { reconcileCategoryProfile } from '../services/categorySelections';
+import { useAccountSession } from '../context/AccountSessionContext';
 
 const validRoles = ['learner', 'instructor', 'both'];
 
@@ -34,12 +36,12 @@ export function readAccountProfile() {
     try {
       const value = JSON.parse(window[storage].getItem(key) || 'null');
       const profile = normalizeAccountProfile(value);
-      if (profile && validRoles.includes(profile.role)) return profile;
+      if (profile && validRoles.includes(profile.role)) return reconcileCategoryProfile(profile);
     } catch {
       /* Use the next available source. */
     }
   }
-  return { role: '', interests: [] };
+  return { role: '', interests: [], teachingAreas: [], learningCategoryIds: [], teachingCategoryIds: [], customSkills: [] };
 }
 
 // Change capabilities without replacing the identity or its learning/teaching records.
@@ -58,6 +60,7 @@ export function updateAccountRole(role) {
 }
 
 export default function useAccountProfile() {
+  const server = useAccountSession();
   const [profile, setProfile] = useState(readAccountProfile);
 
   useEffect(() => {
@@ -70,5 +73,7 @@ export default function useAccountProfile() {
     };
   }, []);
 
-  return profile;
+  return server.status === 'authenticated' ? server.session.profile
+    : server.status === 'anonymous' ? { role: '', interests: [], teachingAreas: [], learningCategoryIds: [], teachingCategoryIds: [] }
+    : profile;
 }

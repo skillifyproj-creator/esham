@@ -1,5 +1,4 @@
 import useAccountProfile from '../../hooks/useAccountProfile';
-import { interestAreas } from '../../data/interestAreas';
 import useAccountName from "../../hooks/useAccountName";
 import { useState } from "react";
 
@@ -42,7 +41,7 @@ function LearningProgress({ value, label }) {
 export default function LearnerDashboard() {
   const accountName = useAccountName();
   const profile = useAccountProfile();
-  const preferredCategories = new Set((profile.interests || []).map(id => interestAreas[id]?.category));
+  const preferredCategories = new Set(profile.learningCategoryIds || []);
   const { language } = usePreferences();
   const t = learnerCopy[language];
 
@@ -79,7 +78,7 @@ export default function LearnerDashboard() {
 
   const recommendations = courses
     .filter((course) => !enrolledIds.has(course.id))
-    .sort((a, b) => Number(preferredCategories.has(b.category)) - Number(preferredCategories.has(a.category)))
+    .sort((a, b) => Number(preferredCategories.has(b.categoryId || b.category)) - Number(preferredCategories.has(a.categoryId || a.category)))
     .slice(0, 2);
 
   const { tasks: allTasks } = useLearnerTasks();

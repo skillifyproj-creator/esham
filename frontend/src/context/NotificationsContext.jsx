@@ -1,39 +1,51 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { learnerNotifications } from '../data/learnerNotifications';
-import { instructorNotifications } from '../data/instructorNotifications';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useAccountSession } from './AccountSessionContext';
+import { AccountApiError } from '../services/accountApi';
+import { createNotificationStore, emptyNotificationState, visibleNotificationState } from '../services/notifications';
 
-const NotificationsContext = createContext(null);
-const sources = { learner: learnerNotifications, instructor: instructorNotifications };
-const keys = { learner: 'esham-notification-read-v1', instructor: 'esham-instructor-notification-read-v1' };
-function load(role) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(keys[role]));
-    if (Array.isArray(saved)) return [...new Set(saved.filter(id => sources[role].some(item => item.id === id)))];
-  } catch { /* Default read status remains available without storage. */ }
-  return sources[role].filter(item => item.read).map(item => item.id);
-}
+const unavailable = async () => { throw new AccountApiError('unauthorized', 401); };
+export const NotificationsContext = createContext({ ...emptyNotificationState(null), status: 'anonymous',
+  refresh: unavailable, markRead: unavailable, markAll: unavailable, setPage: unavailable, setFilter: unavailable });
+
 export function NotificationsProvider({ children }) {
-  const [readIds, setReadIds] = useState(() => ({ learner: load('learner'), instructor: load('instructor') }));
-  useEffect(() => {
-    for (const role of Object.keys(sources)) {
-      try { localStorage.setItem(keys[role], JSON.stringify(readIds[role])); } catch { /* State remains available for this session. */ }
+  const session = useAccountSession();
+  const accountId = session.status === 'authenticated' ? session.session?.profile?.id || null : null;
+  const currentAccount = useRef(accountId); currentAccount.current = accountId;
+  const store = useMemo(() => createNotificationStore(), []);
+  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const run = useCallback(async action => {
+    try {
+      if (!currentAccount.current || currentAccount.current !== store.getSnapshot().accountId) throw new AccountApiError('unauthorized', 401);
+      return await action();
+    } catch (error) {
+      if (error.status === 401) session.refresh().catch(() => {});
+      throw error;
     }
-  }, [readIds]);
-  function markRead(role, id) {
-    if (!sources[role]?.some(item => item.id === id)) return;
-    setReadIds(current => current[role].includes(id) ? current : { ...current, [role]: [...current[role], id] });
-  }
-  function markAll(role) {
-    if (!sources[role]) return;
-    setReadIds(current => ({ ...current, [role]: sources[role].map(item => item.id) }));
-  }
-  return <NotificationsContext.Provider value={{ readIds, markRead, markAll }}>{children}</NotificationsContext.Provider>;
+  }, [store, session.refresh]);
+  useEffect(() => {
+    store.setAccount(accountId);
+    if (!accountId) return;
+    run(() => store.refresh()).catch(() => {});
+    const update = () => {
+      const state = store.getSnapshot();
+      if (!state.loading && !state.mutating && document.visibilityState !== 'hidden') run(() => store.refresh()).catch(() => {});
+    };
+    window.addEventListener('focus', update);
+    window.addEventListener('esham-profile-updated', update);
+    const timer = setInterval(update, 60000);
+    return () => { clearInterval(timer); window.removeEventListener('focus', update); window.removeEventListener('esham-profile-updated', update); store.setAccount(null); };
+  }, [accountId, run, store]);
+  // Effects run after rendering: never expose A's inbox for one render as B.
+  const visible = visibleNotificationState(snapshot, accountId);
+  const error = visible.error || (session.status === 'unconfigured' ? new AccountApiError('unconfigured') : session.status === 'error' ? session.error : null);
+  const value = { ...visible, accountId, status: session.status, error, loading: session.status === 'loading' || visible.loading,
+    refresh: () => accountId ? run(() => store.refresh()) : session.refresh(),
+    markRead: id => run(() => store.markRead(id)), markAll: () => run(() => store.markAll()),
+    setPage: page => run(() => store.refresh({ page })),
+    setFilter: filter => run(() => store.refresh({ page: 1, isRead: filter === 'unread' ? false : filter === 'read' ? true : null })),
+  };
+  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }
-export function useNotifications(role = 'learner') {
-  const context = useContext(NotificationsContext);
-  if (!context) throw new Error('useNotifications requires NotificationsProvider');
-  if (!sources[role]) throw new Error('Unknown notification role');
-  const read = new Set(context.readIds[role]);
-  const notifications = sources[role].map(item => ({ ...item, read: read.has(item.id) }));
-  return { notifications, unread: notifications.filter(item => !item.read).length, markRead: id => context.markRead(role, id), markAll: () => context.markAll(role) };
-}
+
+// One recipient-owned inbox across all personas; role is only presentation.
+export function useNotifications(_role = 'learner') { return useContext(NotificationsContext); }

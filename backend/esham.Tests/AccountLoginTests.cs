@@ -30,6 +30,7 @@ public sealed class AccountLoginTests
             .AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
         services.ConfigureApplicationCookie(options => options.Cookie.Name = "Esham.Identity");
         services.AddScoped<AccountService>();
+        services.AddScoped<INotificationWriter, NotificationWriter>();
         return services.BuildServiceProvider();
     }
 
@@ -51,9 +52,17 @@ public sealed class AccountLoginTests
         var users = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roles = services.GetRequiredService<RoleManager<IdentityRole>>();
         Assert.True((await roles.CreateAsync(new IdentityRole(identityRole))).Succeeded);
-        var user = new ApplicationUser { UserName = "login_test", Email = "login@example.test", Role = persona };
+        var user = new ApplicationUser { UserName = "login_test", Email = "login@example.test", Role = persona,
+            Name = "Test learner", Goal = 0, Interests = [0], TeachingAreas = [1] };
         Assert.True((await users.CreateAsync(user, TestPassword)).Succeeded);
         Assert.True((await users.AddToRoleAsync(user, identityRole)).Succeeded);
+        var expectedRoles = new List<string> { identityRole };
+        if (persona is "learner" or "both" && !expectedRoles.Contains("Learner"))
+        {
+            Assert.True((await roles.CreateAsync(new IdentityRole("Learner"))).Succeeded);
+            Assert.True((await users.AddToRoleAsync(user, "Learner")).Succeeded);
+            expectedRoles.Add("Learner");
+        }
         var http = new DefaultHttpContext { RequestServices = services };
         services.GetRequiredService<IHttpContextAccessor>().HttpContext = http;
 
@@ -64,7 +73,7 @@ public sealed class AccountLoginTests
         Assert.Equal(user.Id, result.Profile!.Id);
         Assert.Equal(persona, result.Profile.Role);
         Assert.False(result.OnboardingRequired);
-        Assert.Equal(new[] { identityRole }, await users.GetRolesAsync(user));
+        Assert.Equal(expectedRoles.Order(), (await users.GetRolesAsync(user)).Order());
         Assert.Equal(persona, (await users.FindByIdAsync(user.Id))!.Role);
 
         var cookie = Assert.Single(SetCookieHeaderValue.ParseList(http.Response.Headers.SetCookie.Select(value => value!).ToArray()));
@@ -88,7 +97,7 @@ public sealed class AccountLoginTests
     [InlineData(null, "CategoryAdmin")]
     [InlineData("Instructor", null)]
     [InlineData("Learner", "")]
-    public async Task Incomplete_normal_accounts_require_onboarding_and_receive_no_cookie(
+    public async Task Incomplete_accounts_restore_an_onboarding_session_without_granting_roles(
         string? identityRole, string? persona)
     {
         using var provider = Services();
@@ -109,9 +118,11 @@ public sealed class AccountLoginTests
         var result = await services.GetRequiredService<AccountService>()
             .LoginAsync(new(user.Email, TestPassword));
 
-        Assert.Equal(AccountFailure.OnboardingRequired, result.Failure);
-        Assert.Null(result.Profile);
-        Assert.Equal(0, http.Response.Headers.SetCookie.Count);
+        Assert.Equal(AccountFailure.None, result.Failure);
+        Assert.True(result.OnboardingRequired);
+        Assert.Equal(user.Id, result.Profile!.Id);
+        Assert.Equal(1, http.Response.Headers.SetCookie.Count);
+        Assert.Equal(identityRole is null ? 0 : 1, (await users.GetRolesAsync(user)).Count);
     }
 
     [Theory]

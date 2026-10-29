@@ -8,8 +8,10 @@ import { passwordRequirements } from '../auth/passwordValidation';
 import Modal from '../../components/Modal';
 import Icon from '../../components/Icon';
 import '../../styles/account.css';
-import { readAccountProfile, updateAccountRole } from '../../hooks/useAccountProfile';
-import { categories } from '../../data/categories';
+import { readAccountProfile } from '../../hooks/useAccountProfile';
+import { useAccountSession, onboardingDraft } from '../../context/AccountSessionContext';
+import { useCategoryCatalog } from '../../context/CategoryCatalogContext';
+import { profileRequest, replaceCategories, validateCategoryDraft } from '../../services/categorySelections';
 const key = 'esham-account-profile-v1';
 function readProfile() {
   const empty = { role: '', name: '', username: '', bio: '', interests: [], teachingAreas: [], customSkills: [], goal: null };
@@ -17,7 +19,8 @@ function readProfile() {
     const value = readAccountProfile();
     if (['learner', 'instructor', 'both'].includes(value.role)) empty.role = value.role;
     for (const field of ['name', 'username', 'bio']) if (typeof value[field] === 'string') empty[field] = value[field].slice(0, field === 'bio' ? 500 : 80);
-    for (const field of ['interests', 'teachingAreas']) if (Array.isArray(value[field])) empty[field] = [...new Set(value[field].filter(id => Number.isInteger(id) && id >= 0 && id < categories.length))];
+    for (const field of ['learningCategoryIds', 'teachingCategoryIds']) empty[field] = value[field] || [];
+    empty.categoryReselectionRequired = value.categoryReselectionRequired;
     if (typeof value.avatar === 'string' && value.avatar.startsWith('data:image/jpeg;base64,')) empty.avatar = value.avatar;
     if (Number.isInteger(value.goal) && value.goal >= 0 && value.goal < 4) empty.goal = value.goal;
     if (Array.isArray(value.customSkills)) empty.customSkills = value.customSkills.filter(item => typeof item === 'string').slice(0, 10).map(item => item.slice(0, 80));
@@ -26,6 +29,8 @@ function readProfile() {
 }
 export default function AccountPage({ role, section }) {
   const navigate = useNavigate();
+  const sessionState = useAccountSession();
+  const catalog = useCategoryCatalog();
   const { language, theme, setLanguage, setTheme } = usePreferences();
   const ar = language === 'ar';
   const text = (a, e) => ar ? a : e;
@@ -39,6 +44,12 @@ export default function AccountPage({ role, section }) {
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [visible, setVisible] = useState({});
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (sessionState.status === 'authenticated') {
+      const next = onboardingDraft(sessionState.session);
+      setSaved(next); setDraft(next); setSelectedRole(next.role || role);
+    }
+  }, [sessionState.status, sessionState.session?.profile?.id]);
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo); }, [photo]);
   useEffect(() => { setStatus(''); setError(''); setPasswords({ current: '', next: '', confirm: '' }); setVisible({}); }, [section]);
   const update = change => { setDraft(value => ({ ...value, ...change })); setStatus(''); setError(''); };
@@ -46,16 +57,43 @@ export default function AccountPage({ role, section }) {
     event.preventDefault();
     if (draft.name.trim().length < 2) { setError('nameError'); return; }
     if (!validUsername(draft.username)) { setError('usernameError'); return; }
+    const invalid = validateCategoryDraft(draft, catalog.categories);
+    if (invalid) { setStatus(text('اختر المجالات المطلوبة والمتاحة قبل الحفظ.', 'Select the required available categories before saving.')); return; }
     const value = { ...readAccountProfile(), ...draft, name: draft.name.trim(), bio: draft.bio.trim() };
-    try { if (busy) return; setBusy(true); if (apiBase) await accountRequest('/me', value, { method: 'PATCH' }); localStorage.setItem(key, JSON.stringify(value)); setSaved(value); window.dispatchEvent(new Event('esham-profile-updated')); setStatus(text('تم حفظ بيانات الملف والصورة على هذا الجهاز.', 'Profile and photo saved on this device.')); }
-    catch (error) { setStatus(apiBase ? accountError(error, language) : text('تعذّر الحفظ على الجهاز. احتفظنا بالتعديلات في الصفحة.', 'Device storage is unavailable. Your edits remain on this page.')); } finally { setBusy(false); }
+    try {
+      if (busy || sessionState.status !== 'authenticated' || catalog.loading || catalog.error) return;
+      setBusy(true);
+      // Each replacement is atomic and membership-checked by the server. Do not
+      // send the other persona's retained history when it is currently disabled.
+      if (value.role !== 'instructor') await replaceCategories('learning', value.learningCategoryIds);
+      if (value.role !== 'learner') await replaceCategories('teaching', value.teachingCategoryIds);
+      await accountRequest('/me', profileRequest(value), { method: 'PATCH' });
+      const verified = await sessionState.refresh();
+      const next = onboardingDraft(verified);
+      setSaved(next); setDraft(next);
+      setStatus(text('تم حفظ ملفك ومجالاتك في حسابك.', 'Your profile and categories are saved to your account.'));
+    }
+    catch (error) {
+      // Earlier requests may have committed. Refresh the canonical saved snapshot,
+      // keep the editable draft, and never report the composite save as successful.
+      try { const verified = await sessionState.refresh(); setSaved(onboardingDraft(verified)); } catch { /* Show the original failure. */ }
+      setStatus(accountError(error, language) + ' ' + text('قد تكون بعض التغييرات قد حُفظت. راجع الاختيارات أو أعد المحاولة.', 'Some changes may have been saved. Review the selections or retry.'));
+    } finally { setBusy(false); }
   }
   async function changeAccountType(event) {
     event.preventDefault();
     try {
       if (busy) return; setBusy(true);
-      if (apiBase) await accountRequest('/me/role', { role: selectedRole }, { method: 'PATCH' });
-      const next = updateAccountRole(selectedRole);
+      // A newly enabled persona may need new selections before finalization.
+      // Collect them in the existing onboarding flow instead of granting a UI-only role.
+      if ((selectedRole !== 'instructor' && !saved.learningCategoryIds?.length)
+        || (selectedRole !== 'learner' && !saved.teachingCategoryIds?.length && !saved.customSkills?.length)) {
+        const nextDraft = { ...saved, role: selectedRole, pendingPersona: selectedRole, goal: null };
+        try { sessionStorage.setItem('esham-onboarding-draft-v1', JSON.stringify(nextDraft)); } catch { /* Onboarding can still be entered. */ }
+        navigate('/onboarding/role'); return;
+      }
+      await accountRequest('/me/role', { role: selectedRole }, { method: 'PATCH' });
+      const next = onboardingDraft(await sessionState.refresh());
       setSaved(value => ({ ...value, ...next }));
       setDraft(value => ({ ...value, ...next }));
       setStatus(text('تم تغيير نوع الحساب مع الحفاظ على كل بياناتك وسجلك السابق.', 'Account type changed with all your existing data and history preserved.'));
@@ -75,12 +113,13 @@ export default function AccountPage({ role, section }) {
     try { await accountRequest('/me/password', { currentPassword: passwords.current, password: passwords.next }); setPasswords({ current: '', next: '', confirm: '' }); setStatus(text('تم تغيير كلمة المرور.', 'Password updated.')); }
     catch (error) { setError(accountError(error, language)); } finally { setBusy(false); }
   }
+  if (sessionState.status !== 'authenticated') return <main className="container section"><p role="status">{sessionState.status === 'loading' ? text('جارٍ تحميل الحساب…', 'Loading account…') : text('تعذّر تحميل الحساب.', 'Unable to load the account.')}</p>{sessionState.error && <p role="alert">{accountError(sessionState.error, language)}</p>}<button type="button" onClick={() => sessionState.refresh().catch(() => {})}>{text('إعادة المحاولة', 'Retry')}</button><Link to="/login">{text('تسجيل الدخول', 'Sign in')}</Link></main>;
   return <main className="account-page container">
     <header className="account-heading"><p>{text('حساب واحد · تعلّم وشارك', 'One account · Learn and share')}</p><h1>{section === 'profile' ? text('تعديل الملف الشخصي', 'Edit profile') : section === 'security' ? text('تغيير كلمة المرور', 'Change password') : text('إعدادات الحساب', 'Account settings')}</h1><p>{text('إدارة معلوماتك وتفضيلاتك من مكان واحد.', 'Manage your information and preferences in one place.')}</p></header>
     <div className="account-layout"><nav className="account-tabs" aria-label={text('إدارة الحساب', 'Account navigation')}>
       <NavLink to={`/${role}/profile`}>{text('الملف الشخصي', 'Profile')}</NavLink><NavLink end to={`/${role}/settings`}>{text('الإعدادات', 'Settings')}</NavLink><NavLink to={`/${role}/settings/security`}>{text('الأمان', 'Security')}</NavLink><Link to={`/${role}/notifications`}>{text('الإشعارات', 'Notifications')}</Link>
     </nav><div className="account-content">
-    {section === 'profile' ? <form onSubmit={save} noValidate><ProfileSetup draft={draft} update={update} error={error} photo={photo} setPhoto={setPhoto} /><details className="account-panel"><summary>{text('اهتمامات التعلّم ومجالات التعليم', 'Learning interests and teaching areas')}</summary>{draft.role !== 'instructor' && <InterestsSetup draft={draft} update={update} />}{draft.role !== 'learner' && <InterestsSetup draft={draft} update={update} mode="teaching" />}</details><div className="account-actions"><button className="button" type="submit" disabled={busy} aria-busy={busy}>{text('حفظ التغييرات', 'Save changes')}</button><button type="button" className="button secondary" onClick={() => { setDraft(saved); setPhoto(''); setError(''); setStatus(''); }}>{text('إلغاء التعديلات', 'Discard edits')}</button></div></form> : section === 'security' ? <form className="account-panel account-password" onSubmit={checkPassword} noValidate>
+    {section === 'profile' ? <form onSubmit={save} noValidate><ProfileSetup draft={draft} update={update} error={error} photo={photo} setPhoto={setPhoto} /><details className="account-panel"><summary>{text('اهتمامات التعلّم ومجالات التعليم', 'Learning interests and teaching areas')}</summary>{draft.role !== 'instructor' && <InterestsSetup draft={draft} update={update} />}{draft.role !== 'learner' && <InterestsSetup draft={draft} update={update} mode="teaching" />}</details><div className="account-actions"><button className="button" type="submit" disabled={busy || catalog.loading || Boolean(catalog.error)} aria-busy={busy}>{text('حفظ التغييرات', 'Save changes')}</button><button type="button" className="button secondary" onClick={() => { setDraft(saved); setPhoto(''); setError(''); setStatus(''); }}>{text('إلغاء التعديلات', 'Discard edits')}</button></div></form> : section === 'security' ? <form className="account-panel account-password" onSubmit={checkPassword} noValidate>
       <p className="account-note">{apiBase ? text('أدخل بياناتك لتحديث كلمة المرور.', 'Enter your details to update your password.') : text('تغيير كلمة المرور غير متاح حاليًا.', 'Password changes are currently unavailable.')}</p>
       {['current', 'next', 'confirm'].map((field, index) => <div className="account-field" key={field}><label htmlFor={`password-${field}`}>{[text('كلمة المرور الحالية', 'Current password'), text('كلمة المرور الجديدة', 'New password'), text('تأكيد كلمة المرور الجديدة', 'Confirm new password')][index]}</label><div className="account-password-input"><input id={`password-${field}`} type={visible[field] ? 'text' : 'password'} autoComplete={field === 'current' ? 'current-password' : 'new-password'} value={passwords[field]} required onChange={event => { setPasswords(value => ({ ...value, [field]: event.target.value })); setError(''); setStatus(''); }} /><button type="button" aria-pressed={!!visible[field]} aria-label={text('إظهار أو إخفاء', 'Show or hide') + ' ' + [text('كلمة المرور الحالية', 'current password'), text('كلمة المرور الجديدة', 'new password'), text('تأكيد كلمة المرور', 'password confirmation')][index]} onClick={() => setVisible(value => ({ ...value, [field]: !value[field] }))}><Icon name={visible[field] ? "eye-off" : "eye"} size={21} /></button></div></div>)}<p>{text('8 أحرف على الأقل، تتضمن حرفًا ورقمًا.', 'At least 8 characters, including a letter and number.')}</p>{error && <p role="alert" className="account-error">{error}</p>}<button className="button" disabled={busy} aria-busy={busy}>{text('تغيير كلمة المرور', 'Change password')}</button>
     </form> : <div className="account-panel">

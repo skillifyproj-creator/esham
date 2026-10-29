@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { accountRequest, accountError } from '../../services/accountApi';
+import { useAccountSession } from '../../context/AccountSessionContext';
+import { useNotifications } from '../../context/NotificationsContext';
+import { notificationMessage } from '../../services/notifications';
 import Icon from '../Icon';
 import Footer from '../Footer';
 import { usePreferences } from '../../context/PreferencesContext';
@@ -13,12 +17,17 @@ export default function AdminWorkspace({
   profileName,
   profileRole,
   notificationTo,
-  notificationCount = 0,
+  notificationCount: _legacyNotificationCount = 0,
   scope,
 }) {
   const { copy, language, theme, toggleLanguage, toggleTheme } = usePreferences();
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const session = useAccountSession();
+  const inbox = useNotifications();
+  const notificationCount = !inbox.loading && !inbox.error ? inbox.unread : 0;
+  const [signingOut, setSigningOut] = useState(false), [signOutError, setSignOutError] = useState(null);
   const words = adminCopy[language];
   const active =
     [...links]
@@ -51,13 +60,15 @@ export default function AdminWorkspace({
         <Link
           className="admin-utility admin-notification-link"
           to={notificationTo}
-          aria-label={`${words.notifications}${
+          aria-label={inbox.error ? notificationMessage(inbox.error, language) : `${words.notifications}${
             notificationCount ? `, ${notificationCount}` : ''
           }`}
-          title={words.notifications}
+          title={inbox.error ? notificationMessage(inbox.error, language) : words.notifications}
+          aria-busy={inbox.loading}
         >
           <Icon name="bell" size={19} />
           {notificationCount > 0 && <i className="admin-unread-dot" />}
+          {inbox.error && <span title={notificationMessage(inbox.error, language)}>!</span>}
         </Link>
       )}
       <button
@@ -157,10 +168,19 @@ export default function AdminWorkspace({
               <small>{roleLabel}</small>
             </span>
           </div>
-          <Link className="admin-logout" to="/login" onClick={() => setOpen(false)}>
+          <button className="admin-logout" type="button" disabled={signingOut} onClick={async () => {
+            if (signingOut) return;
+            setSigningOut(true); setSignOutError(null);
+            try {
+              await accountRequest('/auth/logout'); session.invalidate?.();
+              try { localStorage.removeItem('esham-account-profile-v1'); sessionStorage.removeItem('esham-onboarding-draft-v1'); } catch { /* The server cookie is already cleared. */ }
+              window.dispatchEvent(new Event('esham-profile-updated')); setOpen(false); navigate('/login');
+            } catch (error) { setSignOutError(error); } finally { setSigningOut(false); }
+          }}>
             <Icon name="logout" size={18} />
-            <span>{language === 'ar' ? 'مغادرة المعاينة' : 'Leave preview'}</span>
-          </Link>
+            <span>{language === 'ar' ? 'تسجيل الخروج' : 'Sign out'}</span>
+          </button>
+          {signOutError && <p role="alert">{accountError(signOutError, language)}</p>}
         </div>
       </aside>
 

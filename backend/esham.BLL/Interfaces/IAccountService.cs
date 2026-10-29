@@ -10,6 +10,8 @@ public interface IAccountService
 
     Task SignOutAsync();
 
+    Task<AccountResult> UpdateCurrentRoleAsync(ClaimsPrincipal principal, string? role);
+
     Task<AccountResult> GetCurrentSessionAsync(ClaimsPrincipal principal);
 
     Task<AccountResult> UpdateCurrentProfileAsync(

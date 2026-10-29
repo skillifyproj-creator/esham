@@ -1,5 +1,6 @@
 import GoogleSignIn from '../../components/GoogleSignIn';
-import { accountRequest, accountError, apiBase } from '../../services/accountApi';
+import { useAccountSession } from '../../context/AccountSessionContext';
+import { accountRequest, accountError } from '../../services/accountApi';
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -12,6 +13,7 @@ import "../../styles/auth.css";
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const sessionState = useAccountSession();
   const [busy, setBusy] = useState(false);
   const [requestError, setRequestError] = useState('');
   const {
@@ -85,18 +87,11 @@ export default function SignupPage() {
     if (Object.keys(next).length === 0 && !busy) {
       setBusy(true); setRequestError('');
       let registered;
-      if (apiBase) {
-        try { registered = await accountRequest('/auth/register', { name: values.name.trim(), email: values.email.trim(), password: values.password }); if (!registered?.profile?.id) throw { code: 'response' }; }
-        catch (error) { setRequestError(accountError(error, language)); setBusy(false); return; }
-      }
-      // Frontend setup only; never persist passwords or claim account creation.
-      try {
-        sessionStorage.setItem('esham-onboarding-draft-v1', JSON.stringify({ id: registered?.profile?.id, name: values.name.trim(), username: '', bio: '', role: '', interests: [], teachingAreas: [], customSkills: [], goal: null }));
-      } catch { setRequestError(language === 'ar' ? 'تعذّر حفظ إعداد الحساب. فعّل تخزين المتصفح ثم حاول مجددًا.' : 'Unable to save account setup. Enable browser storage and retry.'); setBusy(false); return; }
+      try { registered = await accountRequest('/auth/register', { name: values.name.trim(), email: values.email.trim(), password: values.password }); if (!registered?.profile?.id) throw { code: 'response' }; await sessionState.refresh(); }
+      catch (error) { setRequestError(accountError(error, language)); setBusy(false); return; }
       setBusy(false); navigate('/onboarding/role');
     }
-    // ربط API التسجيل يتم هنا لاحقًا.
-    // لا نحفظ كلمات المرور في localStorage.
+    // Passwords are never persisted in browser storage.
   }
 
   return (

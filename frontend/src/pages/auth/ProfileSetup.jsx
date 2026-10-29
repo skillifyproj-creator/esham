@@ -3,11 +3,14 @@ import { usePreferences } from '../../context/PreferencesContext';
 import { onboardingCopy } from '../../i18n/onboardingCopy';
 import { profileSetupCopy } from '../../i18n/profileSetupCopy';
 import Icon from '../../components/Icon';
+import { useCategoryCatalog } from '../../context/CategoryCatalogContext';
+import { categoryLabel } from '../../services/categorySelections';
 import '../../styles/onboarding-profile.css';
 
 export function validUsername(value) { return /^[a-zA-Z0-9_]{3,24}$/.test(value); }
 export default function ProfileSetup({ draft, update, error, photo, setPhoto }) {
   const { language } = usePreferences();
+  const { categories } = useCategoryCatalog();
   const t = profileSetupCopy[language];
   const copy = onboardingCopy[language];
   const fileInput = useRef(null);
@@ -52,7 +55,7 @@ export default function ProfileSetup({ draft, update, error, photo, setPhoto }) 
     </section>
     <aside className="profile-setup-preview" aria-label={t.preview}>
       <div className="profile-setup-preview-heading"><h2>{t.preview}</h2><span><i />{t.live}</span></div>
-      <article className="profile-setup-card"><div className="profile-setup-cover"><span>{t.draft}</span><Icon name="leaf" size={28} /></div><div className="profile-setup-card-content">{avatar('preview-avatar')}<span className="profile-setup-role-tag">{role?.title}</span><h3>{draft.name.trim() || t.emptyName}</h3><p className="profile-setup-handle" dir="ltr">@{draft.username || t.emptyUsername}</p><p className="profile-setup-bio">{draft.bio.trim() || t.aboutEmpty}</p><div className="profile-setup-card-row"><strong>{t.role}</strong><span>{role?.title}</span></div><div className="profile-setup-preview-interests"><strong>{t.interests}</strong><div>{draft.interests.length ? draft.interests.map(id => <span key={id}>{copy.categories[id]}</span>) : <small>{t.nextStep}</small>}</div></div></div></article>
+      <article className="profile-setup-card"><div className="profile-setup-cover"><span>{t.draft}</span><Icon name="leaf" size={28} /></div><div className="profile-setup-card-content">{avatar('preview-avatar')}<span className="profile-setup-role-tag">{role?.title}</span><h3>{draft.name.trim() || t.emptyName}</h3><p className="profile-setup-handle" dir="ltr">@{draft.username || t.emptyUsername}</p><p className="profile-setup-bio">{draft.bio.trim() || t.aboutEmpty}</p><div className="profile-setup-card-row"><strong>{t.role}</strong><span>{role?.title}</span></div><div className="profile-setup-preview-interests"><strong>{t.interests}</strong><div>{(draft.learningCategoryIds || []).length ? draft.learningCategoryIds.map(id => <span key={id}>{categoryLabel(categories, id, language)}</span>) : <small>{t.nextStep}</small>}</div></div></div></article>
       <p className="profile-setup-preview-hint">{t.previewHint}</p>
     </aside>
   </div>;

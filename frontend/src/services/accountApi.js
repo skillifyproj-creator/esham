@@ -1,14 +1,14 @@
 // Cookie sessions keep credentials out of browser storage. Endpoint contract: docs/backend-contract.md.
-export const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+export const apiBase = (import.meta.env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
 export class AccountApiError extends Error {
   constructor(code, status = 0) { super(code); this.code = code; this.status = status; }
 }
-export async function accountRequest(path, body, { method = 'POST', base = apiBase, fetcher = fetch, timeout = 15000 } = {}) {
+export async function accountRequest(path, body, { method = 'POST', base = apiBase, fetcher = fetch, timeout = 15000, headers = {} } = {}) {
   if (!base) throw new AccountApiError('unconfigured');
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetcher(`${base}${path}`, { method, credentials: 'include', signal: controller.signal, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    if (!response.ok) throw new AccountApiError(response.status === 401 ? 'unauthorized' : response.status === 429 ? 'rate-limit' : 'request', response.status);
+    const response = await fetcher(`${base}${path}`, { method, credentials: 'include', signal: controller.signal, headers: { ...headers, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    if (!response.ok) throw new AccountApiError(response.status === 401 ? 'unauthorized' : response.status === 403 ? 'forbidden' : response.status === 429 ? 'rate-limit' : 'request', response.status);
     if (response.status === 204) return null;
     try { return await response.json(); } catch { throw new AccountApiError('response'); }
   } catch (error) {
@@ -18,6 +18,7 @@ export async function accountRequest(path, body, { method = 'POST', base = apiBa
 }
 export function accountError(error, language) {
   const messages = {
+    forbidden: ['لا يسمح دور حسابك بهذا التغيير. حدّث جلستك أو أكمل إعداد الحساب.', 'Your account role does not allow this change. Refresh your session or complete account setup.'],
     unconfigured: ['خدمة الحسابات غير متاحة حاليًا.', 'The account service is currently unavailable.'],
     unauthorized: ['تعذّر التحقق من الحساب أو انتهت الجلسة. راجع بياناتك وسجّل الدخول.', 'Account verification failed or your session expired. Check your details and sign in.'],
     'rate-limit': ['طلبات كثيرة. انتظر قليلًا ثم حاول مجددًا.', 'Too many requests. Please wait and try again.'],
@@ -32,7 +33,7 @@ export function accountError(error, language) {
 export function acceptAccountSession(result) {
   const profile = result?.profile;
   if (!profile?.id || !['learner','instructor','both'].includes(profile.role)) throw new AccountApiError('response');
-  localStorage.setItem('esham-account-profile-v1', JSON.stringify(profile));
+  try { localStorage.setItem('esham-account-profile-v1', JSON.stringify(profile)); } catch { /* Server session remains authoritative. */ }
   window.dispatchEvent(new Event('esham-profile-updated'));
   return profile;
 }

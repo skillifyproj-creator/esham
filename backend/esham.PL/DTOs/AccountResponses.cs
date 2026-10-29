@@ -12,7 +12,12 @@ public sealed record AccountProfileResponse(
     IReadOnlyList<int> Interests,
     IReadOnlyList<int> TeachingAreas,
     IReadOnlyList<string> CustomSkills,
-    int? Goal);
+    int? Goal)
+{
+    public IReadOnlyList<Guid> LearningCategoryIds { get; init; } = [];
+    public IReadOnlyList<Guid> TeachingCategoryIds { get; init; } = [];
+    public IReadOnlyList<string> Roles { get; init; } = [];
+}
 
 public sealed record AccountSessionResponse(
     AccountProfileResponse Profile,

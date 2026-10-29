@@ -14,7 +14,11 @@ public sealed record UpdateProfileCommand(
     IReadOnlyList<int>? Interests,
     IReadOnlyList<int>? TeachingAreas,
     IReadOnlyList<string>? CustomSkills,
-    int? Goal);
+    int? Goal)
+{
+    public IReadOnlyList<Guid>? LearningCategoryIds { get; init; }
+    public IReadOnlyList<Guid>? TeachingCategoryIds { get; init; }
+}
 
 public sealed record AccountProfile(
     string Id,
@@ -28,7 +32,12 @@ public sealed record AccountProfile(
     IReadOnlyList<int> Interests,
     IReadOnlyList<int> TeachingAreas,
     IReadOnlyList<string> CustomSkills,
-    int? Goal);
+    int? Goal)
+{
+    public IReadOnlyList<Guid> LearningCategoryIds { get; init; } = [];
+    public IReadOnlyList<Guid> TeachingCategoryIds { get; init; } = [];
+    public IReadOnlyList<string> Roles { get; init; } = [];
+}
 
 public enum AccountFailure
 {
@@ -40,6 +49,8 @@ public enum AccountFailure
     OnboardingRequired,
     Unauthenticated,
     UsernameAlreadyExists,
+    Conflict,
+    Unavailable,
 }
 
 public sealed record AccountResult(

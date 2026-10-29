@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { accountRequest, accountError, apiBase } from '../../services/accountApi';
+import { useAccountSession } from '../../context/AccountSessionContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import useAccountProfile from '../../hooks/useAccountProfile';
 import { rememberAccountWorkspace } from '../../data/accountNavigation';
@@ -13,6 +14,7 @@ import logo from '../../assets/esham-logo.png';
 import '../../styles/workspace-navigation.css';
 
 export default function WorkspaceNavigation({ role, name, links, activityLabel }) {
+  const sessionState = useAccountSession();
   const { language, theme, toggleLanguage, toggleTheme } = usePreferences();
   const profile = useAccountProfile();
   const accountName = useAccountName();
@@ -81,7 +83,7 @@ export default function WorkspaceNavigation({ role, name, links, activityLabel }
               <button type="button" onClick={toggleLanguage}><span aria-hidden="true">ع / EN</span>{t('English', 'العربية')}</button>
               <button type="button" onClick={toggleTheme}><Icon name={theme === 'light' ? 'moon' : 'sun'} size={18}/>{theme === 'light' ? t('الوضع الداكن', 'Dark mode') : t('الوضع الفاتح', 'Light mode')}</button>
             </div>
-            <button className="workspace-nav-link" type="button" disabled={signingOut} onClick={async()=>{if(signingOut)return;setSigningOut(true);setSessionError('');try{if(apiBase)await accountRequest('/auth/logout');localStorage.removeItem('esham-account-profile-v1');sessionStorage.removeItem('esham-onboarding-draft-v1');window.dispatchEvent(new Event('esham-profile-updated'));close();navigate('/login');}catch(error){setSessionError(accountError(error,language));}finally{setSigningOut(false);}}}>{t('تسجيل الخروج','Sign out')}</button>
+            <button className="workspace-nav-link" type="button" disabled={signingOut} onClick={async()=>{if(signingOut)return;setSigningOut(true);setSessionError('');try{if(apiBase)await accountRequest('/auth/logout');sessionState.invalidate?.();localStorage.removeItem('esham-account-profile-v1');sessionStorage.removeItem('esham-onboarding-draft-v1');window.dispatchEvent(new Event('esham-profile-updated'));close();navigate('/login');}catch(error){setSessionError(accountError(error,language));}finally{setSigningOut(false);}}}>{t('تسجيل الخروج','Sign out')}</button>
             {sessionError&&<p role="alert">{sessionError}</p>}
           </div>
         </div>

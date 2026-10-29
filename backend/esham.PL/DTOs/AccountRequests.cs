@@ -4,6 +4,8 @@ public sealed record RegisterAccountRequest(string? Name, string? Email, string?
 
 public sealed record LoginAccountRequest(string? Email, string? Password);
 
+public sealed record UpdateRoleRequest(string? Role);
+
 public sealed record UpdateProfileRequest(
 	string? Name,
 	string? NameEn,
@@ -14,4 +16,8 @@ public sealed record UpdateProfileRequest(
 	int[]? Interests,
 	int[]? TeachingAreas,
 	string[]? CustomSkills,
-	int? Goal);
+	int? Goal)
+{
+    public Guid[]? LearningCategoryIds { get; init; }
+    public Guid[]? TeachingCategoryIds { get; init; }
+}

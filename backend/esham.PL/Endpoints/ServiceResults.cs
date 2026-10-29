@@ -9,6 +9,7 @@ internal static class ServiceResults
         ServiceFailure.Validation => Results.ValidationProblem(new Dictionary<string, string[]> { ["request"] = [result.Message ?? "Invalid request."] }),
         ServiceFailure.NotFound => Results.Problem(statusCode: 404, title: result.Message),
         ServiceFailure.Forbidden => Results.Problem(statusCode: 403, title: result.Message),
+        ServiceFailure.Unauthenticated => Results.Unauthorized(),
         ServiceFailure.Conflict => Results.Problem(statusCode: 409, title: result.Message),
         _ => Results.Problem(statusCode: 500, title: "Unable to complete the request.")
     };

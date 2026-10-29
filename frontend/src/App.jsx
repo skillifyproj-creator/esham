@@ -8,6 +8,8 @@ const LearnerCertificatesPage = lazy(() => import('./pages/learner/LearnerCertif
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import DevelopmentAdminAccess from './components/shared/DevelopmentAdminAccess';
 import StorageNotice from './components/shared/StorageNotice';
+import { AccountSessionProvider } from './context/AccountSessionContext';
+import { CategoryCatalogProvider } from './context/CategoryCatalogContext';
 import { refreshPublishedCourses } from './data/courses';
 import { refreshInstructorCourses } from './data/instructorDemo';
 import { COURSE_EVENT } from './services/coursePublishing';
@@ -169,6 +171,7 @@ function RouteShell() {
             <Route index element={<Dashboard />} />
             <Route path="admins" element={<AdminsPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="notifications" element={<NotificationsPage role="admin" />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="reports" element={<ReportsPage />} /><Route path="moderation" element={<ModerationQueuePage/>}/>
@@ -408,12 +411,12 @@ function RouteShell() {
 
 export default function App() {
   return (
-    <PreferencesProvider>
+    <PreferencesProvider><AccountSessionProvider><CategoryCatalogProvider>
       <BrowserRouter>
         <LearnerProvider>
           <NotificationsProvider><RouteShell /></NotificationsProvider>
         </LearnerProvider>
       </BrowserRouter>
-    </PreferencesProvider>
+    </CategoryCatalogProvider></AccountSessionProvider></PreferencesProvider>
   );
 }
