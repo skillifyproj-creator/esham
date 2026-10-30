@@ -1,3 +1,4 @@
+import AuthAlert from '../../components/AuthAlert';
 import GoogleSignIn from '../../components/GoogleSignIn';
 import { useAccountSession } from '../../context/AccountSessionContext';
 import { accountRequest, accountError } from '../../services/accountApi';
@@ -235,13 +236,13 @@ export default function SignupPage() {
               );
             })}
 
+            {requestError && <AuthAlert>{requestError}</AuthAlert>}
             <button className="auth-submit" type="submit" disabled={busy} aria-busy={busy}>
               {t.submit}
             </button>
 
-            {requestError && <p className="auth-error" role="alert">{requestError}</p>}
             
-            {ready && (
+            {ready && !requestError && (
               <p className="auth-status" role="status">
                 {t.ready}
 <br /><Link to="/onboarding/role">{language === "ar" ? "متابعة إعداد التجربة" : "Continue experience setup"}</Link>
@@ -249,14 +250,16 @@ export default function SignupPage() {
             )}
           </form>
 
-          <p className="auth-existing">
-            {t.existing}{" "}
-            <Link to="/login">{t.login}</Link>
-          </p>
+          <div className="auth-form-footer">
+            <p className="auth-existing">
+              {t.existing}{" "}
+              <Link to="/login">{t.login}</Link>
+            </p>
 
-          <Link className="auth-back" to="/">
-            {t.back}
-          </Link>
+            <Link className="auth-back" to="/">
+              {t.back}
+            </Link>
+          </div>
         </div>
       </section>
 

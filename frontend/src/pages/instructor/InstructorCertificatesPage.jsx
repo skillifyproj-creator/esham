@@ -1,10 +1,12 @@
 import { Link } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
-import { instructorDemo } from '../../data/instructorDemo';
+import useInstructorCourses from '../../hooks/useInstructorCourses';
+import CatalogStatus from '../../components/CatalogStatus';
 import Icon from '../../components/Icon';
 import '../../styles/instructor-certificates.css';
 
 export default function InstructorCertificatesPage() {
+  const { courses, loading, error } = useInstructorCourses();
   const { language } = usePreferences();
   const t = (ar, en) => language === 'ar' ? ar : en;
   const requirements = [
@@ -39,10 +41,11 @@ export default function InstructorCertificatesPage() {
 
       <section className="instructor-certificates-courses" aria-labelledby="certificate-courses-title">
         <div className="instructor-certificates-section-heading"><h2 id="certificate-courses-title">{t('دوراتك ومتطلبات الشهادة', 'Your courses and certificate requirements')}</h2>
-          <span>{instructorDemo.courses.length} {t('دورات', 'courses')}</span>
+          <span>{courses.length} {t('دورات', 'courses')}</span>
         </div>
         <div className="instructor-certificates-grid">
-          {instructorDemo.courses.map(course => <article className="instructor-certificate-course" key={course.id}>
+          <CatalogStatus loading={loading} error={error} empty={!courses.length} />
+          {courses.map(course => <article className="instructor-certificate-course" key={course.id}>
             <span className="instructor-certificate-course-icon" aria-hidden="true"><Icon name="book" size={24}/></span>
             <h3>{course.title[language]}</h3>
             <p>{t('راجع الدروس والمهام المطلوبة للحصول على شهادة هذه الدورة.', 'Review the lessons and tasks required to earn this course certificate.')}</p>

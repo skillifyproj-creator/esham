@@ -4,7 +4,9 @@ import Header from "../components/Header";
 import Icon from "../components/Icon";
 import CourseCard from "../components/CourseCard";
 import Modal from "../components/Modal";
-import { categoryKeys, courses } from "../data/courses";
+import { usePublicCatalog } from '../context/PublicCatalogContext';
+import { useCategoryCatalog } from '../context/CategoryCatalogContext';
+import CatalogStatus from '../components/CatalogStatus';
 import { usePreferences } from "../context/PreferencesContext";
 import "../styles/landing-theme.css";
 const featureStyle = [
@@ -14,7 +16,10 @@ const featureStyle = [
   ["grid", "cream"],
 ];
 export default function HomePage() {
-  const { copy: c } = usePreferences();
+  const { copy: c, language } = usePreferences();
+  const { courses, loading, error, reload } = usePublicCatalog();
+  const catalog = useCategoryCatalog();
+  const categoryKeys = ['all', ...catalog.categories.map(x => x.id)];
   const [category, setCategory] = useState("all");
   const [modal, setModal] = useState(null);
   const [interest, setInterest] = useState("");
@@ -23,7 +28,7 @@ export default function HomePage() {
     category === "all"
       ? courses
       : courses.filter((course) => course.category === category);
-  const categoryName = (key) => c.categories[categoryKeys.indexOf(key)];
+  const categoryName = key => key === 'all' ? c.allCourses : (language === 'ar' ? catalog.categories.find(x => x.id === key)?.nameAr : catalog.categories.find(x => x.id === key)?.nameEn);
 
   const startQuiz = () => {
     setInterest("");
@@ -122,11 +127,12 @@ export default function HomePage() {
                 className={category === key ? "filter active" : "filter"}
                 onClick={() => setCategory(key)}
               >
-                {c.categories[i]}
+                {categoryName(key)}
               </button>
             ))}
           </div>
           <div className="courses-grid" aria-live="polite">
+            <CatalogStatus loading={loading || catalog.loading} error={error || catalog.error} empty={!filtered.length} reload={reload} />
             {filtered.map((course) => (
               <CourseCard
                 key={course.id}

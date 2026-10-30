@@ -1,3 +1,4 @@
+import AuthAlert from '../../components/AuthAlert';
 import GoogleSignIn from '../../components/GoogleSignIn';
 import { accountRequest, accountError } from '../../services/accountApi';
 import { useAccountSession } from '../../context/AccountSessionContext';
@@ -197,10 +198,10 @@ export default function LoginPage() {
 
             <Link className="auth-forgot" to="/forgot-password">{t.forgot}</Link>
 
+            {requestError && <AuthAlert>{requestError}</AuthAlert>}
             <button className="auth-submit" type="submit" disabled={busy} aria-busy={busy}>
               {busy ? (language === 'ar' ? 'جاري تسجيل الدخول…' : 'Signing in…') : t.submit}
             </button>
-            {requestError && <p className="auth-error" role="alert">{requestError}</p>}
 
             {ready && (
               <p className="auth-status" role="status">
@@ -210,14 +211,16 @@ export default function LoginPage() {
           </form>
 
           
-          <p className="auth-existing">
-            {t.noAccount}{" "}
-            <Link to="/signup">{t.signup}</Link>
-          </p>
+          <div className="auth-form-footer">
+            <p className="auth-existing">
+              {t.noAccount}{" "}
+              <Link to="/signup">{t.signup}</Link>
+            </p>
 
-          <Link className="auth-back" to="/">
-            {t.back}
-          </Link>
+            <Link className="auth-back" to="/">
+              {t.back}
+            </Link>
+          </div>
         </div>
       </section>
 

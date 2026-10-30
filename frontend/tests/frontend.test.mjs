@@ -331,7 +331,14 @@ test('instructor pages and video workflow render with the current course context
   localStorage.setItem('esham-account-profile-v1',JSON.stringify({role:'instructor',name:'Test instructor'}));
   const base='/instructor/courses/photography/sections/6-module-1/lessons/6-0-0', pattern='/instructor/courses/:courseId/sections/:sectionId/lessons/:lessonId';
   const paths=[['/instructor','*'],['/instructor/courses','*'],['/instructor/courses/new','*'],['/instructor/courses/photography/curriculum','/instructor/courses/:courseId/curriculum'],['/instructor/courses/photography/review','/instructor/courses/:courseId/review'],[base+'/edit',pattern+'/edit'],['/instructor/courses/photography/sections/6-module-1/tasks/task-6-1/edit','/instructor/courses/:courseId/sections/:sectionId/tasks/:taskId/edit'],['/instructor/performance','*'],['/instructor/feedback','*'],...['/video','/video/record','/video/recording','/video/preview','/video/edit'].map(suffix=>[base+suffix,pattern+suffix])];
-  for(const language of ['ar','en']) {localStorage.setItem('esham-language',language);instructorPages.forEach((module,index)=>{const html=renderLearner(h(module.default),...paths[index]);assert.match(html,/<h1/);assert.ok(!html.includes('[object Object]'));});}
+  for(const language of ['ar','en']) {localStorage.setItem('esham-language',language);instructorPages.forEach((module,index)=>{
+    const html=renderLearner(h(module.default),...paths[index]);
+    if ([1,2,3,4,5,6].includes(index) || index >= 9) {
+      assert.match(html,/role="status"/); // API-backed editors wait for the server, never authorize demo/cache data.
+      assert.ok(!html.includes('curriculum-section-card'));
+    } else assert.match(html,/<h1/);
+    assert.ok(!html.includes('[object Object]'));
+  });}
   localStorage.clear();
 });
 

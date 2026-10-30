@@ -5,7 +5,7 @@ import { assistantRequest, publicCatalog } from '../../services/learningAssistan
 import useAccountProfile from '../../hooks/useAccountProfile';
 import { cleanSessions, loadSessions, saveSessions, sessionKey } from '../../services/assistantSessions';
 import { extractChatDocument, prepareChatImage } from '../../services/chatDocuments';
-import { courses } from '../../data/courses';
+import { usePublicCatalog } from '../../context/PublicCatalogContext';
 import { pointsPolicy } from "../../data/pointsPolicy";
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 const copy = {
@@ -230,6 +230,7 @@ function Icon({ children }) {
   );
 }
 export default function EshamChatbot() {
+  const { courses } = usePublicCatalog();
   const profile = useAccountProfile();
   const identity = String(profile.id || profile.username || 'guest');
   return <ChatWorkspace key={identity} identity={identity} />;

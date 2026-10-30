@@ -36,6 +36,7 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import { PublicCatalogProvider } from './context/PublicCatalogContext';
 
 import { coursePagesCopy } from "./i18n/coursePagesCopy";
 import "./styles/course-pages.css";
@@ -326,6 +327,8 @@ function RouteShell() {
             path="courses/:courseId/sections/:sectionId/tasks/new"
             element={<InstructorTaskPage />}
           />
+          <Route path="courses/:courseId/tasks/new" element={<InstructorTaskPage />} />
+          <Route path="courses/:courseId/tasks/:taskId/edit" element={<InstructorTaskPage />} />
 
           <Route
             path="courses/:courseId/sections/:sectionId/tasks/:taskId/edit"
@@ -404,19 +407,19 @@ function RouteShell() {
       )}
 
       {/* Areas with their own layout render the same shared Footer internally. */}
-      {!isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && <Footer />}
+      {!isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && <Footer />}
     </>
   );
 }
 
 export default function App() {
   return (
-    <PreferencesProvider><AccountSessionProvider><CategoryCatalogProvider>
+    <PreferencesProvider><AccountSessionProvider><CategoryCatalogProvider><PublicCatalogProvider>
       <BrowserRouter>
         <LearnerProvider>
           <NotificationsProvider><RouteShell /></NotificationsProvider>
         </LearnerProvider>
       </BrowserRouter>
-    </CategoryCatalogProvider></AccountSessionProvider></PreferencesProvider>
+    </PublicCatalogProvider></CategoryCatalogProvider></AccountSessionProvider></PreferencesProvider>
   );
 }

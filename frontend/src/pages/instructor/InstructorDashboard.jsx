@@ -3,6 +3,8 @@ import useAccountProfile from '../../hooks/useAccountProfile';
 import { getInstructorGoalGuidance } from '../../data/instructorGoalGuidance';
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { Link } from "react-router";
+import useInstructorCourses from '../../hooks/useInstructorCourses';
+import CatalogStatus from '../../components/CatalogStatus';
 import Icon from "../../components/Icon";
 import { instructorDemo } from "../../data/instructorDemo";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -16,8 +18,11 @@ export default function InstructorDashboard() {
   const c = instructorCopy[language];
   const profile = useAccountProfile();
   const guidance = getInstructorGoalGuidance(profile, language);
-  const { instructor, stats, performance, needsAttention, activities } =
+  const { instructor, stats, performance } =
     instructorDemo;
+  const { courses: myCourses, loading: myCoursesLoading, error: myCoursesError } = useInstructorCourses();
+  const needsAttention = myCourses.filter(x => x.reviewStatus === 'draft').map(x => ({ id: x.courseId, type: 'warning', text: { ar: x.titleAr || x.titleEn || '', en: x.titleEn || x.titleAr || '' }, actionKey: 'myCourses' }));
+  const activities = []; // A backend activity feed is not available; do not invent course activity.
 
   const maxPerformance = Math.max(
     ...performance.flatMap((item) => [
@@ -78,10 +83,10 @@ export default function InstructorDashboard() {
 
             <div className="instructor-stat-content">
               <span>{c.myCoursesStat}</span>
-              <strong>{instructorDemo.courses.length}</strong>
+              <strong>{myCourses.length}</strong>
 
               <small>
-                <b>+{stats.coursesAddedThisMonth}</b> {c.thisMonth}
+                <b>+{myCourses.filter(x => x.createdAt?.slice(0, 7) === new Date().toISOString().slice(0, 7)).length}</b> {c.thisMonth}
               </small>
             </div>
           </article>
@@ -250,6 +255,7 @@ export default function InstructorDashboard() {
               </div>
 
               <div className="attention-list">
+                <CatalogStatus loading={myCoursesLoading} error={myCoursesError} />
                 {needsAttention.map((item) => (
                   <article
                     className="attention-item"

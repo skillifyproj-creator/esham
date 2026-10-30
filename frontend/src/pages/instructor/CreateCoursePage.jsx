@@ -6,10 +6,11 @@ import useAccountProfile from "../../hooks/useAccountProfile";
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorDemo, saveInstructorCourse } from "../../data/instructorDemo";
 import { pointsPolicy } from '../../data/pointsPolicy';
 import instructorCopy from "../../i18n/instructorCopy";
 import "../../styles/instructor-create-course.css";
+import { courseRequest, courseCoverUrl } from '../../services/curriculumApi';
+import { uploadCourseCover, changedCourseDraftFields } from '../../services/courseCoverApi';
 
 export default function CreateCoursePage() {
   const { language } = usePreferences();
@@ -17,19 +18,32 @@ export default function CreateCoursePage() {
   const navigate = useNavigate();
   const { courseId } = useParams();
   const [saveStatus, setSaveStatus] = useState("");
+  const [apiCategories, setApiCategories] = useState([]);
+  const [loadedCourse, setLoadedCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const profile = useAccountProfile();
   const isEditMode = Boolean(courseId);
-  const editCourse = isEditMode
-    ? instructorDemo.courses.find((course) => String(course.id) === String(courseId))
-    : null;
+  const editCourse = loadedCourse;
   const storedDraft = !isEditMode ? readInstructorCourseDraft() : null;
   const initialCourse = editCourse || storedDraft;
   const coursePoints = pointsPolicy.enrollmentCost;
-  const categoryLabels = Object.fromEntries(categories.map(category => [category.id, category.title[language]]));
+  const categoryLabels = Object.fromEntries(apiCategories.map(category => [category.id, category.title[language]]));
   const fileInputRef = useRef(null);
   const courseCategory = resolveCategoryId(initialCourse?.categoryKey) || resolveCategoryId(initialCourse?.category);
 
-  const [courseImage, setCourseImage] = useState(initialCourse?.image || null);
+  const [courseImage, setCourseImage] = useState(null);
+  const [coverSelection, setCoverSelection] = useState(null);
+  const [savedCoverId, setSavedCoverId] = useState(null);
+  const [coverLoading, setCoverLoading] = useState(false);
+  const courseIdentity = useRef(courseId || null), lastSavedDraft = useRef(null), operation = useRef(false);
+  useEffect(() => {
+    if (coverSelection) {
+      const url = URL.createObjectURL(coverSelection.file); setCourseImage(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setCourseImage(courseCoverUrl(courseIdentity.current || courseId, savedCoverId) || null);
+  }, [coverSelection, savedCoverId, courseId]);
 
   const [form, setForm] = useState({
     title: initialCourse?.title || { ar: "", en: "" },
@@ -42,10 +56,55 @@ export default function CreateCoursePage() {
   const [objectives, setObjectives] = useState(initialCourse?.objectives || []);
 
   const [newObjective, setNewObjective] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    courseIdentity.current = courseId || null; lastSavedDraft.current = null; setSavedCoverId(null); setCoverSelection(null);
+    Promise.all([courseRequest('/categories', undefined, 'GET', controller.signal),
+      isEditMode ? courseRequest(`/courses/${courseId}`, undefined, 'GET', controller.signal) : Promise.resolve(null)])
+      .then(([items, detail]) => {
+        setApiCategories(items.map(x => ({ id: x.id, title: { ar: x.nameAr, en: x.nameEn } })));
+        if (detail) {
+          const d = detail.draft;
+          if (!d) throw new Error('This course has no draft.');
+          setLoadedCourse(detail);
+          lastSavedDraft.current = d; setSavedCoverId(d.coverMediaAssetId);
+          setForm({ title: { ar: d.titleAr || '', en: d.titleEn || '' }, description: { ar: d.descriptionAr || '', en: d.descriptionEn || '' },
+            category: d.categoryId, language: d.language, level: d.level });
+          setObjectives(d.objectives || []);
+        }
+      }).catch(error => { if (!controller.signal.aborted) setSaveStatus(error.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [courseId, isEditMode]);
+  const persistCourse = async () => {
+    if (coverLoading) { setSaveStatus(language === 'ar' ? 'انتظر حتى تكتمل قراءة الصورة.' : 'Wait for the image to finish loading.'); return; }
+    if (operation.current) return;
+    operation.current = true;
+    setSaving(true); setSaveStatus('');
+    try {
+      const payload = { categoryId: form.category, titleAr: form.title.ar, titleEn: form.title.en,
+        descriptionAr: form.description.ar, descriptionEn: form.description.en,
+        language: form.language, level: form.level || 'beginner', objectives: objectives.map(x => ({ ar: x.ar, en: x.en })) };
+      if (!courseIdentity.current) {
+        const created = await courseRequest('/courses', payload, 'POST');
+        courseIdentity.current = created.courseId; lastSavedDraft.current = created.draft;
+      }
+      const patch = changedCourseDraftFields(payload, lastSavedDraft.current);
+      if (coverSelection) {
+        const cover = await uploadCourseCover(courseIdentity.current, coverSelection.file, coverSelection.uploadId);
+        patch.coverMediaAssetId = cover.mediaAssetId;
+        setSavedCoverId(cover.mediaAssetId); setCoverSelection(null);
+      }
+      if (Object.keys(patch).length) lastSavedDraft.current = await courseRequest(`/courses/${courseIdentity.current}/draft`, patch, 'PATCH');
+      navigate(`/instructor/courses/${courseIdentity.current}/curriculum`);
+    } catch (error) { setSaveStatus(error.message); }
+    finally { operation.current = false; setSaving(false); }
+  };
 
   useEffect(() => {
-    if (!isEditMode) saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title || { ar: "", en: "" }, coursePoints: 20 });
-  }, [form, objectives, courseImage, isEditMode]);
+    if (!isEditMode) saveInstructorCourseDraft({ ...form, objectives, image: null, categoryKey: form.category, category: getCategory(form.category)?.title || { ar: "", en: "" }, coursePoints: 20 });
+  }, [form, objectives, isEditMode]);
 
   const updateField = (field, value) => {
     setForm((current) => {
@@ -82,52 +141,27 @@ export default function CreateCoursePage() {
     );
   };
 
-  const handleImageChange = (event) => {
+  const handleImageChange = async (event) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) { setSaveStatus(language === 'ar' ? 'اختر صورة JPG أو PNG أو WEBP بحجم أقصى 2MB.' : 'Choose a JPG, PNG or WEBP cover up to 2MB.'); event.target.value = ''; return; }
-    const reader = new FileReader(); reader.onload = () => { setCourseImage(String(reader.result)); setSaveStatus(''); }; reader.readAsDataURL(file);
+    if (!file.size || !['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) { setSaveStatus(language === 'ar' ? 'اختر صورة JPG أو PNG أو WEBP بحجم أقصى 2MB.' : 'Choose a JPG, PNG or WEBP cover up to 2MB.'); event.target.value = ''; return; }
+    event.target.value = '';
+    setCoverLoading(true);
+    try {
+      const decoded = await createImageBitmap(file); decoded.close();
+      setCoverSelection({ file, uploadId: crypto.randomUUID() }); setSaveStatus('');
+    } catch { setSaveStatus(language === 'ar' ? 'تعذّر قراءة الصورة. اختر ملف صورة صالحًا.' : 'Unable to read this image. Choose a valid image file.'); }
+    finally { setCoverLoading(false); }
   };
 
-  const saveCourseChanges = () => {
-    if (!editCourse) return;
+  const saveCourseChanges = persistCourse;
+  const saveDraft = persistCourse;
+  const continueToCurriculum = persistCourse;
 
-
-    const saved = saveInstructorCourse(courseId, {
-      title: form.title,
-      description: form.description,
-      category: getCategory(form.category)?.title || { ar: "", en: "" },
-      categoryKey: form.category,
-      language: form.language,
-      level: form.level,
-      objectives,
-      image: courseImage || editCourse.image,
-    });
-    if (!saved) { setSaveStatus(language === 'ar' ? 'تعذّر الحفظ. تحقق من تخزين المتصفح أو استخدم صورة أصغر.' : 'Save failed. Check browser storage or use a smaller cover.'); return; }
-    navigate(`/instructor/courses/${courseId}/curriculum`);
-  };
-
-  const saveDraft = () => {
-    if (isEditMode) {
-      saveCourseChanges();
-      return;
-    }
-    const stored = saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title || { ar: '', en: '' }, coursePoints: 20 });
-    if (!stored) { setSaveStatus(language === 'ar' ? 'تعذّر حفظ المسودة. جرّب صورة أصغر أو فعّل تخزين المتصفح.' : 'Unable to save the draft. Try a smaller cover or enable browser storage.'); return; }
-    setSaveStatus(language === "ar" ? "تم حفظ المسودة." : "Draft saved.");
-  };
-  const continueToCurriculum = () => {
-    if (isEditMode) {
-      saveCourseChanges();
-      return;
-    }
-    if (!saveInstructorCourseDraft({ ...form, objectives, image: courseImage, categoryKey: form.category, category: getCategory(form.category)?.title, coursePoints })) { setSaveStatus(language === 'ar' ? 'تعذّر حفظ المسودة.' : 'Unable to save the draft.'); return; }
-    navigate("/instructor/courses/new/curriculum");
-  };
-
-  if (isEditMode && !editCourse) return <section className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></section>;
+  if (loading) return <section className="container instructor-detail-page" role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading course…'}</section>;
+  if (isEditMode && !editCourse) return <section className="container instructor-detail-page"><p role="alert">{saveStatus || 'Course not found'}</p><Link to="/instructor/courses">Back to my courses</Link></section>;
   return (<section className="instructor-create-course-page">
       <div className="container">
         {/* PAGE HEADER */}
@@ -153,10 +187,10 @@ export default function CreateCoursePage() {
                 <Icon name="arrow-left" size={16} />
               </button>
             ) : (
-              <Link to="/instructor/courses/new/curriculum" className="instructor-create-primary-button">
+              <button type="button" disabled={saving} onClick={continueToCurriculum} className="instructor-create-primary-button">
                 {c.continueToContent}
                 <Icon name="arrow-left" size={16} />
-              </Link>
+              </button>
             )}
           </div>
         </header>
@@ -222,7 +256,7 @@ export default function CreateCoursePage() {
                         }
                       >
                         <option value="" disabled>{c.category}</option>
-                        {categories.map(category => <option key={category.id} value={category.id}>{category.title[language]}</option>)}
+                        {apiCategories.map(category => <option key={category.id} value={category.id}>{category.title[language]}</option>)}
                       </select>
 
                       <Icon name="chevron-down" size={16} />
@@ -506,6 +540,7 @@ export default function CreateCoursePage() {
                     ref={fileInputRef}
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
+                    disabled={saving || coverLoading}
                     onChange={handleImageChange}
                     hidden
                   />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AuthAlert from '../../components/AuthAlert';
 import { Link, useNavigate } from 'react-router';
 import { useAccountSession } from '../../context/AccountSessionContext';
 import { accountDestination } from '../../services/adminUsers';
@@ -23,6 +24,6 @@ export default function GoogleAuthComplete() {
   }, [language, navigate, sessionState.refresh]);
   return <main className="container section" dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <h1>{language === 'ar' ? 'الدخول باستخدام Google' : 'Sign in with Google'}</h1>
-    {error ? <><p role="alert">{error}</p><Link className="button" to="/login">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to sign in'}</Link></> : <p role="status">{language === 'ar' ? 'جاري التحقق من حسابك…' : 'Verifying your account…'}</p>}
+    {error ? <><AuthAlert>{error}</AuthAlert><Link className="button" to="/login">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to sign in'}</Link></> : <p role="status">{language === 'ar' ? 'جاري التحقق من حسابك…' : 'Verifying your account…'}</p>}
   </main>;
 }

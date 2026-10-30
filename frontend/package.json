@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/frontend.test.mjs tests/video-screening.test.mjs tests/category-selections.test.mjs tests/admin-users.test.mjs tests/notifications.test.mjs",
+    "test": "node --test tests/frontend.test.mjs tests/video-screening.test.mjs tests/category-selections.test.mjs tests/admin-users.test.mjs tests/notifications.test.mjs tests/curriculum.test.mjs tests/course-tasks.test.mjs tests/public-catalog.test.mjs tests/lesson-media.test.mjs",
     "predev": "node scripts/video-assets.mjs",
     "prebuild": "node scripts/video-assets.mjs"
   },

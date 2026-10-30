@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePublicCatalog } from '../../context/PublicCatalogContext';
 import { Link } from "react-router";
 
 import { getEnrollmentDetails } from "../../data/learnerHelpers";
@@ -100,6 +101,7 @@ function EnrolledCourseCard({ enrollment, language, t }) {
 }
 
 export default function LearnerCoursesPage() {
+  const { courses: realCourses } = usePublicCatalog();
   const { language } = usePreferences();
   const t = learnerCopy[language];
 
@@ -110,6 +112,8 @@ const { enrollments: learnerEnrollments } = useLearner();
     const enrollments = learnerEnrollments
     .map(getEnrollmentDetails)
     .filter(Boolean)
+    .filter(item => realCourses.some(course => String(course.id) === String(item.courseId)))
+    .map(item => ({ ...item, course: realCourses.find(course => String(course.id) === String(item.courseId)) }))
     .sort(
       (a, b) =>
         new Date(b.lastOpenedAt) - new Date(a.lastOpenedAt),

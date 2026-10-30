@@ -64,13 +64,27 @@ test('expired sessions do not fall back to cached category authority', async () 
   assert.equal(calls, 1);
 });
 
-test('legacy server selections route back to reselection even if the old server marks onboarding complete', async () => {
+test('completed legacy accounts retain category reselection advice without overriding server completion', async () => {
+  for (const role of ['learner', 'instructor', 'both']) {
+    const session = await loadServerSession(async path => path === '/auth/session'
+      ? { onboardingRequired: false, profile: { id: 'legacy', role, interests: [3], teachingAreas: [1], bio: 'Preserved', roles: role === 'both' ? ['Learner', 'Instructor'] : [role === 'learner' ? 'Learner' : 'Instructor'] } }
+      : { learningCategoryIds: [], teachingCategoryIds: [] });
+    assert.equal(session.onboardingRequired, false);
+    assert.equal(session.profile.categoryReselectionRequired, true);
+    assert.equal(session.profile.bio, 'Preserved');
+    assert.deepEqual(session.profile.learningCategoryIds, []);
+    assert.deepEqual(session.profile.teachingCategoryIds, []);
+    // Editing still requires explicit current catalog choices; no positional mapping.
+    assert.ok(validateCategoryDraft(session.profile, catalog));
+  }
+});
+
+test('incomplete server sessions cannot be bypassed by complete category data or stale completion flags', async () => {
   const session = await loadServerSession(async path => path === '/auth/session'
-    ? { onboardingRequired: false, profile: { id: 'legacy', role: 'learner', interests: [0], bio: 'Preserved' } }
-    : { learningCategoryIds: [], teachingCategoryIds: [] });
+    ? { onboardingRequired: true, profile: { id: 'incomplete', role: 'both', categoryReselectionRequired: false, goal: null } }
+    : { learningCategoryIds: [a], teachingCategoryIds: [b] });
   assert.equal(session.onboardingRequired, true);
-  assert.equal(session.profile.bio, 'Preserved');
-  assert.deepEqual(session.profile.learningCategoryIds, []);
+  assert.equal(session.profile.goal, null);
 });
 
 test('retained legacy history for a disabled persona does not trap completed GUID onboarding in a loop', async () => {

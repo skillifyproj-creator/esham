@@ -25,8 +25,10 @@ export default function RecoveryLayout({ title, intro, children }) {
           <h1 id="recovery-title">{title}</h1>
           <p className="auth-intro">{intro}</p>
           {children}
-          <p className="auth-existing">{t.remembered} <Link to="/login">{t.login}</Link></p>
-          <Link className="auth-back" to="/">{t.home}</Link>
+          <div className="auth-form-footer">
+            <p className="auth-existing">{t.remembered} <Link to="/login">{t.login}</Link></p>
+            <Link className="auth-back" to="/">{t.home}</Link>
+          </div>
         </div>
         <p className="recovery-footer">© {new Date().getFullYear()} {language === 'ar' ? 'إسهام · تعلّم وشارك' : 'Esham · Learn & Share'}</p>
       </section>

@@ -38,7 +38,9 @@ export async function loadServerSession(request = accountRequest) {
   // cannot re-enable a capability after it was removed.
   delete profile.isLearner; delete profile.learner; delete profile.isInstructor; delete profile.instructor;
   profile.roles = Array.isArray(session.profile.roles) ? session.profile.roles : [];
-  return { profile, onboardingRequired: session.onboardingRequired || profile.categoryReselectionRequired };
+  // The server owns onboarding completeness, including compatibility with saved legacy
+  // selections. Catalog reselection is a profile-edit concern, not a second login gate.
+  return { profile, onboardingRequired: session.onboardingRequired };
 }
 
 export function profileRequest(profile, { includeCategories = false } = {}) {

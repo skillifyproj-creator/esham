@@ -44,6 +44,17 @@ builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
 builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ICurriculumService, CurriculumService>();
+builder.Services.AddScoped<ICourseTaskService, CourseTaskService>();
+builder.Services.AddScoped<ILessonMediaService, LessonMediaService>();
+builder.Services.AddScoped<ICourseSubmissionEligibilityService, CourseSubmissionEligibilityService>();
+builder.Services.AddScoped<ICourseCoverService, CourseCoverService>();
+// Explicit configuration is required outside Development; files are never exposed by static middleware.
+var mediaRoot = builder.Configuration["Media:StorageRoot"];
+if (string.IsNullOrWhiteSpace(mediaRoot) && builder.Environment.IsDevelopment())
+    mediaRoot = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "../storage/media"));
+builder.Services.AddSingleton<IMediaStorage>(_ => new esham.PL.Storage.LocalMediaStorage(
+    mediaRoot ?? throw new InvalidOperationException("Configure Media:StorageRoot or a production IMediaStorage provider before using lesson media.")));
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureApplicationCookie(options =>
@@ -90,6 +101,16 @@ if (app.Environment.IsDevelopment())
         scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
 }
 
+await using (var catalogScope = app.Services.CreateAsyncScope())
+{
+    var db = catalogScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var categories = await DefaultCategorySeeder.SeedAsync(db);
+    if (app.Environment.IsDevelopment() && app.Configuration.GetValue("SeedData:DemoCourses", true))
+        await DemoCourseSeeder.SeedAsync(db,
+            catalogScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            catalogScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(), categories);
+}
+
 app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
@@ -115,6 +136,10 @@ app.MapAdminUserEndpoints();
 app.MapNotificationEndpoints();
 app.MapCategoryEndpoints();
 app.MapCourseEndpoints();
+app.MapCurriculumEndpoints();
+app.MapCourseTaskEndpoints();
+app.MapLessonMediaEndpoints();
+app.MapCourseCoverEndpoints();
 
 app.MapGet("/weatherforecast", () =>
 {

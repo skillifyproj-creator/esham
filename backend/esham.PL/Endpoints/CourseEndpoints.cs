@@ -13,6 +13,8 @@ public static class CourseEndpoints
             .AllowAnonymous().WithSummary("Read approved published course metadata; never returns a draft")
             .Produces<PublicCourseResponseDto>().ProducesProblem(404);
         var instructor = group.MapGroup("").RequireAuthorization().AddEndpointFilter(new IdentityRoleFilter("Instructor"));
+        instructor.MapGet("/{id:guid}/draft/submission-eligibility", async (Guid id, HttpContext context, ICourseSubmissionEligibilityService service, CancellationToken ct) =>
+            (await service.GetAsync(id, IdentityRoleFilter.Actor(context), ct)).ToHttp()).Produces<SubmissionEligibilityResponse>();
         instructor.MapPost("", async (CreateCourseRequest request, HttpContext context, ICourseService service, CancellationToken ct) =>
         {
             var result = await service.CreateAsync(IdentityRoleFilter.Actor(context), request, ct);

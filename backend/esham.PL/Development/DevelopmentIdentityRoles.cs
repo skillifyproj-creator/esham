@@ -72,6 +72,8 @@ public static class DevelopmentIdentityRoles
                 mismatches++;
                 Console.WriteLine($"MISMATCH user ID {user.Id}: legacy={user.Role ?? "(null)"}; " +
                     $"Identity=[{string.Join(", ", memberships)}]; persona={expected ?? "(none)"}");
+                Console.WriteLine($"  email={user.Email}; username={user.UserName}; name={user.Name}; goal={user.Goal?.ToString() ?? "(null)"}; " +
+                    $"legacyLearning={user.Interests.Count}; legacyTeaching={user.TeachingAreas.Count}; customSkills={user.CustomSkills.Count}");
             }
         }
         Console.WriteLine($"Legacy/persona mismatches: {mismatches}. Audit changes no users.");

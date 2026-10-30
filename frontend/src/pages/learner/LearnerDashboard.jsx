@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { Link } from "react-router";
 
-import { courses } from "../../data/courses";
+import { usePublicCatalog } from '../../context/PublicCatalogContext';
+import CatalogStatus from '../../components/CatalogStatus';
 import { learnerDemo } from "../../data/learnerDemo";
 import { learnerCopy } from "../../i18n/learnerCopy";
 
@@ -39,6 +40,7 @@ function LearningProgress({ value, label }) {
 }
 
 export default function LearnerDashboard() {
+  const { courses, loading: catalogLoading, error: catalogError, reload: reloadCatalog } = usePublicCatalog();
   const accountName = useAccountName();
   const profile = useAccountProfile();
   const preferredCategories = new Set(profile.learningCategoryIds || []);
@@ -52,7 +54,9 @@ export default function LearnerDashboard() {
 
   const enrollments = learnerEnrollments
     .map(getEnrollmentDetails)
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(item => courses.some(course => String(course.id) === String(item.courseId)))
+    .map(item => ({ ...item, course: courses.find(course => String(course.id) === String(item.courseId)) }));
 
   const activeCourses = enrollments
     .filter((enrollment) => !enrollment.isComplete)
@@ -85,7 +89,7 @@ export default function LearnerDashboard() {
 
   const tasks = allTasks.filter((task) =>
     ["notStarted", "inProgress"].includes(task.status),
-  );
+  ).filter(task => courses.some(course => String(course.id) === String(task.courseId)));
 
   const stats = [
     {
@@ -267,7 +271,7 @@ export default function LearnerDashboard() {
               </div>
             </section>
 
-            {recommendations.length > 0 && (
+            {(
               <section className="learner-section">
                 <div className="learner-section-heading">
                   <h2>{t.recommended}</h2>
@@ -278,6 +282,7 @@ export default function LearnerDashboard() {
                 </p>
 
                 <div className="learner-recommendations">
+                  <CatalogStatus loading={catalogLoading} error={catalogError} empty={!recommendations.length} reload={reloadCatalog} />
                   {recommendations.map((course) => (
                     <CourseCard key={course.id} course={course} />
                   ))}

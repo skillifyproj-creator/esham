@@ -1,3 +1,4 @@
+import AuthAlert from '../../components/AuthAlert';
 import { accountRequest, accountError, AccountApiError } from '../../services/accountApi';
 import { useRef, useState } from 'react';
 import { usePreferences } from '../../context/PreferencesContext';
@@ -53,8 +54,8 @@ export default function ResetPasswordPage() {
           <small>{t.optional}</small>
         </div>}
       </div>)}
+      {requestError && <AuthAlert>{requestError}</AuthAlert>}
       <button type="submit" className="auth-submit" disabled={busy} aria-busy={busy}>{t.resetSubmit}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
-      {requestError && <p className="auth-error" role="alert">{requestError}</p>}
       {ready && <p className="auth-status" role="status">{t.resetReady}</p>}
     </form>
   </RecoveryLayout>;

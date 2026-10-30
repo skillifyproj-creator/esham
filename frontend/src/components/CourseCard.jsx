@@ -1,12 +1,14 @@
 import { Link } from "react-router";
 import Icon from "./Icon";
 import { usePreferences } from "../context/PreferencesContext";
-import { categoryKeys } from "../data/courses";
+import { useCategoryCatalog } from '../context/CategoryCatalogContext';
 import { coursePagesCopy } from "../i18n/coursePagesCopy";
 import { getCourseText } from "../data/courseHelpers";
 export default function CourseCard({ course, compact = false }) {
   const { copy: c, language } = usePreferences();
   const p = coursePagesCopy[language];
+  const { categories } = useCategoryCatalog();
+  const category = categories.find(x => x.id === course.categoryId || x.id === course.category);
   const [title, description] = getCourseText(course, language);
   return (
     <article className={`course-card${compact ? " compact-course" : ""}`}>
@@ -24,14 +26,14 @@ export default function CourseCard({ course, compact = false }) {
       <div className="course-content">
         <div className="course-meta">
           <span className="tag">
-            {c.categories[categoryKeys.indexOf(course.category)]}
+            {course.categoryTitle?.[language] || (language === 'ar' ? category?.nameAr : category?.nameEn) || ''}
           </span>
-          <span
+          {course.rating != null && <span
             className="rating"
             aria-label={`${c.rating} ${course.rating} ${c.outOf}`}
           >
             <span aria-hidden="true">★</span> {course.rating}
-          </span>
+          </span>}
         </div>
         <h3>
           <Link to={`/courses/${course.id}`}>{title}</Link>
@@ -45,10 +47,10 @@ export default function CourseCard({ course, compact = false }) {
         )}
         <div className="course-bottom">
           <span>
-            {course.points} {c.points}
-            <small>
+            {course.points != null ? <>{course.points} {c.points}</> : p[course.level]}
+            {course.lessons != null && <small>
               {course.lessons} {c.lessons}
-            </small>
+            </small>}
           </span>
           <Link
             className="button button-muted button-small"

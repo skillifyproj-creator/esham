@@ -1,42 +1,81 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 
-import { getInstructorCourseWorkspace, saveWorkspaceSections, localized, lessonIsReady, taskIsReady } from "../../data/instructorCourseWorkspace";
-import useAccountProfile from "../../hooks/useAccountProfile";
+import { localized, taskIsReady } from "../../data/instructorCourseWorkspace";
+import { courseRequest, curriculumPath, mapCourse, mapSection, loadCurriculumReadiness } from '../../services/curriculumApi';
 import { pointsPolicy } from '../../data/pointsPolicy';
 import Icon from "../../components/Icon";
 import InstructorCourseStepper from "../../components/instructor/InstructorCourseStepper";
+import CourseTasksPanel from '../../components/instructor/CourseTasksPanel';
+import SubmissionEligibilityPanel from '../../components/instructor/SubmissionEligibilityPanel';
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
 import "../../styles/instructor.css";
+import "../../styles/curriculum-editor.css";
 
 export default function CourseCurriculumPage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
-  const profile = useAccountProfile();
   const navigate = useNavigate();
   const { courseId } = useParams();
-  const workspace = getInstructorCourseWorkspace(courseId || 'new');
-  const course = workspace ? { ...workspace.course, instructor: { ar: profile.name || "أنت", en: profile.name || "You" } } : null;
-  const initialSections = workspace?.sections || [];
+  const [course, setCourse] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const operation = useRef(false);
+  const initialSections = [];
 
   const [storedSections, setSections] = useState(initialSections);
-  const sections = storedSections.map(section => { const lessonsReady = section.lessons.length > 0 && section.lessons.every(lesson => lessonIsReady(lesson, language)); const flags = [Boolean(localized(section.title, language)), section.lessons.length > 0, lessonsReady, !section.task || taskIsReady(section.task, language)]; return { ...section, progress: Math.round(flags.filter(Boolean).length / flags.length * 100) }; });
+  const [contentReadiness, setContentReadiness] = useState(null);
+  const sections = storedSections.map(section => ({ ...section, progress: section.readiness?.percentage ?? 0 }));
   const [expandedSections, setExpandedSections] = useState(
     initialSections.map((section) => section.id),
   );
 
+  const [editingSection, setEditingSection] = useState(null);
+  const [sectionTitle, setSectionTitle] = useState('');
+  const [titleError, setTitleError] = useState('');
   const [saved, setSaved] = useState(true);
   const [saveError, setSaveError] = useState('');
 
-  const updateSections = updater => {
-    const next = updater(storedSections);
-    if (!saveWorkspaceSections(courseId || 'new', next)) {
-      setSaved(false);
-      setSaveError(language === 'ar' ? 'تعذّر الحفظ. تحقق من تخزين المتصفح والحد الأقصى ثلاث مهام.' : 'Save failed. Check browser storage and the three-task limit.');
-      return;
-    }
-    setSections(next); setSaved(true); setSaveError('');
+  const reload = async () => {
+    const data = await loadCurriculumReadiness(courseId);
+    setSections(data.sections.map(mapSection)); setContentReadiness(data);
+  };
+  useEffect(() => {
+    if (!courseId) return;
+    const controller = new AbortController();
+    setLoading(true); setCourse(null); setSaveError('');
+    Promise.all([courseRequest(`/courses/${courseId}`, undefined, 'GET', controller.signal),
+      loadCurriculumReadiness(courseId, controller.signal)])
+      .then(async ([detail, existing]) => {
+        let data = existing;
+        if (!existing.sections.length) {
+          await courseRequest(`${curriculumPath(courseId)}/ensure-default`, undefined, 'POST', controller.signal);
+          data = await loadCurriculumReadiness(courseId, controller.signal);
+        }
+        if (!controller.signal.aborted) { setCourse(mapCourse(detail)); setSections(data.sections.map(mapSection)); setExpandedSections(data.sections.map(x => x.id)); setContentReadiness(data); }
+      })
+      .catch(error => { if (!controller.signal.aborted) setSaveError(error.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [courseId]);
+  const mutate = async action => {
+    if (operation.current) return;
+    operation.current = true; setBusy(true); setSaved(false); setSaveError('');
+    try { await action(); await reload(); setSaved(true); }
+    catch (error) { setSaveError(error.message); }
+    finally { operation.current = false; setBusy(false); }
+  };
+  const move = (items, index, direction, sectionId) => {
+    const ids = items.map(x => x.id), target = index + direction;
+    if (target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    mutate(() => courseRequest(`${curriculumPath(courseId)}${sectionId ? `/${sectionId}/lessons` : ''}/reorder`, { ids }, 'PUT'));
+  };
+  const remove = (sectionId, lessonId) => {
+    if (!window.confirm(language === 'ar' ? 'حذف هذا العنصر؟' : 'Delete this item?')) return;
+    mutate(() => courseRequest(`${curriculumPath(courseId)}/${sectionId}${lessonId ? `/lessons/${lessonId}` : ''}`, undefined, 'DELETE'));
   };
 
   const totalLessons = useMemo(
@@ -63,18 +102,8 @@ export default function CourseCurriculumPage() {
     [sections],
   );
 
-  const completedSections = sections.filter(
-    (section) => section.progress === 100,
-  ).length;
-
-  const readiness = sections.length
-    ? Math.round(
-        sections.reduce(
-          (total, section) => total + (section.progress || 0),
-          0,
-        ) / sections.length,
-      )
-    : 0;
+  const completedSections = contentReadiness?.completedSections ?? 0;
+  const readiness = contentReadiness?.percentage ?? 0;
 
   const toggleSection = (sectionId) => {
     setExpandedSections((current) =>
@@ -84,37 +113,25 @@ export default function CourseCurriculumPage() {
     );
   };
 
-  const updateSectionTitle = (sectionId) => {
-    const currentSection = sections.find(
-      (section) => section.id === sectionId,
-    );
-
-    if (!currentSection) return;
-
-    const currentTitle =
-      currentSection.title?.[language] || "";
-
-    const nextTitle = window.prompt(
-      c.curriculum.enterSectionTitle,
-      currentTitle,
-    );
-
-    if (!nextTitle?.trim()) return;
-
-    updateSections((current) =>
-      current.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              title: {
-                ...section.title,
-                [language]: nextTitle.trim(),
-              },
-            }
-          : section,
-      ),
-    );
-
+  const updateSectionTitle = sectionId => {
+    const section = sections.find(item => item.id === sectionId);
+    setEditingSection(sectionId); setSectionTitle(localized(section.title, language)); setTitleError('');
+  };
+  const saveSectionTitle = async section => {
+    const value = sectionTitle.trim();
+    if (!value || value.length > 200) { setTitleError(language === 'ar' ? 'أدخل عنوانًا من 1 إلى 200 حرف.' : 'Enter a title between 1 and 200 characters.'); return; }
+    if (operation.current) return;
+    operation.current = true; setBusy(true); setTitleError('');
+    try {
+      const updated = await courseRequest(`${curriculumPath(courseId)}/${section.id}`, {
+        titleAr: language === 'ar' ? value : section.title.ar,
+        titleEn: language === 'en' ? value : section.title.en, sortOrder: section.sortOrder,
+      }, 'PUT');
+      setSections(current => current.map(item => item.id === updated.id ? mapSection(updated) : item));
+      await reload();
+      setEditingSection(null); setSaved(true);
+    } catch (error) { setTitleError(error.message); }
+    finally { operation.current = false; setBusy(false); }
   };
 
   const addSection = () => {
@@ -129,11 +146,11 @@ export default function CourseCurriculumPage() {
       task: null,
     };
 
-    updateSections((current) => [...current, newSection]);
-    setExpandedSections((current) => [
-      ...current,
-      newSection.id,
-    ]);
+    mutate(async () => {
+      const created = await courseRequest(curriculumPath(courseId), { titleAr: newSection.title.ar, titleEn: newSection.title.en,
+        sortOrder: storedSections.reduce((max, item) => Math.max(max, item.sortOrder + 1), 0) }, 'POST');
+      setExpandedSections(current => [...current, created.id]);
+    });
   };
 
   const addLesson = (sectionId) => {
@@ -143,7 +160,7 @@ export default function CourseCurriculumPage() {
   };
 
   const saveDraft = () => {
-    updateSections(current => current);
+    mutate(() => Promise.resolve());
   };
 
   const formatDuration = (minutes) => {
@@ -159,7 +176,9 @@ export default function CourseCurriculumPage() {
     return remaining ? `${hourLabel} ${minuteLabel}` : hourLabel;
   };
 
-  if (!course) return <section className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></section>;
+  if (!courseId) return <Navigate to="/instructor/courses/new" replace />;
+  if (loading) return <section className="container instructor-detail-page" role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading curriculum…'}</section>;
+  if (!course) return <section className="container instructor-detail-page"><p role="alert">{saveError || 'Course not found'}</p><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></section>;
   return (<section className="instructor-curriculum-page instructor-detail-page">
       <div className="container">
 
@@ -199,10 +218,10 @@ export default function CourseCurriculumPage() {
         {saveError && <p role="alert">{saveError}</p>}<InstructorCourseStepper currentStep={2} />
 
         {/* Main layout */}
-        <div className="curriculum-layout">
+        <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}><div className="curriculum-layout">
 
           {/* Main curriculum */}
-          <main className="curriculum-main"><p className="instructor-media-demo-note">{language === "ar" ? "المهام المطلوبة: من مهمة إلى ثلاث مهام للدورة كاملة. لا يلزم إضافة مهمة لكل قسم." : "Required tasks: one to three per course, not one per section."} {sections.filter(item => item.task).length}/3</p>
+          <main className="curriculum-main"><p className="instructor-media-demo-note">{language === "ar" ? "المهام المطلوبة: من مهمة إلى ثلاث مهام للدورة كاملة. لا يلزم إضافة مهمة لكل قسم." : "Required tasks: one to three per course, not one per section."} {tasks.length}/3</p>
 
             <section className="curriculum-content-header">
               <div>
@@ -260,6 +279,8 @@ export default function CourseCurriculumPage() {
               </div>
             </section>
 
+            <CourseTasksPanel courseId={courseId} sections={storedSections} onChange={setTasks} />
+            {!sections.length && <p role="status">{language === 'ar' ? 'أضف قسمًا لبدء بناء المنهج.' : 'Add a section to start building your curriculum.'}</p>}
             {sections.map((section, index) => {
               const isExpanded =
                 expandedSections.includes(
@@ -334,9 +355,14 @@ export default function CourseCurriculumPage() {
                           </span>
                         </div>
 
-                        <h3>
-                          {localized(section.title, language)}
-                        </h3>
+                        {editingSection === section.id ? <div className="curriculum-inline-title">
+                          <input autoFocus aria-label={language === 'ar' ? 'عنوان القسم' : 'Section title'} maxLength={200} value={sectionTitle}
+                            onChange={event => setSectionTitle(event.target.value)}
+                            onKeyDown={event => { if (event.key === 'Enter') saveSectionTitle(section); if (event.key === 'Escape') setEditingSection(null); }} />
+                          <button type="button" onClick={() => saveSectionTitle(section)}>{language === 'ar' ? 'حفظ' : 'Save'}</button>
+                          <button type="button" onClick={() => setEditingSection(null)}>{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>
+                          {titleError && <small role="alert">{titleError}</small>}
+                        </div> : <h3><button className="curriculum-title-button" type="button" onClick={() => updateSectionTitle(section.id)}>{localized(section.title, language)}</button></h3>}
 
                         <p>
                           {section.lessons.length}{" "}
@@ -355,6 +381,9 @@ export default function CourseCurriculumPage() {
                     </div>
 
                     <div className="curriculum-section-actions">
+                      <button type="button" disabled={index === 0} aria-label="Move section up" onClick={() => move(sections, index, -1)}>↑</button>
+                      <button type="button" disabled={index === sections.length - 1} aria-label="Move section down" onClick={() => move(sections, index, 1)}>↓</button>
+                      <button type="button" aria-label="Delete section" onClick={() => remove(section.id)}>×</button>
                       <button
                         type="button"
                         onClick={() =>
@@ -381,6 +410,7 @@ export default function CourseCurriculumPage() {
 
                   {isExpanded && (
                     <div className="curriculum-section-body">
+                      {!section.lessons.length && <p>{language === 'ar' ? 'لا توجد دروس بعد.' : 'No lessons yet.'}</p>}
 
                       {section.lessons.map(
                         (lesson, lessonIndex) => (
@@ -391,6 +421,9 @@ export default function CourseCurriculumPage() {
                             <span className="curriculum-drag-handle">
                               ⋮⋮
                             </span>
+                            <button type="button" disabled={lessonIndex === 0} aria-label="Move lesson up" onClick={() => move(section.lessons, lessonIndex, -1, section.id)}>↑</button>
+                            <button type="button" disabled={lessonIndex === section.lessons.length - 1} aria-label="Move lesson down" onClick={() => move(section.lessons, lessonIndex, 1, section.id)}>↓</button>
+                            <button type="button" aria-label="Delete lesson" onClick={() => remove(section.id, lesson.id)}>×</button>
 
                             <span className="curriculum-lesson-number">
                               {lessonIndex + 1}
@@ -433,7 +466,7 @@ export default function CourseCurriculumPage() {
                               </small>
                             </div>
 
-                            <span className="curriculum-ready-badge">{lessonIsReady(lesson, language) ? (language === 'ar' ? 'جاهز' : 'Ready') : (language === 'ar' ? 'يحتاج استكمال' : 'Needs completion')}</span>
+                            <span className="curriculum-ready-badge">{lesson.readiness?.isReady ? (language === 'ar' ? 'جاهز' : 'Ready') : (language === 'ar' ? 'يحتاج استكمال' : 'Needs completion')}</span>
 
                             <button
                               type="button"
@@ -556,7 +589,7 @@ export default function CourseCurriculumPage() {
                           type="button"
                           onClick={() =>
                             navigate(
-                              section.task ? `/instructor/courses/${course.id}/sections/${section.id}/tasks/${section.task.id}/edit` : `/instructor/courses/${course.id}/sections/${section.id}/tasks/new`,
+                              `/instructor/courses/${course.id}/tasks/new?displaySectionId=${section.id}`,
                             )
                           }
                         >
@@ -668,7 +701,7 @@ export default function CourseCurriculumPage() {
 
                   <div>
                     <strong>
-                      {sections.filter(section => section.task).length}</strong><span>{c.curriculum?.tasks ||
+                      {tasks.length}</strong><span>{c.curriculum?.tasks ||
                         (language === "en"
                           ? "Tasks"
                           : "مهام")}
@@ -730,20 +763,7 @@ export default function CourseCurriculumPage() {
                     : "أقسام مكتملة")}
               </p>
 
-              <div className="curriculum-review-note">
-                <Icon
-                  name="info"
-                  size={16}
-                />
-
-                <span>
-                  {c.curriculum
-                    ?.readinessNote ||
-                    (language === "en"
-                      ? "Complete all lessons and practical tasks before submitting the course for review."
-                      : "أكمل جميع الدروس والمهام التطبيقية قبل إرسال الدورة للمراجعة.")}
-                </span>
-              </div>
+              <SubmissionEligibilityPanel courseId={courseId} refreshKey={JSON.stringify([contentReadiness, tasks])} />
             </section>
 
             <section className="curriculum-guidance-card">
@@ -765,7 +785,7 @@ export default function CourseCurriculumPage() {
               </p>
             </section>
           </aside>
-        </div>
+        </div></fieldset>
       </div>
 
       {/* Bottom action bar */}

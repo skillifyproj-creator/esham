@@ -1,10 +1,10 @@
 import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { courseRequest } from '../../services/curriculumApi';
 import { Link } from "react-router";
 
 import Icon from "../../components/Icon";
-import { instructorDemo } from "../../data/instructorDemo";
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
 
@@ -15,9 +15,24 @@ export default function InstructorCoursesPage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
   const { transactions, earned } = useLearnerWallet();
-  const courses = useMemo(() => instructorDemo.courses.map(course => ({ ...course,
+  const [remoteCourses, setRemoteCourses] = useState([]);
+  const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const controller = new AbortController();
+    courseRequest('/courses/mine', undefined, 'GET', controller.signal).then(items => setRemoteCourses(items.map(x => ({
+      id: x.courseId, title: { ar: x.titleAr || x.titleEn || 'مسودة بلا عنوان', en: x.titleEn || x.titleAr || 'Untitled draft' },
+      category: { ar: x.categoryNameAr || '', en: x.categoryNameEn || '' },
+      description: { ar: '', en: '' }, reviewStatus: { ar: x.reviewStatus || '', en: x.reviewStatus || '' },
+      courseStatus: x.reviewStatus || 'draft', level: { ar: x.level || '', en: x.level || '' },
+      updatedAt: x.updatedAt, learners: 0, progress: 0,
+    })))).catch(error => { if (!controller.signal.aborted) setLoadError(error.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, []);
+  const courses = useMemo(() => remoteCourses.map(course => ({ ...course,
     points: transactions.filter(item => item.type === 'teaching' && item.courseId === (instructorPublicCourseIds[course.id] || course.id)).reduce((sum, item) => sum + item.points, 0),
-  })), [transactions]);
+  })), [remoteCourses, transactions]);
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -136,6 +151,7 @@ export default function InstructorCoursesPage() {
   // RENDER
   // =========================================================
 
+  if (loading || loadError) return <section className="container instructor-detail-page"><p role={loadError ? 'alert' : 'status'}>{loadError || (language === 'ar' ? 'جارٍ التحميل…' : 'Loading courses…')}</p></section>;
   return (
     <section className="instructor-courses-page">
       <div className="container">

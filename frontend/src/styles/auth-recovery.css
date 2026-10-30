@@ -1,17 +1,17 @@
 /* Recovery pages share the existing authentication design system. */
 
 .auth-recovery .auth-form-panel { display: flex; flex-direction: column; min-height: 100dvh; }
-.auth-recovery .auth-form-content { width: min(100%, 470px); margin-block: auto; padding-block: 54px 36px; }
-.auth-recovery .recovery-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; color: var(--green); font-size: 13px; font-weight: 700; }
+.auth-recovery .auth-form-content { width: min(100%, 470px); margin-block: auto; padding-block: 16px; }
+.auth-recovery .recovery-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--green); font-size: 13px; font-weight: 700; }
 .auth-recovery .recovery-eyebrow > span { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.auth-recovery h1 { font-size: clamp(30px, 3.1vw, 44px); letter-spacing: -.5px; }
-.auth-recovery .auth-intro { margin-bottom: 32px; max-width: 42ch; }
-.auth-recovery .auth-input-wrap { min-height: 56px; border-radius: 14px; background: var(--surface-soft); }
-.auth-recovery .auth-input-wrap input { min-height: 54px; }
+.auth-recovery h1 { font-size: clamp(28px, 2.6vw, 36px); letter-spacing: -.5px; }
+.auth-recovery .auth-intro { margin-bottom: 12px; max-width: 42ch; }
+.auth-recovery .auth-input-wrap { min-height: 48px; border-radius: 14px; background: var(--surface-soft); }
+.auth-recovery .auth-input-wrap input { min-height: 46px; }
 .auth-recovery .auth-submit { display: flex; justify-content: space-between; align-items: center; min-height: 56px; padding-inline: 22px; background: var(--primary-00); border-color: var(--primary-00); border-radius: 14px; transition: background .2s, transform .2s; }
 .auth-recovery .auth-submit:hover { background: var(--primary-300); }
 .auth-recovery .auth-submit:active { transform: translateY(1px); }
-.auth-recovery .auth-existing { margin-block: 20px 0; }
+.auth-recovery .auth-existing { margin-block: 8px 0; }
 .auth-recovery .auth-existing a { text-decoration: none; }
 .auth-recovery .auth-existing a:hover { text-decoration: underline; }
 .auth-recovery .auth-back { color: var(--muted); }
@@ -42,12 +42,12 @@
 .auth-recovery .recovery-preview-link { display: inline-block; margin-top: 12px; color: var(--text); font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
 .auth-page .auth-forgot:is(a) { cursor: pointer; color: var(--text); }
 @media (max-width: 900px) {
-  .auth-recovery .auth-form-content { padding-block: 48px 32px; }
+  .auth-recovery .auth-form-content { padding-block: 20px; }
   .auth-recovery .auth-form-panel { min-height: 100dvh; }
 }
 @media (max-width: 480px) {
   .auth-recovery h1 { font-size: 32px; }
-  .auth-recovery .auth-form-content { padding-block: 36px 20px; }
+  .auth-recovery .auth-form-content { padding-block: 16px; }
   .auth-recovery .recovery-requirements { gap: 8px 12px; }
 }
 :root[data-theme='dark'] .auth-recovery .auth-topbar img { background: var(--white-100); padding: 6px 8px; border-radius: 10px; }

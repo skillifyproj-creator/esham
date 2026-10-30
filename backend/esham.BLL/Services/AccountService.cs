@@ -347,12 +347,7 @@ public sealed class AccountService : IAccountService
                     throw new FinalizationFailure(new(null, AccountFailure.Conflict));
 
                 RequireSuccess(await _userManager.UpdateAsync(user));
-                var existing = await _userManager.GetRolesAsync(user);
-                var remove = existing.Where(x => (x is "Learner" or "Instructor") && !desired.Contains(x)).ToArray();
-                if (remove.Length > 0) RequireSuccess(await _userManager.RemoveFromRolesAsync(user, remove));
-                var add = desired.Except(existing, StringComparer.OrdinalIgnoreCase).ToArray();
-                if (add.Length > 0) RequireSuccess(await _userManager.AddToRolesAsync(user, add));
-                // Administrative and any other non-persona memberships are never changed.
+                await SynchronizePersonaRolesAsync(user, desired);
                 RequireSuccess(await _userManager.UpdateSecurityStampAsync(user));
 
                 if (wallet is null)
@@ -410,6 +405,21 @@ public sealed class AccountService : IAccountService
         "learner" => ["Learner"], "instructor" => ["Instructor"], "both" => ["Learner", "Instructor"], _ => [],
     };
 
+    private static bool IsPersonaRole(string role) =>
+        role.Equals("Learner", StringComparison.OrdinalIgnoreCase)
+        || role.Equals("Instructor", StringComparison.OrdinalIgnoreCase);
+
+    private async Task SynchronizePersonaRolesAsync(ApplicationUser user, string[] desired)
+    {
+        // Identity normalizes role names. Compare memberships the same way, including
+        // legacy databases whose display names use different casing. Never touch admins.
+        var existing = await _userManager.GetRolesAsync(user);
+        var remove = existing.Where(IsPersonaRole).Except(desired, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (remove.Length > 0) RequireSuccess(await _userManager.RemoveFromRolesAsync(user, remove));
+        var add = desired.Except(existing, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (add.Length > 0) RequireSuccess(await _userManager.AddToRolesAsync(user, add));
+    }
+
     private async Task<bool> IsOnboardingRequiredAsync(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
@@ -418,7 +428,7 @@ public sealed class AccountService : IAccountService
         var activeKinds = await ActiveCategoryKindsAsync(user.Id);
         if (IsOnboardingRequired(user, activeKinds.Contains("learning"), activeKinds.Contains("teaching"))) return true;
         var desired = PersonaRoles(user.Role!);
-        return !desired.Order().SequenceEqual(roles.Where(x => x is "Learner" or "Instructor").Order());
+        return !desired.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(roles.Where(IsPersonaRole));
     }
 
     private Task<List<string>> ActiveCategoryKindsAsync(string userId) => _db.UserCategories.AsNoTracking()

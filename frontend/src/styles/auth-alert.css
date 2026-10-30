@@ -1,0 +1,20 @@
+.auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--error-300);
+  border-inline-start-width: 3px;
+  border-radius: 10px;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--error-300) 8%, var(--surface));
+  color: var(--error-300);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: start;
+  overflow-wrap: anywhere;
+  scroll-margin-block: 16px;
+}
+.auth-alert > svg { flex: 0 0 18px; margin-block-start: 2px; }
+.auth-alert > p { margin: 0; color: inherit; font: inherit; }
+:root[data-theme='dark'] .auth-alert { color: #ffb8c7; border-color: #ffb8c7; }

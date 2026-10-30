@@ -1,6 +1,5 @@
 import VideoScreeningPanel from "../../components/video/VideoScreeningPanel";
 import { screenVideoWithGemini } from '../../services/cloudVideoReview';
-import { matchingScreening } from "../../services/videoSafetyPolicy";
 import VideoTimeline from '../../components/video/VideoTimeline';
 import VideoWhiteboard from '../../components/video/VideoWhiteboard';
 import ScreenAnnotations from '../../components/video/ScreenAnnotations';
@@ -8,7 +7,9 @@ import VideoPresentation from '../../components/video/VideoPresentation';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
-import { getInstructorCourseWorkspace, localized } from '../../data/instructorCourseWorkspace';
+import { localized } from '../../data/instructorCourseWorkspace';
+import { courseRequest, curriculumPath, mapCourse, mapSection } from '../../services/curriculumApi';
+import { loadLessonMedia, hydrateLessonVideo, uploadLessonVideo, persistVideoSource, videoDraftKey } from '../../services/lessonMediaApi';
 import { inspectVideo, recordingMimeType, trimVideo, validateTrim } from '../../services/videoProcessing';
 import { formatBytes, readMedia, saveMedia, validateVideo } from '../../services/mediaStore';
 import useStoredMedia from '../../hooks/useStoredMedia';
@@ -17,19 +18,46 @@ import '../../styles/lesson-video-workflow.css';
 export default function LessonVideoWorkflow({ mode }) {
   const { courseId, sectionId, lessonId } = useParams();
   const { language } = usePreferences();
+  const [data, setData] = useState(null), [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    const controller = new AbortController(); setData(null); setLoadError('');
+    (async () => {
+      const [detail, sections, attachments] = await Promise.all([
+        courseRequest(`/courses/${courseId}`, undefined, 'GET', controller.signal),
+        courseRequest(curriculumPath(courseId), undefined, 'GET', controller.signal),
+        loadLessonMedia(courseId, sectionId, lessonId, controller.signal),
+      ]);
+      const section = sections.find(item => item.id === sectionId);
+      const lesson = section?.lessons.find(item => item.id === lessonId);
+      if (!lesson || lesson.contentType !== 'video') throw new Error('Save this lesson as Video before opening the video environment.');
+      const key = videoDraftKey(detail.owner.id, courseId, sectionId, lessonId);
+      let pending;
+      try { const saved = JSON.parse(localStorage.getItem(key)); if (saved && !saved.backendAssetId && await readMedia(saved.mediaId)) pending = saved; } catch { /* The server remains authoritative for saved attachments. */ }
+      const video = pending || await hydrateLessonVideo(attachments.find(item => item.isPrimary), controller.signal);
+      if (!controller.signal.aborted) setData({ workspace: { course: mapCourse(detail), sections: sections.map(mapSection) }, key, video, currentVideo: attachments.find(item => item.isPrimary) });
+    })().catch(error => { if (!controller.signal.aborted) setLoadError(error.message); });
+    return () => controller.abort();
+  }, [courseId, sectionId, lessonId]);
+  if (!data) return <main className="container section"><p role={loadError ? 'alert' : 'status'}>{loadError || (language === 'ar' ? 'جارٍ تحميل فيديو الدرس…' : 'Loading lesson video…')}</p><Link to={`/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/edit`}>{language === 'ar' ? 'العودة إلى الدرس' : 'Back to lesson'}</Link></main>;
+  return <VideoEnvironment key={`${courseId}:${sectionId}:${lessonId}`} mode={mode} data={data} />;
+}
+
+function VideoEnvironment({ mode, data }) {
+  const { courseId, sectionId, lessonId } = useParams();
+  const { language } = usePreferences();
   const location = useLocation(), navigate = useNavigate();
   const t = (ar, en) => language === 'ar' ? ar : en;
-  const workspace = getInstructorCourseWorkspace(courseId);
+  const workspace = data.workspace;
   const section = workspace?.sections.find(item => String(item.id) === String(sectionId));
   const lesson = section?.lessons.find(item => String(item.id) === String(lessonId));
   const base = `/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/video`;
-  const key = `esham-video-draft:${courseId}:${sectionId}:${lessonId}`;
+  const key = data.key;
   const [metadata, setMetadata] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(key)), incoming = location.state?.video;
-      return incoming && incoming.mediaId !== saved?.mediaId ? incoming : saved || incoming || lesson?.video || null;
+      return incoming && incoming.mediaId !== saved?.mediaId ? incoming : data.video || incoming || null;
     }
-    catch { return lesson?.video || null; }
+    catch { return data.video || null; }
   });
   const media = useStoredMedia(metadata?.mediaId);
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [progress, setProgress] = useState(0), [captureNotice,setCaptureNotice]=useState('');
@@ -99,6 +127,7 @@ export default function LessonVideoWorkflow({ mode }) {
     : /video-(codec|type|metadata|duration)/.test(cause?.message || '') ? t('تعذّر تشغيل صيغة الفيديو. جرّب MP4 أو WebM بترميز يدعمه المتصفح.', 'This video cannot be played. Try MP4 or WebM with a codec supported by your browser.')
     : cause?.message === 'invalid-trim' ? t('اختر بداية ونهاية ضمن مدة الفيديو، بفاصل لا يقل عن 0.1 ثانية.', 'Choose start and end within the video duration, at least 0.1 seconds apart.')
     : cause?.message === 'device-selection' ? t('فعّل الكاميرا لهذا الشكل، أو اختر السبورة لتسجيل الصوت دون كاميرا.', 'Enable the camera for this layout, or choose whiteboard to record without a camera.')
+    : cause?.message?.startsWith('Video save failed') || cause?.message?.includes('draft') || cause?.message?.includes('video') ? cause.message
     : t('تعذّرت العملية. تحقق من دعم المتصفح ومساحة التخزين، ثم حاول مجددًا.', 'The operation failed. Check browser support and available storage, then retry.'));
   function keep(value) {
     localStorage.setItem(key, JSON.stringify(value));
@@ -244,16 +273,22 @@ export default function LessonVideoWorkflow({ mode }) {
         const blob = await trimVideo(stored.blob, { start, end, duration, improveAudio, signal: abort.current.signal, onProgress: setProgress });
         outputBlob = blob;
         const file = await saveMedia(blob, { name: `edited-${Date.now()}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`, durationSeconds: end - start, width: metadata.width, height: metadata.height });
-        value = { ...file, mediaId: file.id, durationSeconds: end - start, size: formatBytes(file.sizeBytes), quality: metadata.quality, encoding: blob.type };
+        value = { ...file, mediaId: file.id, durationSeconds: end - start, size: formatBytes(file.sizeBytes), quality: metadata.quality, encoding: blob.type, sourceVideo: metadata };
       }
       if (!active.current) return;
       keep(value);
-      const previous = matchingScreening(value);
-      if (!previous || previous.provider !== 'gemini') value = await analyzeVideo(outputBlob, value);
+      // Draft persistence is independent of optional AI review. Never promote browser findings to approval.
+      let sourceMediaAssetId;
+      const replacement = { attachmentId: flow.replaceAttachmentId || data.currentVideo?.attachmentId,
+        allowed: flow.replaceVideo === true || metadata.backendAssetId === data.currentVideo?.mediaAssetId };
+      if (value.sourceVideo) {
+        sourceMediaAssetId = await persistVideoSource(courseId, sectionId, lessonId, value.sourceVideo, abort.current.signal, replacement);
+      }
+      const attachment = await uploadLessonVideo(courseId, sectionId, lessonId, outputBlob, value,
+        { sourceMediaAssetId: sourceMediaAssetId || value.sourceMediaAssetId, replaceAttachmentId: replacement.allowed ? replacement.attachmentId : undefined, signal: abort.current.signal });
+      keep({ ...value, backendAssetId: attachment.mediaAssetId, attachmentId: attachment.attachmentId, sourceMediaAssetId: attachment.sourceMediaAssetId, sourceVideo: undefined });
       if (!active.current) return;
-      if (matchingScreening(value)?.status !== 'no-flags') { move('preview', value); return; }
-      const draft = flow.lessonDraft || lesson || {};
-      navigate(`/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/edit`, { state: { lessonDraft: { ...draft, contentType: 'video', video: value, minutes: Math.max(1, Math.ceil(value.durationSeconds / 60)) } } });
+      navigate(`/instructor/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/edit`);
     } catch (cause) { if (active.current && cause.name !== 'AbortError') setError(message(cause)); }
     finally { if (active.current) setBusy(false); }
   }
