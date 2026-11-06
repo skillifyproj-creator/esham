@@ -59,7 +59,7 @@ public sealed class CurriculumService(AppDbContext db) : ICurriculumService
         x.DescriptionAr, x.DescriptionEn, x.ContentType, x.DurationSeconds, x.IsPreview,
         x.Objectives?.Select(o => new ObjectiveDto(o.Ar, o.En)).ToList() ?? [], x.PrimaryVideoMediaAssetId,
         DraftContentReadiness.Lesson(Metadata(x), HasVideo(x, ownerId, x.PrimaryVideoMediaAssetId)));
-    private static SectionResponse Map(CourseSection x, string ownerId)
+    internal static SectionResponse Map(CourseSection x, string ownerId)
     {
         var lessons = x.Lessons.OrderBy(l => l.SortOrder).ThenBy(l => l.Id).Select(l => Map(l, ownerId)).ToList();
         return new(x.Id, x.CourseVersionId, x.TitleAr, x.TitleEn, x.SortOrder, lessons, DraftContentReadiness.Section(x.TitleAr, x.TitleEn, lessons));

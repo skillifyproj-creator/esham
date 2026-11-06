@@ -21,3 +21,54 @@ ai/data/raw/
 
 **/bin/
 **/obj/
+
+# Private database/recovery material and local verification output.
+*.bak
+*.mdf
+*.ldf
+*.pfx
+*.p12
+**/secrets.json
+**/storage-state*.json
+**/playwright/.auth/
+**/TestResults/
+**/test-results/
+**/playwright-report/
+*.trx
+
+# Private operational reports and manual database deployment artifacts.
+/docs/admin-final-cleanup-audit.md
+/docs/admin-functional-audit.md
+/docs/final-project-handoff.md
+/docs/general-admin-membership-audit.md
+/docs/instructor-review-regression-fixes.md
+/docs/migrations/20261105182722_AddCourseVersionUpdates-preflight.md
+/docs/migrations/20261105182722_AddCourseVersionUpdates.sql
+/docs/migrations/db75401-apply-AddCourseVersionUpdates.sql
+/docs/migrations/db75401-final-preflight.json
+/docs/migrations/db75401-final-preflight.md
+/docs/migrations/db75401-migration-execution.json
+/docs/migrations/db75401-migration-execution.md
+/docs/migrations/db75401-migration-verification.json
+/docs/migrations/db75401-verify-AddCourseVersionUpdates.sql
+/docs/migrations/db78217-apply-AddCourseVersionUpdates.sql
+/docs/migrations/db78217-migration-test-instructions.md
+/docs/migrations/db78217-read-only-panel-verification.sql
+/docs/migrations/db78217-verify-AddCourseVersionUpdates.sql
+/docs/public-categories-course-details.md
+/docs/publication-catalog-regression.md
+
+# Additional database exports and local authentication material.
+*.bacpac
+*.dacpac
+*.bcp
+*.trn
+**/.auth/
+**/auth-state*.json
+**/storageState*.json
+**/credentials*.json
+**/cookies*.json
+
+# Future database-targeted execution/recovery reports remain private.
+/docs/migrations/db[0-9]*
+/docs/migrations/*-preflight.*

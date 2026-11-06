@@ -17,19 +17,19 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
         x.DescriptionAr, x.DescriptionEn, x.ParentCategoryId, x.DisplayOrder, x.IsActive, x.CreatedAt, x.UpdatedAt);
 
     public async Task<IReadOnlyList<CategoryResponseDto>> GetActiveAsync(CancellationToken ct = default) =>
-        await db.Categories.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.DisplayOrder)
+        await EducationalCategories.Visible(db).AsNoTracking().OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.NameAr).ThenBy(x => x.Id).Select(Projection).ToListAsync(ct);
     public async Task<ServiceResult<CategoryResponseDto>> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var value = await db.Categories.AsNoTracking().Where(x => x.Id == id && x.IsActive).Select(Projection).SingleOrDefaultAsync(ct);
+        var value = await EducationalCategories.Visible(db).AsNoTracking().Where(x => x.Id == id).Select(Projection).SingleOrDefaultAsync(ct);
         return value is null ? ServiceResult<CategoryResponseDto>.Fail(ServiceFailure.NotFound, "Active category not found.") : ServiceResult<CategoryResponseDto>.Ok(value);
     }
     public async Task<ServiceResult<IReadOnlyList<CategoryResponseDto>>> GetChildrenAsync(Guid id, CancellationToken ct = default)
     {
-        if (!await db.Categories.AsNoTracking().AnyAsync(x => x.Id == id && x.IsActive, ct))
+        if (!await EducationalCategories.Visible(db).AsNoTracking().AnyAsync(x => x.Id == id, ct))
             return ServiceResult<IReadOnlyList<CategoryResponseDto>>.Fail(ServiceFailure.NotFound, "Active parent category not found.");
-        return ServiceResult<IReadOnlyList<CategoryResponseDto>>.Ok(await db.Categories.AsNoTracking()
-            .Where(x => x.ParentCategoryId == id && x.IsActive).OrderBy(x => x.DisplayOrder).ThenBy(x => x.Id).Select(Projection).ToListAsync(ct));
+        return ServiceResult<IReadOnlyList<CategoryResponseDto>>.Ok(await EducationalCategories.Visible(db).AsNoTracking()
+            .Where(x => x.ParentCategoryId == id).OrderBy(x => x.DisplayOrder).ThenBy(x => x.Id).Select(Projection).ToListAsync(ct));
     }
     private static string? Validate(string? ar, string? en, string? descriptionAr, string? descriptionEn, int order)
     {

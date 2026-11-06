@@ -43,11 +43,12 @@ public sealed class RelationalQueryTests
             Assert.DoesNotContain("StorageKey", exception.Sql);
         }
     }
-    [Fact] public void Current_model_still_matches_the_applied_domain_snapshot()
+    [Fact] public void Current_model_matches_the_latest_generated_migration_snapshot()
     {
         using var db = Context();
         var migrations = db.GetService<IMigrationsAssembly>();
-        Assert.Equal(2, migrations.Migrations.Count);
+        Assert.Equal(3, migrations.Migrations.Count);
+        Assert.Contains(migrations.Migrations.Keys, x => x.EndsWith("_AddCourseVersionUpdates"));
         var snapshot = db.GetService<IModelRuntimeInitializer>().Initialize(migrations.ModelSnapshot!.Model, designTime: true);
         var target = db.GetService<IDesignTimeModel>().Model;
         Assert.False(db.GetService<IMigrationsModelDiffer>().HasDifferences(snapshot.GetRelationalModel(), target.GetRelationalModel()));

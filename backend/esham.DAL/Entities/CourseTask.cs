@@ -4,6 +4,7 @@ public sealed class CourseTask
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseVersionId { get; set; }
+    public Guid LogicalTaskId { get; set; } = Guid.NewGuid();
     // Placement only; the composite FK enforces the same version.
     public Guid? DisplaySectionId { get; set; }
     public string? TitleAr { get; set; }

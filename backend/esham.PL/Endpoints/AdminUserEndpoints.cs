@@ -1,3 +1,4 @@
+using esham.BLL.Services;
 using esham.BLL.DTOs.AdminUsers;
 using esham.BLL.Interfaces;
 
@@ -10,6 +11,10 @@ public static class AdminUserEndpoints
         // The service independently rechecks database membership, including inside
         // write transactions. Claims/legacy personas never authorize these actions.
         var group = endpoints.MapGroup("/api/admin/users").RequireAuthorization().WithTags("Admin Users");
+        group.MapPost("/category-admins", async (CreateCategoryAdminRequest request, HttpContext context, CategoryAdminProvisioningService service, CancellationToken ct) =>
+            (await service.Create(context.User, request, ct)).ToHttp())
+            .AddEndpointFilter<AdminMutationFilter>().WithName("CreateCategoryAdministrator")
+            .Produces<object>().ProducesValidationProblem().Produces(401).Produces(403).ProducesProblem(409);
         group.MapGet("", async (HttpContext context, IAdminUserService service, int? page, int? pageSize,
             string? search, string? role, string? status, CancellationToken ct) =>
             (await service.GetUsersAsync(context.User, new(page ?? 1, pageSize ?? 20, search, role, status), ct)).ToHttp())

@@ -31,6 +31,11 @@ public static class DevelopmentIdentityRoles
         var user = await manager.FindByEmailAsync(email.Trim())
             ?? throw new ArgumentException("No existing user has that email. No user was created.");
 
+        // This convenience command must not bootstrap or multiply privileged admins.
+        // Reapplying an existing grant remains safe and idempotent.
+        if (role == "GeneralAdmin" && !await manager.IsInRoleAsync(user, role))
+            throw new InvalidOperationException("GeneralAdmin provisioning or transfer requires a separately approved procedure; this command cannot create that membership.");
+
         if (!await manager.IsInRoleAsync(user, role))
             RequireSuccess(await manager.AddToRoleAsync(user, role));
 

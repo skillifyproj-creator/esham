@@ -124,6 +124,25 @@ public sealed class AdminUserTests
         Assert.Equal(ServiceFailure.NotFound, (await service.GetUserAsync(Principal(actor), Guid.NewGuid().ToString())).Failure);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task Role_management_cannot_add_GeneralAdmin_even_with_existing_extra_memberships(int extras)
+    {
+        using var provider = AdminServices(); using var scope = provider.CreateScope(); var services = scope.ServiceProvider;
+        var actor = await Create(services, "root", "GeneralAdmin");
+        for (var i = 0; i < extras; i++) await Create(services, "legacy_admin", "GeneralAdmin");
+        var target = await Create(services, "target", "Learner");
+        var before = await Detail(services, actor, target);
+        var result = await services.GetRequiredService<AdminUserService>().UpdateRolesAsync(Principal(actor), target,
+            new(["Learner", "GeneralAdmin"], before.Version));
+        Assert.Equal(ServiceFailure.Conflict, result.Failure);
+        var after = await Detail(services, actor, target);
+        Assert.Equal(before.Version, after.Version);
+        Assert.Equal(new[] { "Learner" }, after.Roles);
+        Assert.Empty(await services.GetRequiredService<AppDbContext>().AdminActivityLogs.ToListAsync());
+    }
+
     [Fact]
     public async Task Role_updates_synchronize_persona_preserve_category_admin_and_rotate_security_stamp()
     {
@@ -284,9 +303,10 @@ public sealed class AdminUserTests
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.Services.AddScoped<esham.BLL.Interfaces.IAdminUserService, AdminUserService>();
+        builder.Services.AddScoped<CategoryAdminProvisioningService>();
         await using var app = builder.Build(); app.MapAdminUserEndpoints();
         var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(x => x.Endpoints).ToArray();
-        Assert.Equal(4, endpoints.Length); Assert.All(endpoints, x => Assert.NotEmpty(x.Metadata.GetOrderedMetadata<IAuthorizeData>()));
+        Assert.Equal(5, endpoints.Length); Assert.All(endpoints, x => Assert.NotEmpty(x.Metadata.GetOrderedMetadata<IAuthorizeData>()));
         var http = new DefaultHttpContext(); var filter = new AdminMutationFilter(); var called = false;
         var result = await filter.InvokeAsync(new DefaultEndpointFilterInvocationContext(http), _ => { called = true; return ValueTask.FromResult<object?>(Results.Ok()); });
         Assert.Equal(403, Assert.IsAssignableFrom<IStatusCodeHttpResult>(result).StatusCode); Assert.False(called);

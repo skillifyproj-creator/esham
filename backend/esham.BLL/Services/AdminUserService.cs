@@ -125,6 +125,10 @@ public sealed class AdminUserService(AppDbContext db, UserManager<ApplicationUse
                 if (changeRoles && (existing.Any(x => !AccountRoles.Known.Contains(x))
                     || existing.Contains("CategoryAdmin") != desired!.Contains("CategoryAdmin")))
                     return Fail<AdminUserDto>(ServiceFailure.Conflict, "CategoryAdmin scope changes or unknown roles require separate coordination. Existing membership must be preserved.");
+                // The designated GeneralAdmin is provisioned separately. Ordinary role
+                // management may preserve/revoke existing grants, never create another.
+                if (changeRoles && desired!.Contains("GeneralAdmin") && !existing.Contains("GeneralAdmin"))
+                    return Fail<AdminUserDto>(ServiceFailure.Conflict, "GeneralAdmin grants require a separately approved provisioning or transfer procedure. Existing designated membership must be preserved.");
                 var now = DateTimeOffset.UtcNow;
                 if (!changeRoles && lockoutEnd.HasValue && lockoutEnd <= now)
                     return Fail<AdminUserDto>(ServiceFailure.Validation, "Lockout end must still be in the future.");

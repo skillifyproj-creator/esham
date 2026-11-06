@@ -12,7 +12,7 @@ public sealed class CourseTaskService(AppDbContext db) : ICourseTaskService
     private readonly CurriculumService curriculum = new(db);
     private static ServiceResult<T> Fail<T>(ServiceFailure failure, string message) => ServiceResult<T>.Fail(failure, message);
     private static bool HasText(ObjectiveDto? value) => !string.IsNullOrWhiteSpace(value?.Ar) || !string.IsNullOrWhiteSpace(value?.En);
-    private static CourseTaskResponse Map(CourseTask x) => new(x.Id, x.CourseVersionId, x.DisplaySectionId,
+    internal static CourseTaskResponse Map(CourseTask x) => new(x.Id, x.CourseVersionId, x.DisplaySectionId,
         x.TitleAr, x.TitleEn, x.DescriptionAr, x.DescriptionEn,
         x.Instructions is null ? null : new(x.Instructions.Ar, x.Instructions.En),
         x.Requirements?.Select(r => new ObjectiveDto(r.Ar, r.En)).ToList() ?? [], x.SortOrder, x.IsReady);

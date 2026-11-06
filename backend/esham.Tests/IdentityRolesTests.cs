@@ -53,7 +53,12 @@ public sealed class IdentityRolesTests
         await DevelopmentIdentityRoles.AssignAsync(users, user.Email, "Instructor");
         Assert.Equal(2, (await users.GetRolesAsync(user)).Count);
         Assert.Equal("both", user.Role);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentIdentityRoles.AssignAsync(users, user.Email, "GeneralAdmin"));
+        Assert.False(await users.IsInRoleAsync(user, "GeneralAdmin"));
+        // Only the isolated test fixture provisions the designated membership.
+        Assert.True((await users.AddToRoleAsync(user, "GeneralAdmin")).Succeeded);
         await DevelopmentIdentityRoles.AssignAsync(users, user.Email, "GeneralAdmin");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentIdentityRoles.AssignAsync(users, other.Email, "GeneralAdmin"));
         Assert.Equal("both", user.Role);
         Assert.True(await users.IsInRoleAsync(user, "GeneralAdmin"));
         Assert.Empty(await users.GetRolesAsync(other));

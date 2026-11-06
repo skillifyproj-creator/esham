@@ -12,6 +12,21 @@ public static class CourseEndpoints
         group.MapGet("/public/{id:guid}", async (Guid id, ICourseService service, CancellationToken ct) => (await service.GetPublicAsync(id, ct)).ToHttp())
             .AllowAnonymous().WithSummary("Read approved published course metadata; never returns a draft")
             .Produces<PublicCourseResponseDto>().ProducesProblem(404);
+        group.MapGet("/public/{id:guid}/cover", async (Guid id, ICourseService service, esham.DAL.Data.AppDbContext db,
+            esham.BLL.Interfaces.IMediaStorage storage, HttpContext context, CancellationToken ct) =>
+        {
+            // Authorize only the currently visible published cover; no generic public media route.
+            context.Response.Headers.CacheControl = "no-store";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            var course = await service.GetPublicAsync(id, ct);
+            if (course.Failure != esham.BLL.DTOs.ServiceFailure.None) return course.ToHttp();
+            var coverId = course.Value!.CoverMedia?.Id;
+            var asset = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.SingleOrDefaultAsync(
+                db.MediaAssets.Where(x => x.Id == coverId), ct);
+            if (asset == null || asset.MediaType != "image" || asset.MimeType is not ("image/png" or "image/jpeg" or "image/webp")) return Results.NotFound();
+            var stream = await storage.OpenAsync(asset.StorageKey, ct);
+            return stream == null ? Results.NotFound() : Results.Stream(stream, asset.MimeType);
+        }).AllowAnonymous().WithSummary("Read only an eligible published course cover image");
         var instructor = group.MapGroup("").RequireAuthorization().AddEndpointFilter(new IdentityRoleFilter("Instructor"));
         instructor.MapGet("/{id:guid}/draft/submission-eligibility", async (Guid id, HttpContext context, ICourseSubmissionEligibilityService service, CancellationToken ct) =>
             (await service.GetAsync(id, IdentityRoleFilter.Actor(context), ct)).ToHttp()).Produces<SubmissionEligibilityResponse>();

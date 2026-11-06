@@ -4,6 +4,7 @@ public sealed class Lesson
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseSectionId { get; set; }
+    public Guid LogicalLessonId { get; set; } = Guid.NewGuid();
     public string? TitleAr { get; set; }
     public string? TitleEn { get; set; }
     public string? DescriptionAr { get; set; }

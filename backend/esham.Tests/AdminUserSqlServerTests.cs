@@ -81,7 +81,7 @@ public sealed class AdminUserSqlServerTests
         var stamp = (await db.Users.SingleAsync(x => x.Id == target)).SecurityStamp;
         interceptor.Armed = true;
         await Assert.ThrowsAsync<InvalidOperationException>(() => s.GetRequiredService<AdminUserService>()
-            .UpdateRolesAsync(Principal(actor), target, new(["GeneralAdmin", "Instructor"], detail.Version)));
+            .UpdateRolesAsync(Principal(actor), target, new(["Learner", "Instructor"], detail.Version)));
         Assert.Empty(db.ChangeTracker.Entries());
         var after = await Detail(s, actor, target);
         Assert.Equal(detail.Version, after.Version); Assert.Equal(new[] { "Learner" }, after.Roles);

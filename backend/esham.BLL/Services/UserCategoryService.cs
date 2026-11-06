@@ -48,7 +48,7 @@ public sealed class UserCategoryService(AppDbContext db, UserManager<Application
                 var memberships = await users.GetRolesAsync(user);
                 var requiredRole = kind == "learning" ? "Learner" : "Instructor";
                 if (!memberships.Contains(requiredRole, StringComparer.OrdinalIgnoreCase)) return Forbidden();
-                if (await db.Categories.CountAsync(x => ids.Contains(x.Id) && x.IsActive, ct) != ids.Length)
+                if (await EducationalCategories.Visible(db).CountAsync(x => ids.Contains(x.Id), ct) != ids.Length)
                     return Invalid("Every selected category must exist and be active.");
 
                 var existing = await db.UserCategories.Where(x => x.UserId == id && x.Kind == kind).ToListAsync(ct);
@@ -81,7 +81,7 @@ public sealed class UserCategoryService(AppDbContext db, UserManager<Application
 
     internal static async Task<UserCategoriesResponseDto> ReadSelectionsAsync(AppDbContext db, string userId, CancellationToken ct = default)
     {
-        var selected = await db.UserCategories.AsNoTracking().Where(x => x.UserId == userId)
+        var selected = await db.UserCategories.AsNoTracking().Where(x => x.UserId == userId && !EducationalCategories.ConfirmedFixtureIds.Contains(x.CategoryId))
             .Select(x => new { x.CategoryId, x.Kind }).ToListAsync(ct);
         return new(selected.Where(x => x.Kind == "learning").Select(x => x.CategoryId).Order().ToArray(),
             selected.Where(x => x.Kind == "teaching").Select(x => x.CategoryId).Order().ToArray());

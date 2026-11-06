@@ -4,6 +4,7 @@ public sealed class CourseReview
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid EnrollmentId { get; set; }
+    public Guid? CourseVersionId { get; set; }
     public int Rating { get; set; }
     public string? Comment { get; set; }
     public string? InstructorReply { get; set; }

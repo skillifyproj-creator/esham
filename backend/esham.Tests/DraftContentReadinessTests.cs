@@ -24,7 +24,7 @@ public sealed class DraftContentReadinessTests
         await db.SaveChangesAsync();
         var result = (await new CourseSubmissionEligibilityService(db).GetAsync(d.Course.Id, Owner)).Value!;
         Assert.Equal(eligible, result.ContentEligible); Assert.Equal(count, result.ReadyTaskCount);
-        Assert.False(result.SubmissionImplemented); Assert.False(result.CanSubmit);
+        Assert.True(result.SubmissionImplemented); Assert.Equal(eligible, result.CanSubmit);
         Assert.Null((await db.Courses.AsNoTracking().SingleAsync()).PublishedVersionId);
         Assert.Equal("draft", (await db.CourseVersions.AsNoTracking().SingleAsync()).ReviewStatus);
     }

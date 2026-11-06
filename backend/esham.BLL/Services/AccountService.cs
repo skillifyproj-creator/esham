@@ -308,7 +308,7 @@ public sealed class AccountService : IAccountService
                         if (categoryIds is null) continue;
                         if (!allowed || legacy is { Count: > 0 } || categoryIds.Any(x => x == Guid.Empty)
                             || categoryIds.Distinct().Count() != categoryIds.Count
-                            || await _db.Categories.CountAsync(x => categoryIds.Contains(x.Id) && x.IsActive) != categoryIds.Count)
+                            || await EducationalCategories.Visible(_db).CountAsync(x => categoryIds.Contains(x.Id)) != categoryIds.Count)
                             throw new FinalizationFailure(new(null, AccountFailure.Validation,
                                 Errors: ["Select unique active category GUIDs for the chosen persona; do not mix GUIDs and legacy indexes."]));
                         var existingSelections = await _db.UserCategories.Where(x => x.UserId == user.Id && x.Kind == kind).ToListAsync();
@@ -432,7 +432,7 @@ public sealed class AccountService : IAccountService
     }
 
     private Task<List<string>> ActiveCategoryKindsAsync(string userId) => _db.UserCategories.AsNoTracking()
-        .Where(x => x.UserId == userId && x.Category.IsActive).Select(x => x.Kind).Distinct().ToListAsync();
+        .Where(x => x.UserId == userId && EducationalCategories.Visible(_db).Any(c => c.Id == x.CategoryId)).Select(x => x.Kind).Distinct().ToListAsync();
 
     private static bool IsOnboardingRequired(ApplicationUser user, bool hasLearningCategories, bool hasTeachingCategories)
     {

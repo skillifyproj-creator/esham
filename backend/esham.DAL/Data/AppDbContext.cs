@@ -26,6 +26,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<UserCategory> UserCategories => Set<UserCategory>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<EnrollmentVersionAccess> EnrollmentVersionAccess => Set<EnrollmentVersionAccess>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<PointTransaction> PointTransactions => Set<PointTransaction>();
     public DbSet<LessonProgress> LessonProgressRecords => Set<LessonProgress>();
@@ -48,6 +49,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser>
         base.OnModelCreating(modelBuilder);
         ContentModelConfiguration.Configure(modelBuilder);
         LearningModelConfiguration.Configure(modelBuilder);
+        CourseVersionUpdateConfiguration.Configure(modelBuilder);
         ModerationModelConfiguration.Configure(modelBuilder);
     }
 }

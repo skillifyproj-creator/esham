@@ -13,6 +13,18 @@ namespace esham.Tests;
 
 public sealed class AccountCategoryIntegrationTests
 {
+    [Theory] [InlineData("learner")] [InlineData("instructor")] [InlineData("both")]
+    public async Task Onboarding_rejects_confirmed_fixture_category_ids_without_changing_admin_assignments(string role)
+    {
+        using var provider=Services();using var scope=provider.CreateScope();var services=scope.ServiceProvider;
+        var id=await Seed(services);var db=services.GetRequiredService<AppDbContext>();
+        var fixture=Guid.Parse("714e3f73-8302-45cf-a75f-fa0c0f21d0aa");db.Categories.Add(new(){Id=fixture,NameAr="Fixture",NameEn="Fixture",IsActive=true});await db.SaveChangesAsync();
+        var command=Profile(role) with {Interests=null,TeachingAreas=null,LearningCategoryIds=role=="instructor"?null:[fixture],TeachingCategoryIds=role=="learner"?null:[fixture]};
+        var result=await services.GetRequiredService<AccountService>().UpdateCurrentProfileAsync(Principal(id),command);
+        Assert.Equal(AccountFailure.Validation,result.Failure);
+        Assert.Empty(await db.CategoryAdminAssignments.ToListAsync());
+    }
+
     [Theory]
     [InlineData("learner")]
     [InlineData("instructor")]

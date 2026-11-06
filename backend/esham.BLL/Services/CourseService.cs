@@ -10,7 +10,7 @@ namespace esham.BLL.Services;
 
 public sealed class CourseService(AppDbContext db) : ICourseService
 {
-    private static CourseVersionResponseDto Map(CourseVersion x) => new(x.Id, x.VersionNumber, x.CategoryId,
+    internal static CourseVersionResponseDto Map(CourseVersion x) => new(x.Id, x.VersionNumber, x.CategoryId,
         x.TitleAr, x.TitleEn, x.DescriptionAr, x.DescriptionEn,
         x.Objectives.Select(o => new ObjectiveDto(o.Ar, o.En)).ToList(), x.Language, x.Level,
         x.CoverMediaAssetId, x.ReviewStatus, x.CreatedAt, x.UpdatedAt, x.SubmittedAt, x.ApprovedAt);
@@ -28,7 +28,7 @@ public sealed class CourseService(AppDbContext db) : ICourseService
     }
     private async Task<string?> ValidateReferences(CreateCourseRequest request, string ownerId, CancellationToken ct)
     {
-        if (!await db.Categories.AsNoTracking().AnyAsync(x => x.Id == request.CategoryId && x.IsActive, ct)) return "Category does not exist or is inactive.";
+        if (!await EducationalCategories.Visible(db).AsNoTracking().AnyAsync(x => x.Id == request.CategoryId, ct)) return "Category does not exist or is inactive.";
         if (request.CoverMediaAssetId.HasValue && !await db.MediaAssets.AsNoTracking().AnyAsync(x =>
             x.Id == request.CoverMediaAssetId && x.OwnerUserId == ownerId && x.MediaType == "image" && x.MimeType.StartsWith("image/"), ct))
             return "Cover media must be an existing image owned by the instructor.";
@@ -141,7 +141,7 @@ public sealed class CourseService(AppDbContext db) : ICourseService
     }
     private IQueryable<Course> PublicQuery() => db.Courses.AsNoTracking().Where(x => x.PublishedVersion != null
         && x.PublishedVersion.ReviewStatus == CourseReviewStatuses.Approved
-        && x.SafetyStatus == CourseSafetyStatuses.Active && x.PublishedVersion.Category.IsActive);
+        && x.SafetyStatus == CourseSafetyStatuses.Active && EducationalCategories.Visible(db).Any(c => c.Id == x.PublishedVersion.CategoryId));
     private static readonly Expression<Func<Course, PublicCourseResponseDto>> PublicProjection = x => new(
         x.Id, x.PublishedVersion!.Id, x.PublishedVersion.TitleAr, x.PublishedVersion.TitleEn,
         x.PublishedVersion.DescriptionAr, x.PublishedVersion.DescriptionEn, x.PublishedVersion.CategoryId,
@@ -149,7 +149,7 @@ public sealed class CourseService(AppDbContext db) : ICourseService
         x.PublishedVersion.CoverMediaAsset == null ? null : new MediaSummaryDto(x.PublishedVersion.CoverMediaAsset.Id,
             x.PublishedVersion.CoverMediaAsset.OriginalFileName, x.PublishedVersion.CoverMediaAsset.MimeType,
             x.PublishedVersion.CoverMediaAsset.SizeBytes, x.PublishedVersion.CoverMediaAsset.DurationSeconds, x.PublishedVersion.CoverMediaAsset.MediaType),
-        new OwnerSummaryDto(x.OwnerUser.Id, x.OwnerUser.Name, x.OwnerUser.NameEn), x.CreatedAt, x.PublishedVersion.ApprovedAt, null);
+        new OwnerSummaryDto(x.OwnerUser.Id, x.OwnerUser.Name, x.OwnerUser.NameEn), x.CreatedAt, x.PublishedVersion.ApprovedAt, null, null, 0, 0, null);
     public async Task<IReadOnlyList<PublicCourseResponseDto>> GetPublicAsync(CancellationToken ct = default)
     {
         var values = await PublicQuery().OrderByDescending(x => x.PublishedVersion!.ApprovedAt).ThenBy(x => x.Id).Select(PublicProjection).ToListAsync(ct);
@@ -162,6 +162,15 @@ public sealed class CourseService(AppDbContext db) : ICourseService
         if (value is null) return ServiceResult<PublicCourseResponseDto>.Fail(ServiceFailure.NotFound, "Published course not found.");
         // Only fetch objectives from the selected approved public version, never from its draft.
         var objectives = await db.CourseVersions.AsNoTracking().Where(x => x.Id == value.PublishedVersionId).Select(x => x.Objectives).SingleAsync(ct);
-        return ServiceResult<PublicCourseResponseDto>.Ok(value with { Objectives = objectives.Select(o => new ObjectiveDto(o.Ar, o.En)).ToList() });
+        var sections = await db.CourseSections.AsNoTracking().Where(x => x.CourseVersionId == value.PublishedVersionId)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id)
+            .Select(x => new PublicSectionOutlineDto(x.Id, x.TitleAr, x.TitleEn,
+                x.Lessons.OrderBy(l => l.SortOrder).ThenBy(l => l.Id)
+                    .Select(l => new PublicLessonOutlineDto(l.Id, l.TitleAr, l.TitleEn, l.ContentType, l.DurationSeconds)).ToList())).ToListAsync(ct);
+        var taskCount = await db.CourseTasks.CountAsync(x => x.CourseVersionId == value.PublishedVersionId, ct);
+        var ratings = await db.CourseReviews.AsNoTracking().Where(x => x.Enrollment.CourseId == id).Select(x => x.Rating).ToListAsync(ct);
+        return ServiceResult<PublicCourseResponseDto>.Ok(value with {
+            Objectives = objectives.Select(o => new ObjectiveDto(o.Ar, o.En)).ToList(), Sections = sections,
+            TaskCount = taskCount, RatingCount = ratings.Count, AverageRating = ratings.Count == 0 ? null : ratings.Average() });
     }
 }

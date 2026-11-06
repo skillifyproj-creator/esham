@@ -32,7 +32,15 @@ public sealed class NotificationService(AppDbContext db, UserManager<Application
         var items = await selected.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id)
             .Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
             .Select(x => new NotificationDto(x.Id, x.NotificationType, x.TitleAr, x.TitleEn, x.MessageAr, x.MessageEn,
-                x.CreatedAt, x.IsRead, x.ReadAt)).ToListAsync(ct);
+                x.CreatedAt, x.IsRead, x.ReadAt, null)).ToListAsync(ct);
+        // Resolve targets from persisted decisions, never from notification message text.
+        // Ownership is checked again so a notification cannot expose another owner's workflow.
+        var revisionIds = items.Where(x => x.NotificationType == "course.changes_requested" || x.NotificationType == "course.published").Select(x => x.Id).ToArray();
+        var targets = await db.CourseReviewDecisions.AsNoTracking()
+            .Where(x => revisionIds.Contains(x.Id) && (x.Decision == "changes_requested" || x.Decision == "approved") && x.CourseVersion.Course.OwnerUserId == user.Id)
+            .Select(x => new { x.Id, x.CourseVersion.CourseId }).ToDictionaryAsync(x => x.Id, x => x.CourseId, ct);
+        items = items.Select(x => targets.TryGetValue(x.Id, out var courseId)
+            ? x with { TargetUrl = x.NotificationType == "course.published" ? $"/courses/{courseId:D}" : $"/instructor/courses/{courseId:D}/review" } : x).ToList();
         return ServiceResult<NotificationPage>.Ok(new(user.Id, items, query.Page, query.PageSize, total));
     }
 

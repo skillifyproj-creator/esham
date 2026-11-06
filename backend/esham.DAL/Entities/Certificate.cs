@@ -4,6 +4,7 @@ public sealed class Certificate
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid EnrollmentId { get; set; }
+    public Guid? CourseVersionId { get; set; }
     public string VerificationCode { get; set; } = string.Empty;
     public string LearnerNameSnapshot { get; set; } = string.Empty;
     public string? CourseTitleSnapshotAr { get; set; }

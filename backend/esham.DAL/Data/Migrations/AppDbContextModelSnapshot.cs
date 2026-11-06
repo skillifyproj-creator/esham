@@ -466,6 +466,9 @@ namespace esham.DAL.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid?>("CourseVersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("EnrollmentId")
                         .HasColumnType("uniqueidentifier");
 
@@ -493,6 +496,8 @@ namespace esham.DAL.Data.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CourseVersionId");
 
                     b.HasIndex("EnrollmentId")
                         .IsUnique();
@@ -687,6 +692,9 @@ namespace esham.DAL.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<Guid?>("CourseVersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -707,6 +715,8 @@ namespace esham.DAL.Data.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CourseVersionId");
 
                     b.HasIndex("EnrollmentId")
                         .IsUnique();
@@ -818,6 +828,11 @@ namespace esham.DAL.Data.Migrations
                     b.Property<bool>("IsReady")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("LogicalTaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<string>("Requirements")
                         .HasColumnType("nvarchar(max)");
 
@@ -837,7 +852,12 @@ namespace esham.DAL.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LogicalTaskId");
+
                     b.HasIndex("CourseVersionId", "DisplaySectionId");
+
+                    b.HasIndex("CourseVersionId", "LogicalTaskId")
+                        .IsUnique();
 
                     b.HasIndex("CourseVersionId", "SortOrder");
 
@@ -1042,6 +1062,52 @@ namespace esham.DAL.Data.Migrations
                     b.ToTable("Enrollments", (string)null);
                 });
 
+            modelBuilder.Entity("esham.DAL.Entities.EnrollmentVersionAccess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CourseVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("PreviousCourseVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<bool>("WasCourseCompleted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId", "CourseVersionId");
+
+                    b.HasIndex("CourseId", "PreviousCourseVersionId");
+
+                    b.HasIndex("EnrollmentId", "CourseId");
+
+                    b.HasIndex("EnrollmentId", "CourseVersionId")
+                        .IsUnique();
+
+                    b.ToTable("EnrollmentVersionAccess", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EnrollmentVersionAccess_Reason", "[Reason] IN ('enrolled','publication','baseline')");
+                        });
+                });
+
             modelBuilder.Entity("esham.DAL.Entities.Lesson", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1071,6 +1137,11 @@ namespace esham.DAL.Data.Migrations
                     b.Property<bool>("IsPreview")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("LogicalLessonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<string>("Objectives")
                         .HasColumnType("nvarchar(max)");
 
@@ -1093,7 +1164,12 @@ namespace esham.DAL.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LogicalLessonId");
+
                     b.HasIndex("PrimaryVideoMediaAssetId");
+
+                    b.HasIndex("CourseSectionId", "LogicalLessonId")
+                        .IsUnique();
 
                     b.HasIndex("CourseSectionId", "SortOrder");
 
@@ -1466,6 +1542,9 @@ namespace esham.DAL.Data.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool?>("IsOptionalAtCreation")
+                        .HasColumnType("bit");
+
                     b.Property<int>("AttemptNumber")
                         .HasColumnType("int");
 
@@ -1719,6 +1798,11 @@ namespace esham.DAL.Data.Migrations
 
             modelBuilder.Entity("esham.DAL.Entities.Certificate", b =>
                 {
+                    b.HasOne("esham.DAL.Entities.CourseVersion", null)
+                        .WithMany()
+                        .HasForeignKey("CourseVersionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("esham.DAL.Entities.Enrollment", "Enrollment")
                         .WithOne("Certificate")
                         .HasForeignKey("esham.DAL.Entities.Certificate", "EnrollmentId")
@@ -1841,6 +1925,11 @@ namespace esham.DAL.Data.Migrations
 
             modelBuilder.Entity("esham.DAL.Entities.CourseReview", b =>
                 {
+                    b.HasOne("esham.DAL.Entities.CourseVersion", null)
+                        .WithMany()
+                        .HasForeignKey("CourseVersionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("esham.DAL.Entities.Enrollment", "Enrollment")
                         .WithOne("CourseReview")
                         .HasForeignKey("esham.DAL.Entities.CourseReview", "EnrollmentId")
@@ -1994,6 +2083,35 @@ namespace esham.DAL.Data.Migrations
                     b.Navigation("CourseVersion");
 
                     b.Navigation("LearnerUser");
+                });
+
+            modelBuilder.Entity("esham.DAL.Entities.EnrollmentVersionAccess", b =>
+                {
+                    b.HasOne("esham.DAL.Entities.CourseVersion", "CourseVersion")
+                        .WithMany()
+                        .HasForeignKey("CourseId", "CourseVersionId")
+                        .HasPrincipalKey("CourseId", "Id")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("esham.DAL.Entities.CourseVersion", "PreviousCourseVersion")
+                        .WithMany()
+                        .HasForeignKey("CourseId", "PreviousCourseVersionId")
+                        .HasPrincipalKey("CourseId", "Id")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("esham.DAL.Entities.Enrollment", "Enrollment")
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId", "CourseId")
+                        .HasPrincipalKey("Id", "CourseId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("CourseVersion");
+
+                    b.Navigation("Enrollment");
+
+                    b.Navigation("PreviousCourseVersion");
                 });
 
             modelBuilder.Entity("esham.DAL.Entities.Lesson", b =>

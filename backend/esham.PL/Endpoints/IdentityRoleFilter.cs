@@ -15,7 +15,7 @@ internal sealed class IdentityRoleFilter(params string[] allowedRoles) : IEndpoi
         var roles = await manager.GetRolesAsync(user);
         bool HasRole(string role) => roles.Contains(role, StringComparer.OrdinalIgnoreCase);
         if (!allowedRoles.Any(HasRole)) return Results.Forbid();
-        context.HttpContext.Items[ActorKey] = new CourseActor(user.Id, HasRole("Instructor"), HasRole("GeneralAdmin"));
+        context.HttpContext.Items[ActorKey] = new CourseActor(user.Id, HasRole("Instructor"), HasRole("GeneralAdmin"), HasRole("CategoryAdmin"));
         return await next(context);
     }
     internal static CourseActor Actor(HttpContext context) => (CourseActor)context.Items[ActorKey]!;

@@ -6,6 +6,8 @@ public sealed class TaskSubmission
     public Guid EnrollmentId { get; set; }
     public Guid CourseTaskId { get; set; }
     public int AttemptNumber { get; set; } = 1;
+    // Null means unknown legacy mode. Future submission services set this at draft creation.
+    public bool? IsOptionalAtCreation { get; set; }
     public string? AnswerText { get; set; }
     public string? WorkUrl { get; set; }
     public string Status { get; set; } = "inProgress";

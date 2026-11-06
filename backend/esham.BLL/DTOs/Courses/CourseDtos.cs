@@ -46,4 +46,9 @@ public sealed record PublicCourseResponseDto(Guid CourseId, Guid PublishedVersio
     string? TitleAr, string? TitleEn, string? DescriptionAr, string? DescriptionEn,
     Guid CategoryId, string CategoryNameAr, string CategoryNameEn, string Language, string Level,
     MediaSummaryDto? CoverMedia, OwnerSummaryDto Instructor, DateTimeOffset CreatedAt,
-    DateTimeOffset? ApprovedAt, List<ObjectiveDto>? Objectives = null);
+    DateTimeOffset? ApprovedAt, List<ObjectiveDto>? Objectives = null, IReadOnlyList<PublicSectionOutlineDto>? Sections = null,
+    int TaskCount = 0, int RatingCount = 0, double? AverageRating = null);
+
+// Public syllabus only: never serialize lesson bodies, storage keys, files or task instructions.
+public sealed record PublicSectionOutlineDto(Guid Id, string? TitleAr, string? TitleEn, IReadOnlyList<PublicLessonOutlineDto> Lessons);
+public sealed record PublicLessonOutlineDto(Guid Id, string? TitleAr, string? TitleEn, string ContentType, double? DurationSeconds);

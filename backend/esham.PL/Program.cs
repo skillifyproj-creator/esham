@@ -39,6 +39,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserCategoryService, UserCategoryService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<CategoryAdminProvisioningService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
 builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
@@ -48,6 +49,13 @@ builder.Services.AddScoped<ICurriculumService, CurriculumService>();
 builder.Services.AddScoped<ICourseTaskService, CourseTaskService>();
 builder.Services.AddScoped<ILessonMediaService, LessonMediaService>();
 builder.Services.AddScoped<ICourseSubmissionEligibilityService, CourseSubmissionEligibilityService>();
+builder.Services.AddScoped<ICourseReviewService, CourseReviewService>();
+builder.Services.AddScoped<AnnouncementService>();
+builder.Services.AddScoped<CourseSafetyService>();
+builder.Services.AddScoped<AdminActivityService>();
+builder.Services.AddScoped<InstructorInsightsService>();
+builder.Services.AddScoped<AdminIntegrationService>();
+builder.Services.AddScoped<ICourseVersionUpdates, CourseVersionUpdates>();
 builder.Services.AddScoped<ICourseCoverService, CourseCoverService>();
 // Explicit configuration is required outside Development; files are never exposed by static middleware.
 var mediaRoot = builder.Configuration["Media:StorageRoot"];
@@ -94,13 +102,14 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 if (await DevelopmentIdentityRoles.RunCommandAsync(app, args)) return;
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue("SeedData:Enabled", true))
 {
     await using var scope = app.Services.CreateAsyncScope();
     await DevelopmentIdentityRoles.SeedAsync(
         scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
 }
 
+if (app.Configuration.GetValue("SeedData:Enabled", true))
 await using (var catalogScope = app.Services.CreateAsyncScope())
 {
     var db = catalogScope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -136,6 +145,11 @@ app.MapAdminUserEndpoints();
 app.MapNotificationEndpoints();
 app.MapCategoryEndpoints();
 app.MapCourseEndpoints();
+app.MapCourseReviewEndpoints();
+app.MapPlatformModerationEndpoints();
+app.MapInstructorInsightsEndpoints();
+app.MapAdminIntegrationEndpoints();
+app.MapEnrollmentVersionEndpoints();
 app.MapCurriculumEndpoints();
 app.MapCourseTaskEndpoints();
 app.MapLessonMediaEndpoints();
@@ -153,6 +167,14 @@ app.MapGet("/weatherforecast", () =>
         .ToArray();
     return forecast;
 });
+
+// Read-only development verification handshake: no server/database identity or secrets exposed.
+if (app.Environment.IsDevelopment())
+    app.MapGet("/development/test-isolation", () => {
+        var target = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+        return Results.Ok(new { isolated = target.DataSource.Equals(@"(localdb)\MSSQLLocalDB", StringComparison.OrdinalIgnoreCase)
+            && target.InitialCatalog.StartsWith("Esham_AccountTests_", StringComparison.Ordinal) });
+    }).AllowAnonymous();
 
 app.Run();
 
