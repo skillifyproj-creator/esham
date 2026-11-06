@@ -1,3 +1,4 @@
+import ThemeLogo from '../../components/ThemeLogo';
 import AuthAlert from '../../components/AuthAlert';
 import GoogleSignIn from '../../components/GoogleSignIn';
 import { accountRequest, accountError } from '../../services/accountApi';
@@ -9,7 +10,6 @@ import { Link, useNavigate } from "react-router";
 import { usePreferences } from "../../context/PreferencesContext";
 import { loginCopy } from "../../i18n/loginCopy";
 import Icon from "../../components/Icon";
-import logo from "../../assets/esham-logo.png";
 
 import "../../styles/auth.css";
 import "../../styles/auth-recovery.css";
@@ -91,8 +91,7 @@ export default function LoginPage() {
       >
         <header className="auth-topbar">
           <Link to="/" aria-label={t.back}>
-            <img
-              src={logo}
+            <ThemeLogo
               alt={language === "ar" ? "إسهام" : "Esham"}
             />
           </Link>
@@ -210,7 +209,7 @@ export default function LoginPage() {
             )}
           </form>
 
-          
+
           <div className="auth-form-footer">
             <p className="auth-existing">
               {t.noAccount}{" "}

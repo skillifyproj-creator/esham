@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
+import ThemeLogo from '../ThemeLogo';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { accountRequest, accountError } from '../../services/accountApi';
 import { useAccountSession } from '../../context/AccountSessionContext';
 import { useNotifications } from '../../context/NotificationsContext';
 import { notificationMessage } from '../../services/notifications';
 import Icon from '../Icon';
-import Footer from '../Footer';
 import { usePreferences } from '../../context/PreferencesContext';
 import { adminCopy, translateAdminText } from '../../i18n/adminCopy';
-import logo from '../../assets/esham-logo.png';
 import '../../styles/admin-workspace.css';
 
 export default function AdminWorkspace({
@@ -22,6 +21,16 @@ export default function AdminWorkspace({
 }) {
   const { copy, language, theme, toggleLanguage, toggleTheme } = usePreferences();
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches);
+  const sidebar = useRef(null), menu = useRef(null);
+  const collapseLabel = language === 'ar' ? (collapsed ? 'توسيع القائمة الجانبية' : 'طي القائمة الجانبية') : (collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 900px)');
+    const update = () => { setMobile(query.matches); setOpen(false); };
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
   const location = useLocation();
   const navigate = useNavigate();
   const session = useAccountSession();
@@ -46,13 +55,21 @@ export default function AdminWorkspace({
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!open) return undefined;
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape') setOpen(false);
+    if (!open || !mobile) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    sidebar.current?.querySelector('button, a')?.focus();
+    const keyboard = event => {
+      if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
+      if (event.key !== 'Tab') return;
+      const items = [...sidebar.current.querySelectorAll('a[href], button:not(:disabled), [tabindex="0"]')].filter(el => el.getClientRects().length);
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [open]);
+    document.addEventListener('keydown', keyboard);
+    return () => { document.body.style.overflow = previous; document.removeEventListener('keydown', keyboard); menu.current?.focus(); };
+  }, [open, mobile]);
 
   const utilities = (
     <div className="admin-utilities">
@@ -97,10 +114,11 @@ export default function AdminWorkspace({
 
   return (
     <div
-      className={`admin-workspace ${variant}-shell${open ? ' drawer-open' : ''}`}
+      className={`admin-workspace ${variant}-shell${open ? ' drawer-open' : ''}${collapsed ? ' sidebar-collapsed' : ''}`}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
-      {open && (
+      <a className="admin-skip-link" href="#admin-content">{language === 'ar' ? 'انتقل إلى المحتوى' : 'Skip to content'}</a>
+      {open && mobile && (
         <button
           className="admin-drawer-backdrop"
           type="button"
@@ -109,6 +127,10 @@ export default function AdminWorkspace({
         />
       )}
       <aside
+        ref={sidebar}
+        inert={mobile && !open}
+        role={mobile && open ? 'dialog' : undefined}
+        aria-modal={mobile && open ? true : undefined}
         className={`${variant}-sidebar admin-sidebar${open ? ' is-open' : ''}`}
         id={`${variant}-sidebar`}
         aria-label={copy.navigation}
@@ -119,7 +141,7 @@ export default function AdminWorkspace({
             className="admin-brand"
             onClick={() => setOpen(false)}
           >
-            <img src={logo} alt={words.appName} />
+            <ThemeLogo alt={words.appName} />
             <span>
               {words.appName}
               <small>
@@ -142,6 +164,8 @@ export default function AdminWorkspace({
           {links.map((link) => (
             <NavLink
               key={link.to}
+              aria-label={words[link.label] || link.label}
+              title={collapsed && !mobile ? words[link.label] || link.label : undefined}
               to={link.to}
               end={link.end}
               onClick={() => setOpen(false)}
@@ -168,7 +192,7 @@ export default function AdminWorkspace({
               <small>{roleLabel}</small>
             </span>
           </div>
-          <button className="admin-logout" type="button" disabled={signingOut} onClick={async () => {
+          <button className="admin-logout" aria-label={language === 'ar' ? 'تسجيل الخروج' : 'Sign out'} title={collapsed ? (language === 'ar' ? 'تسجيل الخروج' : 'Sign out') : undefined} type="button" disabled={signingOut} onClick={async () => {
             if (signingOut) return;
             setSigningOut(true); setSignOutError(null);
             try {
@@ -184,9 +208,10 @@ export default function AdminWorkspace({
         </div>
       </aside>
 
-      <div className={`${variant}-main admin-main`}>
+      <div className={`${variant}-main admin-main`} inert={mobile && open}>
         <header className={`${variant}-topbar admin-topbar`}>
           <button
+            ref={menu}
             className="admin-menu-button"
             type="button"
             aria-expanded={open}
@@ -196,23 +221,23 @@ export default function AdminWorkspace({
           >
             <Icon name={open ? 'close' : 'menu'} size={22} />
           </button>
+          <button className="admin-collapse-button" type="button" onClick={() => setCollapsed(value => !value)} aria-expanded={!collapsed} aria-controls={`${variant}-sidebar`} aria-label={collapseLabel} title={collapseLabel}><Icon name="menu" size={20}/></button>
           <Link to={links[0].to} className="admin-mobile-brand">
-            <img src={logo} alt={words.appName} />
+            <ThemeLogo alt={words.appName} />
             <span>{words[active.label] || active.label}</span>
           </Link>
           <div className="admin-topbar-context">
             <span className="admin-live-dot" />
             {scope
               ? translateAdminText(scope, language)
-              : language === 'ar' ? 'معاينة إدارة المنصة' : 'Platform administration preview'}
+              : language === 'ar' ? 'إدارة المنصة' : 'Platform administration'}
           </div>
           <div className="admin-topbar-right">{utilities}</div>
         </header>
-        <main className={`${variant}-content admin-content`}>
-          
+        <main id="admin-content" tabIndex={-1} className={`${variant}-content admin-content`}>
+
           <Outlet key={location.pathname} />
         </main>
-        <Footer />
       </div>
     </div>
   );

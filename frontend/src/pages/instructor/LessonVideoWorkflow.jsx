@@ -1,5 +1,6 @@
 import VideoScreeningPanel from "../../components/video/VideoScreeningPanel";
 import { screenVideoWithGemini } from '../../services/cloudVideoReview';
+import Icon from '../../components/Icon';
 import VideoTimeline from '../../components/video/VideoTimeline';
 import VideoWhiteboard from '../../components/video/VideoWhiteboard';
 import ScreenAnnotations from '../../components/video/ScreenAnnotations';
@@ -294,12 +295,29 @@ function VideoEnvironment({ mode, data }) {
   }
   if (!workspace || !section || (lessonId !== 'new' && !lesson)) return <main className="container section"><h1>{t('لم يتم العثور على الدرس أو القسم', 'Lesson or section not found')}</h1><Link to="/instructor/courses">{t('دوراتي', 'My courses')}</Link></main>;
   const capturing = mode === 'record' || mode === 'setup';
-  return <main className={`container video-workflow${capturing ? ' video-workflow-recording' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+  return <main className={`container video-workflow${capturing ? ' video-workflow-recording' : ''}${mode === 'source' ? ' video-source-page' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <nav aria-label={t('مسار الصفحة', 'Breadcrumb')}><Link to={`/instructor/courses/${courseId}/curriculum`}>{localized(workspace.course.title, language)}</Link><span> / {localized(section.title, language)}</span></nav>
     <h1>{titles[mode]}</h1>
     
     {error && <p className="video-error" role="alert">{error}</p>}{captureNotice&&<p role="status">{captureNotice}</p>}
-    {mode === 'source' && <div className="video-options"><section><h2>{t('رفع فيديو', 'Choose video')}</h2><label className="video-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); upload(event.dataTransfer.files[0]); }}>{t('اختر فيديو أو اسحبه هنا · MP4 / WebM / MOV · حتى 2GB', 'Choose or drop a video · MP4 / WebM / MOV · up to 2GB')}<input aria-label={t('اختيار فيديو', 'Choose video')} type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" disabled={busy} onChange={event => { upload(event.target.files[0]); event.target.value = ''; }}/></label></section><section><h2>{t('تسجيل فيديو جديد', 'Record a new video')}</h2><p>{t('الكاميرا أو الشاشة أو السبورة، مع صوت الميكروفون.', 'Camera, screen or whiteboard with microphone audio.')}</p><button className="button" disabled={busy} onClick={() => move('record')}>{t('إعداد التسجيل', 'Recording setup')}</button></section></div>}
+    {mode === 'source' && <div className="video-options">
+      <section className="video-source-card">
+        <span className="video-source-icon" aria-hidden="true"><Icon name="video" size={28}/></span>
+        <h2>{t('رفع فيديو', 'Upload video')}</h2>
+        <p>{t('اختر فيديو جاهزًا من جهازك لإضافته إلى الدرس.', 'Choose an existing video from your device to add to the lesson.')}</p>
+        <label className="video-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); upload(event.dataTransfer.files[0]); }}>
+          <strong>{t('اختر فيديو أو اسحبه هنا', 'Choose or drop a video here')}</strong>
+          <span>{t('MP4 / WebM / MOV · حتى 2GB', 'MP4 / WebM / MOV · up to 2GB')}</span>
+          <input aria-label={t('اختيار فيديو', 'Choose video')} type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" disabled={busy} onChange={event => { upload(event.target.files[0]); event.target.value = ''; }}/>
+        </label>
+      </section>
+      <section className="video-source-card">
+        <span className="video-source-icon" aria-hidden="true"><Icon name="camera" size={28}/></span>
+        <h2>{t('تسجيل فيديو جديد', 'Record a new video')}</h2>
+        <p>{t('الكاميرا أو الشاشة أو السبورة، مع صوت الميكروفون.', 'Camera, screen or whiteboard with microphone audio.')}</p>
+        <div className="video-source-record-action"><button className="button" disabled={busy} onClick={() => move('record')}>{t('إعداد التسجيل', 'Recording setup')}</button></div>
+      </section>
+    </div>}
     {capturing && <>
       <div className="video-device-options"><label>{t('شكل الفيديو', 'Video layout')}<select value={layout} disabled={busy} onChange={event => chooseLayout(event.target.value)}>{[['camera',t('الكاميرا','Camera')],['screen',t('الشاشة','Screen')],['screen-camera',t('الشاشة مع كاميرا صغيرة في الزاوية','Screen with a small camera in the corner')],['side-by-side',t('الشاشة والكاميرا بمساحتين متجاورتين','Screen and camera in separate panels')],['board',t('السبورة البيضاء مع الكاميرا','Whiteboard and camera')],['file',t('ملف مع الكاميرا','File and camera')]].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label>{t('الكاميرا', 'Camera')}<select value={cameraId} disabled={recording || busy} onChange={event => {release();setCameraId(event.target.value);paint();}}><option value="">{t('الافتراضية', 'Default')}</option>{devices.filter(device => device.kind === 'videoinput').map(device => <option value={device.deviceId} key={device.deviceId}>{device.label || t('كاميرا', 'Camera')}</option>)}</select></label><label>{t('الميكروفون', 'Microphone')}<select value={micId} disabled={recording || busy} onChange={event => {release();setMicId(event.target.value);paint();}}><option value="">{t('الافتراضي', 'Default')}</option>{devices.filter(device => device.kind === 'audioinput').map(device => <option value={device.deviceId} key={device.deviceId}>{device.label || t('ميكروفون', 'Microphone')}</option>)}</select></label>

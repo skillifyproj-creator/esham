@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Routes, Route } from 'react-router';
 import { accountRequest } from '../src/services/accountApi.js';
 import { listAdminUsers, getAdminUser, updateAdminRoles, updateAdminLockout, canManageUsers, accountDestination, adminUserMessage } from '../src/services/adminUsers.js';
 
@@ -81,9 +81,10 @@ test('401, 403, conflicts, unavailable API and missing users have actionable bil
 });
 
 const vite = await createServer({ cacheDir: 'node_modules/.vite-admin-tests', optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
-let pages, preferences, sessionContext;
+let pages, preferences, sessionContext, generalWorkspace, categoryWorkspace;
 try {
   [pages, preferences, sessionContext] = await Promise.all(['/src/pages/admin/AdminUsersPage.jsx', '/src/context/PreferencesContext.jsx', '/src/context/AccountSessionContext.jsx'].map(path => vite.ssrLoadModule(path)));
+  [generalWorkspace, categoryWorkspace] = await Promise.all(['/src/pages/admin/SuperAdminModule.jsx', '/src/pages/category-admin/CategoryAdminModule.jsx'].map(path => vite.ssrLoadModule(path)));
 } finally { await vite.close(); }
 const values = new Map();
 globalThis.localStorage = { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value) };
@@ -123,6 +124,18 @@ test('real directory rows and details render in the existing table/form styles w
 test('old local user-list mutations and fake activation/admin creation are removed from routed screens', async () => {
   const source = await readFile(new URL('../src/pages/admin/SuperAdminModule.jsx', import.meta.url), 'utf8');
   assert.ok(!source.includes('esham-admin-users-v1')); assert.ok(!source.includes('d.setUsers('));
-  assert.match(source, /function AdminsPage\(\)\{return <AdminUsersPage administratorsOnly/);
+  assert.match(source, /function AdminsPage\(\)\{const d=useData\(\);return <AdminUsersPage administratorsOnly onCreated=\{d.reload\}/);
   assert.match(source, /function UsersPage\(\)\{return <AdminUsersPage/);
+});
+
+test('whole admin workspaces require canonical role membership before rendering any child page', () => {
+ values.set('esham-language','en');
+ for (const [Guard, required] of [[generalWorkspace.SuperAdminRoutes,'GeneralAdmin'],[categoryWorkspace.CategoryAdminProvider,'CategoryAdmin']]) {
+  const tree = () => h(Routes,null,h(Route,{element:h(Guard)},h(Route,{index:true,element:h('div',null,'PRIVATE WORKSPACE')})));
+  for (const roles of [[],['Learner'],['Instructor'],['Learner','Instructor'],[required==='GeneralAdmin'?'CategoryAdmin':'GeneralAdmin']]) {
+   const html=render(tree(),{status:'authenticated',session:{profile:{id,role:'both',roles}}});
+   assert.ok(!html.includes('PRIVATE WORKSPACE')); assert.match(html,/role="alert"/);
+  }
+  assert.match(render(tree(),{status:'authenticated',session:{profile:{id,roles:[required]}}}),/PRIVATE WORKSPACE/);
+ }
 });

@@ -1,3 +1,5 @@
+import PublicCourseCurriculum from '../components/PublicCourseCurriculum';
+import ReportCourseButton from '../components/learner/ReportCourseButton';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { usePreferences } from '../context/PreferencesContext';
@@ -6,6 +8,7 @@ import { loadPublicCourse } from '../services/publicCatalog';
 import CourseCard from '../components/CourseCard';
 import Icon from '../components/Icon';
 import '../styles/community.css';
+import '../styles/course-pages.css';
 export default function CourseDetailsPage() {
   const { courseId } = useParams(), { language, copy: c } = usePreferences();
   const { courses } = usePublicCatalog();
@@ -13,7 +16,7 @@ export default function CourseDetailsPage() {
   const t = (ar, en) => language === 'ar' ? ar : en;
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setCourse(null); setError('');
-    loadPublicCourse(courseId, controller.signal).then(setCourse).catch(cause => { if (!controller.signal.aborted) setError(cause.message); })
+    loadPublicCourse(courseId, controller.signal).then(value => { if (!controller.signal.aborted) setCourse(value); }).catch(cause => { if (!controller.signal.aborted) setError(cause.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [courseId]);
@@ -25,7 +28,15 @@ export default function CourseDetailsPage() {
       <Link className="detail-category" to={`/courses?category=${course.categoryId}`}>{course.categoryTitle[language]}</Link>
       <h1>{course.title[language]}</h1><p>{course.description[language]}</p>
       <p className="catalog-instructor">{course.instructor[language]} · {course.level === 'beginner' ? t('مبتدئ', 'Beginner') : course.level} · {course.language === 'ar' ? t('العربية', 'Arabic') : t('الإنجليزية', 'English')}</p>
-    </div><aside className="detail-enroll-card"><div className="course-image"><Icon name="book" size={64} /></div><h2>{t('نبذة عن الدورة', 'Course overview')}</h2><p>{t('هذه صفحة المعلومات المنشورة للدورة. التسجيل والمحتوى التعليمي الكامل سيتوفران مع خدماتهما.', 'Published course information. Enrollment and full learning content will become available with their services.')}</p><Link className="button button-outline" to="/courses">{t('استكشف الدورات', 'Explore courses')}</Link></aside></section>
+      <div className="instructor-line"><span className="avatar" aria-hidden="true">{course.instructor[language]?.slice(0, 1)}</span><div><strong>{course.instructor[language]}</strong><small>{t('مدرّب الدورة', 'Course instructor')}</small></div></div>
+      <p className="detail-rating">{course.ratingCount ? `${course.rating?.toFixed(1)} / 5 · ${course.ratingCount} ${t('تقييم', 'ratings')}` : t('لا توجد تقييمات بعد.', 'No ratings yet.')}</p>
+      <dl className="detail-metrics"><div><dt>{t('الأقسام', 'Sections')}</dt><dd>{course.curriculum.length}</dd></div><div><dt>{t('الدروس', 'Lessons')}</dt><dd>{course.lessons ?? 0}</dd></div><div><dt>{t('المهام', 'Tasks')}</dt><dd>{course.taskCount}</dd></div><div><dt>{t('المستوى', 'Level')}</dt><dd>{course.level === 'beginner' ? t('مبتدئ', 'Beginner') : course.level}</dd></div></dl>
+    </div><div className="detail-hero-art">{course.image ? <img src={course.image} alt={course.title[language]}/> : <Icon name="book" size={64}/>}</div></section>
+    <ReportCourseButton course={course}/>
+    <div className="detail-layout"><div className="detail-main">
+    <section className="detail-section"><h2>{t('عن الدورة', 'About this course')}</h2><div className="detail-panel"><p style={{whiteSpace:'pre-wrap'}}>{course.description[language]}</p></div></section>
+    <PublicCourseCurriculum course={course}/>
+    </div><aside className="enrollment-card"><h2>{t('التسجيل في الدورة', 'Course enrollment')}</h2><p id="enrollment-unavailable">{t('التسجيل غير متاح حاليًا. لا يمكن خصم نقاط أو بدء التعلّم حتى تتوفر خدمة التسجيل.', 'Enrollment is currently unavailable. Points cannot be charged and learning cannot start until the enrollment service is available.')}</p><button type="button" className="button enroll-button" disabled aria-describedby="enrollment-unavailable">{t('التسجيل غير متاح حاليًا', 'Enrollment unavailable')}</button></aside></div>
     <section className="section"><h2>{t('ما الذي ستتعلمه؟', 'What you will learn')}</h2><ul>{course.objectives.map((x, i) => <li key={i}>{x[language] || x.ar || x.en}</li>)}</ul></section>
     <section className="section"><h2>{t('دورات أخرى', 'More courses')}</h2><div className="catalog-grid">{related.map(x => <CourseCard key={x.id} course={x} compact />)}</div></section>
   </div></main>;

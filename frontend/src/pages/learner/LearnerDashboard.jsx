@@ -1,3 +1,4 @@
+import { useEffect as useCatalogRefreshEffect } from 'react';
 import useAccountProfile from '../../hooks/useAccountProfile';
 import useAccountName from "../../hooks/useAccountName";
 import { useState } from "react";
@@ -41,6 +42,7 @@ function LearningProgress({ value, label }) {
 
 export default function LearnerDashboard() {
   const { courses, loading: catalogLoading, error: catalogError, reload: reloadCatalog } = usePublicCatalog();
+  useCatalogRefreshEffect(() => { const controller = new AbortController(); reloadCatalog(controller.signal); return () => controller.abort(); }, [reloadCatalog]);
   const accountName = useAccountName();
   const profile = useAccountProfile();
   const preferredCategories = new Set(profile.learningCategoryIds || []);

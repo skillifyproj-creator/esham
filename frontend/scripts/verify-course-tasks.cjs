@@ -1,8 +1,9 @@
+require('./require-isolated-test-target.cjs')();
 // Same credential/environment contract as verify-curriculum.cjs. No credentials are stored.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
-const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5173';
-const api = process.env.ESHAM_TEST_API || 'http://localhost:5206';
+const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5175';
+const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
 const courseId = process.env.ESHAM_TEST_COURSE_ID;
 const root = `/api/courses/${courseId}/draft/tasks`;
 const sectionsPath = `/api/courses/${courseId}/draft/sections`;

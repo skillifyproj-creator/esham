@@ -1,3 +1,4 @@
+require('./require-isolated-test-target.cjs')();
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -19,11 +20,11 @@ const os = require('node:os');
     }
   });
   const api = async (url, method = 'GET', data) => {
-    const response = await context.request.fetch(`http://localhost:5206${url}`, { method, data, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const response = await context.request.fetch(`http://localhost:5216${url}`, { method, data, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     assert(response.ok(), `${method} ${url}: ${response.status()} ${await response.text()}`); return response.json();
   };
   try {
-    await page.goto('http://localhost:5173/login');
+    await page.goto('http://localhost:5175/login');
     await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
     await page.locator('[name=password]').fill(process.env.ESHAM_TEST_PASSWORD);
     await page.locator('button[type=submit]').click(); await page.waitForURL('**/instructor');
@@ -34,7 +35,7 @@ const os = require('node:os');
     const root = `/api/courses/${course.courseId}/draft/sections`;
     const section = (await api(`${root}/ensure-default`, 'POST'))[0];
     // Create the new lesson through the real editor: Add Video must first persist its form.
-    await page.goto(`http://localhost:5173/instructor/courses/${course.courseId}/sections/${section.id}/lessons/new`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course.courseId}/sections/${section.id}/lessons/new`);
     await page.locator('.instructor-edit-lesson-field input[type=text]').fill('Browser video persistence lesson');
     await page.locator('.instructor-edit-lesson-field textarea').first().fill('Video persisted using the existing creation environment.');
     await page.locator('input[value=video]').check();
@@ -77,22 +78,22 @@ const os = require('node:os');
     let primary = attachments.find(item => item.isPrimary);
     assert(primary.sourceMediaAssetId); assert.equal(primary.screeningStatus, 'pending');
     // Retried identical bytes cannot duplicate assets or relationships.
-    const uploaded = await context.request.get(`http://localhost:5206${primary.contentUrl}`);
-    const retry = await context.request.post(`http://localhost:5206${mediaPath}`, { data: await uploaded.body(), headers: {
+    const uploaded = await context.request.get(`http://localhost:5216${primary.contentUrl}`);
+    const retry = await context.request.post(`http://localhost:5216${mediaPath}`, { data: await uploaded.body(), headers: {
       'Content-Type': primary.contentType, 'X-Requested-With': 'XMLHttpRequest', 'X-Upload-Id': primary.mediaAssetId,
       'X-File-Name': encodeURIComponent(primary.fileName), 'X-Video-Duration': String(primary.durationSeconds), 'X-Source-Media-Id': primary.sourceMediaAssetId,
     } });
     assert(retry.ok(), await retry.text()); assert.equal((await retry.json()).attachmentId, primary.attachmentId);
     assert.equal((await api(mediaPath)).length, 1);
-    const second = await context.request.post(`http://localhost:5206${mediaPath}`, { data: Buffer.from(video), headers: {
+    const second = await context.request.post(`http://localhost:5216${mediaPath}`, { data: Buffer.from(video), headers: {
       'Content-Type': 'video/webm', 'X-Requested-With': 'XMLHttpRequest', 'X-Upload-Id': require('node:crypto').randomUUID(),
       'X-File-Name': 'second-video.webm', 'X-Video-Duration': '2.2',
     } });
     assert.equal(second.status(), 409, 'A second parallel video must be rejected');
-    const range = await context.request.get(`http://localhost:5206${primary.contentUrl}`, { headers: { Range: 'bytes=0-15' } });
+    const range = await context.request.get(`http://localhost:5216${primary.contentUrl}`, { headers: { Range: 'bytes=0-15' } });
     assert.equal(range.status(), 206); assert.equal((await range.body()).length, 16);
     const anonymous = await browser.newContext();
-    assert.equal((await anonymous.request.get(`http://localhost:5206${primary.contentUrl}`)).status(), 401); await anonymous.close();
+    assert.equal((await anonymous.request.get(`http://localhost:5216${primary.contentUrl}`)).status(), 401); await anonymous.close();
     await page.evaluate(async () => {
       localStorage.clear(); localStorage.setItem('esham-language', 'en');
       await new Promise((resolve, reject) => { const deletion = indexedDB.deleteDatabase('esham-media-v1'); deletion.onsuccess = resolve; deletion.onerror = reject; });
@@ -102,12 +103,12 @@ const os = require('node:os');
     assert.equal(await page.getByRole('button', { name: 'Add Video', exact: true }).count(), 0);
     await page.getByRole('button', { name: 'Replace Video', exact: true }).click();
     await page.waitForURL(`**${videoRoute}`); await page.locator('.video-options').waitFor();
-    await page.goto(`http://localhost:5173${videoRoute}/preview`);
+    await page.goto(`http://localhost:5175${videoRoute}/preview`);
     await page.locator('video.video-player').waitFor();
     await page.waitForFunction(() => document.querySelector('video.video-player')?.readyState >= 1);
     await page.reload(); await page.locator('video.video-player').waitFor();
     await page.waitForFunction(() => document.querySelector('video.video-player')?.readyState >= 1);
-    await page.goto(`http://localhost:5173/instructor/courses/${course.courseId}/sections/${section.id}/lessons/${lesson.id}/edit`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course.courseId}/sections/${section.id}/lessons/${lesson.id}/edit`);
     await page.getByRole('button', { name: 'Replace Video', exact: true }).click();
     await page.waitForURL(`**${videoRoute}`); await page.locator('.video-options').waitFor();
     await page.getByLabel('Choose video', { exact: true }).setInputFiles({ name: 'replacement-video.webm', mimeType: 'video/webm', buffer: Buffer.from(video) });
@@ -118,7 +119,7 @@ const os = require('node:os');
     const replacement = await api(mediaPath); assert.equal(replacement.length, 1); assert.notEqual(replacement[0].mediaAssetId, primary.mediaAssetId);
     primary = replacement[0]; mediaIds.add(primary.mediaAssetId); saveManifest();
     // Detach only the relationship. Its original source must remain available.
-    await page.goto(`http://localhost:5173/instructor/courses/${course.courseId}/sections/${section.id}/lessons/${lesson.id}/edit`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course.courseId}/sections/${section.id}/lessons/${lesson.id}/edit`);
     await page.locator('.lesson-video-editor video').waitFor();
     page.once('dialog', dialog => dialog.accept());
     const removed = page.waitForResponse(response => response.request().method() === 'DELETE' && response.url().endsWith(`/media/${primary.attachmentId}`));
@@ -127,7 +128,7 @@ const os = require('node:os');
     await page.reload(); await page.locator('.lesson-video-editor').waitFor();
     assert.equal(await page.locator('.lesson-video-editor video').count(), 0);
     const remaining = await api(mediaPath); assert.equal(remaining.length, 0);
-    assert.equal((await context.request.get(`http://localhost:5206${primary.contentUrl}`)).status(), 404);
+    assert.equal((await context.request.get(`http://localhost:5216${primary.contentUrl}`)).status(), 404);
     await page.getByRole('button', { name: 'Add Video', exact: true }).click();
     await page.waitForURL(`**${videoRoute}`); await page.locator('.video-options').waitFor();
     await page.getByLabel('Choose video', { exact: true }).setInputFiles({ name: 'after-remove.webm', mimeType: 'video/webm', buffer: Buffer.from(video) });

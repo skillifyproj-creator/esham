@@ -1,3 +1,4 @@
+require('./require-isolated-test-target.cjs')();
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
@@ -10,11 +11,11 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
   const primaryId = '5d99a8ae-141b-4ad3-893c-3b31b28e725e';
   const root = `/api/courses/${course}`, media = `${root}/draft/sections/${section}/lessons/${lesson}/media`;
   async function api(url, method = 'GET') {
-    const response = await context.request.fetch(`http://localhost:5206${url}`, { method, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const response = await context.request.fetch(`http://localhost:5216${url}`, { method, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     assert(response.ok(), `${response.status()}: ${await response.text()}`); return response.json();
   }
   try {
-    await page.goto('http://localhost:5173/login'); await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
+    await page.goto('http://localhost:5175/login'); await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
     await page.locator('[name=password]').fill(process.env.ESHAM_TEST_PASSWORD); await page.locator('button[type=submit]').click();
     await page.waitForURL(url => ['/learner', '/instructor'].includes(url.pathname));
     const before = await api(media); assert.equal(before.find(x => x.isPrimary)?.mediaAssetId, primaryId);
@@ -30,17 +31,17 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
     assert.deepEqual(eligibility.checks.filter(x => !x.isMet).map(x => x.code), ['cover', 'objectives']);
     assert.equal(eligibility.reviewStatus, 'draft'); assert.equal(eligibility.submissionImplemented, false); assert.equal(eligibility.canSubmit, false);
     const content = await api(`${root}/draft/sections/readiness`); assert.equal(content.percentage, 100);
-    await page.goto(`http://localhost:5173/instructor/courses/${course}/curriculum`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course}/curriculum`);
     await page.locator('[data-eligibility-check=cover][data-met=false]').waitFor();
     assert.equal(await page.locator('[data-eligibility-check=task-readiness][data-met=true]').count(), 1);
     await page.reload(); await page.locator('[data-eligibility-check=objectives][data-met=false]').waitFor();
-    await page.goto(`http://localhost:5173/instructor/courses/${course}/review`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course}/review`);
     await page.locator('[data-submission-unavailable]').waitFor();
     assert(await page.getByRole('button', { name: 'متابعة الإرسال', exact: true }).isDisabled());
     assert.equal(await page.getByText('رفع صورة لتنفيذ العمل', { exact: true }).count(), 1);
     await page.screenshot({ path: path.join(os.tmpdir(), 'esham-review-eligibility.png'), fullPage: true });
     await page.reload(); await page.locator('[data-eligibility-check=cover][data-met=false]').waitFor();
-    await page.goto(`http://localhost:5173/instructor/courses/${course}/sections/${section}/lessons/${lesson}/edit`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course}/sections/${section}/lessons/${lesson}/edit`);
     await page.getByRole('button', { name: 'استبدال الفيديو', exact: true }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'إضافة فيديو', exact: true }).count(), 0);
     assert.equal(await page.getByRole('button', { name: 'إزالة الفيديو', exact: true }).count(), 1);

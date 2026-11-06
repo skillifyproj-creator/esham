@@ -1,0 +1,35 @@
+require('./require-isolated-test-target.cjs')();
+const fs=require('fs'),os=require('os'),path=require('path'),assert=require('assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||path.join(os.tmpdir(),'esham-curriculum-browser/node_modules/playwright'));
+(async()=>{
+ const api='http://localhost:5216',web='http://localhost:5175';
+ const f=JSON.parse(fs.readFileSync(path.join(os.tmpdir(),'esham-isolated-review-fixture.json')));assert.equal(f.isolated,true);
+ const browser=await chromium.launch({channel:'msedge',headless:true}),errors=[],checks=[];
+ try{
+ const contexts={};for(const who of ['general','reviewer','instructor','guest']){contexts[who]=await browser.newContext();if(who!=='guest'){const c=f.credentials[who];assert.equal((await contexts[who].request.post(api+'/auth/login',{data:{email:c.email,password:c.password}})).status(),200);}}
+ async function call(who,url,method='GET',data,status=200){const r=await contexts[who].request.fetch(api+url,{method,data,headers:{Origin:web,'X-Requested-With':'XMLHttpRequest'}});assert.equal(r.status(),status,url);return status===200?r.json():null;}
+ const url='/api/admin/users/category-admins',email='browser-category-'+Date.now()+'@test.invalid',password=f.credentials.general.password;
+ const body={name:'Isolated Category Administrator',email,password,categoryIds:[f.categoryId]};
+ for(const who of ['guest','reviewer','instructor'])await call(who,url,'POST',body,who==='guest'?401:403);
+ await call('general',url,'POST',{...body,roles:['GeneralAdmin']},400);
+ const p=await contexts.general.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(web+'/');await p.evaluate(()=>localStorage.setItem('esham-language','en'));await p.goto(web+'/admin/admins');
+ await p.getByRole('button',{name:'Add Administrator',exact:true}).click();let dialog=p.locator('dialog[open]');
+ await dialog.locator('[name="name"]').fill(body.name);await dialog.locator('[name="email"]').fill(email);await dialog.locator('[name="password"]').fill(password);await dialog.locator('[name="confirm"]').fill(password+'mismatch');
+ await dialog.getByRole('button',{name:'Create CategoryAdmin',exact:true}).click();await dialog.getByRole('alert').getByText('Passwords do not match.',{exact:true}).waitFor();
+ await dialog.locator('[name="confirm"]').fill(password);await dialog.locator(`input[value="${f.categoryId}"]`).check();await dialog.getByRole('button',{name:'Create CategoryAdmin',exact:true}).click();await dialog.waitFor({state:'detached'});
+ const freshUser=(await call('general','/api/admin/users?search='+encodeURIComponent(email))).items[0];
+ const allCategories=await call('general','/api/admin/categories');await p.locator('a.admin-nav-link[href="/admin/categories"]').click();await p.getByRole('heading',{name:'Categories',exact:true}).waitFor();await p.locator('tbody tr').nth(allCategories.findIndex(x=>x.id===f.categoryId)).getByRole('button',{name:/Edit.*assign/}).click();await p.locator(`dialog[open] input[value="${freshUser.id}"]`).waitFor();await p.locator('dialog[open]').getByRole('button',{name:'Cancel',exact:true}).click();await p.locator('a.admin-nav-link[href="/admin/admins"]').click();
+ await p.getByRole('searchbox').fill(email);await p.getByRole('row').filter({hasText:email}).waitFor();await p.reload();await p.getByRole('searchbox').fill(email);await p.getByRole('row').filter({hasText:email}).waitFor();
+ const user=(await call('general','/api/admin/users?search='+encodeURIComponent(email))).items[0];assert.deepEqual(user.roles,['CategoryAdmin']);assert.equal(user.isLockedOut,false);await call('general',url,'POST',body,409);
+ const c=await browser.newContext();contexts.created=c;await c.addInitScript(()=>localStorage.setItem('esham-language','en'));const loginPage=await c.newPage();await loginPage.goto(web+'/login');await loginPage.locator('input[type="email"]').fill(email);await loginPage.locator('input[type="password"]').fill(password);await loginPage.locator('button[type="submit"]').click();await loginPage.waitForURL('**/category-admin');await loginPage.locator('.admin-workspace').waitFor();
+ assert((await call('created','/api/admin/categories')).some(x=>x.id===f.categoryId));await call('created','/api/admin/overview','GET',undefined,403);
+ const foreign=(await call('general','/api/admin/categories')).find(x=>x.id!==f.categoryId);if(foreign)await call('created',`/api/admin/categories/${foreign.id}/assignments`,'GET',undefined,403);
+ const scope=await call('general',`/api/admin/categories/${f.categoryId}/assignments`);assert(scope.userIds.includes(user.id));
+ await p.getByRole('row').filter({hasText:email}).getByRole('button',{name:'Details / manage'}).click();dialog=p.locator('dialog[open]');await dialog.getByRole('button',{name:'Reload details',exact:true}).click();await dialog.getByRole('button',{name:'Reload details',exact:true}).waitFor();
+ const until=new Date(Date.now()+3600000);const local=new Date(until.getTime()-until.getTimezoneOffset()*60000).toISOString().slice(0,16);await dialog.locator('input[type="datetime-local"]').fill(local);p.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'Apply timed lockout',exact:true}).click();await dialog.getByText('The server confirmed the change.',{exact:true}).waitFor();assert.equal((await call('general','/api/admin/users/'+user.id)).isLockedOut,true);
+ await call('created','/api/admin/categories','GET',undefined,401);await dialog.getByRole('button',{name:'Unlock / reset failed attempts',exact:true}).click();await p.waitForFunction(() => !document.querySelector('dialog[open] button.sa-button')?.disabled);for(let n=0;n<30;n++){if(!(await call('general','/api/admin/users/'+user.id)).isLockedOut)break;await p.waitForTimeout(200);}assert.equal((await call('general','/api/admin/users/'+user.id)).isLockedOut,false);
+ assert.equal((await c.request.post(api+'/auth/login',{data:{email,password}})).status(),200);checks.push('GeneralAdmin-only Identity creation; role injection/duplicate/mismatch rejection; assignment and directory persist after reload; new account login, lockout/session rejection and unlock');
+ for(const language of ['ar','en'])for(const width of [1440,390]){await p.setViewportSize({width,height:1000});await p.goto(web+'/');await p.evaluate(l=>localStorage.setItem('esham-language',l),language);await p.goto(web+'/admin/admins');await p.getByRole('button',{name:language==='ar'?'إضافة مدير':'Add Administrator',exact:true}).click();await p.locator('dialog[open] [name="name"]').waitFor();await p.waitForLoadState('networkidle');assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await p.locator('footer').count(),0);await p.screenshot({path:path.join(os.tmpdir(),`esham-admin-create-${language}-${width}.png`),fullPage:true});await p.keyboard.press('Escape');}
+ checks.push('Arabic/English desktop/mobile creation dialog, Escape, no footer, no overflow');assert.deepEqual(errors,[]);console.log(JSON.stringify({result:'PASS',isolated:true,checks}));
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

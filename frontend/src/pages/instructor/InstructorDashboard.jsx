@@ -1,36 +1,38 @@
 import useAccountName from "../../hooks/useAccountName";
 import useAccountProfile from '../../hooks/useAccountProfile';
 import { getInstructorGoalGuidance } from '../../data/instructorGoalGuidance';
-import { useLearnerWallet } from '../../hooks/useLearnerWallet';
+import useInstructorInsights from '../../hooks/useInstructorInsights';
 import { Link } from "react-router";
 import useInstructorCourses from '../../hooks/useInstructorCourses';
 import CatalogStatus from '../../components/CatalogStatus';
 import Icon from "../../components/Icon";
-import { instructorDemo } from "../../data/instructorDemo";
+
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
 import "../../styles/instructor-dashboard.css";
 
 export default function InstructorDashboard() {
   const accountName = useAccountName();
-  const { earned } = useLearnerWallet();
+  const { data, loading, error } = useInstructorInsights("dashboard");
+  const earned = data?.earnedPoints ?? 0;
   const { language } = usePreferences();
   const c = instructorCopy[language];
   const profile = useAccountProfile();
   const guidance = getInstructorGoalGuidance(profile, language);
-  const { instructor, stats, performance } =
-    instructorDemo;
+  const stats = data?.stats || { learners: 0, rating: 0, ratingCount: 0, weeklyJoinRate: 0, overallCompletionRate: 0 };
+  const performance = data?.performance || [];
   const { courses: myCourses, loading: myCoursesLoading, error: myCoursesError } = useInstructorCourses();
   const needsAttention = myCourses.filter(x => x.reviewStatus === 'draft').map(x => ({ id: x.courseId, type: 'warning', text: { ar: x.titleAr || x.titleEn || '', en: x.titleEn || x.titleAr || '' }, actionKey: 'myCourses' }));
   const activities = []; // A backend activity feed is not available; do not invent course activity.
 
   const maxPerformance = Math.max(
-    ...performance.flatMap((item) => [
+    1, ...performance.flatMap((item) => [
       item.learners,
       item.completions,
     ])
   );
 
+  if (loading || error) return <section className="instructor-dashboard"><div className="instructor-container"><h1>{c.welcome} {accountName}</h1><p role={error ? 'alert' : 'status'}>{error || (language === 'ar' ? 'جارٍ التحميل…' : 'Loading…')}</p></div></section>;
   return (
     <section className="instructor-dashboard">
       <div className="instructor-container">
@@ -40,7 +42,7 @@ export default function InstructorDashboard() {
         <section className="instructor-welcome">
           <div>
             <h1>
-              {c.welcome} {(accountName || instructor.name[language])} <span>👋</span>
+              {c.welcome} {(accountName || '')} <span>👋</span>
             </h1>
 
             <p>
@@ -73,6 +75,8 @@ export default function InstructorDashboard() {
           <Link className="instructor-button" to={guidance.to}>{guidance.action}</Link>
         </section>}
 
+        {loading && <p role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}
+        {error && <p role="alert">{error}</p>}
         {/* Stats */}
         <section className="instructor-stats">
 
@@ -103,7 +107,7 @@ export default function InstructorDashboard() {
               </strong>
 
               <small>
-                <b>+{stats.learnerGrowthPercent}%</b> {c.growth}
+                <b>{stats.learnerGrowthPercent == null ? '—' : `${stats.learnerGrowthPercent}%`}</b> {c.growth}
               </small>
             </div>
           </article>
@@ -135,7 +139,7 @@ export default function InstructorDashboard() {
               <strong>{stats.rating}</strong>
 
               <small>
-                <span className="rating-stars">★★★★★</span>
+                <span className="rating-stars" aria-label={`${stats.rating} / 5`}>{'★'.repeat(Math.round(stats.rating))}{'☆'.repeat(5 - Math.round(stats.rating))}</span>
                 {stats.ratingCount} {c.learnerRatings}
               </small>
             </div>
@@ -237,7 +241,7 @@ export default function InstructorDashboard() {
 
                 <div>
                   <span>{c.averageWatchHours}</span>
-                  <strong>{stats.averageWatchHours} {c.hoursPerLearner}</strong>
+                  <strong title={language === 'ar' ? 'بيانات مدة المشاهدة غير متاحة' : 'Watch duration is not recorded'}>{stats.averageWatchHours ?? '—'} {c.hoursPerLearner}</strong>
                 </div>
 
                 <div>
@@ -279,6 +283,7 @@ export default function InstructorDashboard() {
                 </div>
 
                 <div className="activity-list">
+                  {!activities.length && <p>{language === 'ar' ? 'لا يتوفر سجل نشاط للعرض.' : 'No activity feed is available.'}</p>}
                   {activities.map((activity) => (
                     <article className="activity-item" key={activity.id}>
                       <span className={`activity-dot ${activity.type}`} />

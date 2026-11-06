@@ -4,7 +4,7 @@ import { usePreferences } from '../../context/PreferencesContext';
 import { useNotifications } from '../../context/NotificationsContext';
 import { notificationGroup } from '../../data/learnerNotifications';
 import { notificationsCopy } from '../../i18n/notificationsCopy';
-import { notificationMessage, notificationText } from '../../services/notifications';
+import { notificationMessage, notificationText, notificationTarget } from '../../services/notifications';
 import Icon from '../../components/Icon';
 import '../../styles/notifications.css';
 
@@ -50,7 +50,7 @@ export function NotificationGroups({ items, busy, onRead }) {
     const grouped = items.filter(item => notificationGroup(item.createdAt, now) === group);
     return grouped.length ? <section className="ln-group" key={group}><h2>{t[group]}</h2><div className="ln-list">{grouped.map(item => {
       const content = notificationText(item, language);
-      return <article key={item.id} className={`ln-card${item.isRead ? '' : ' unread'}`}><span className="ln-icon"><Icon name="info"/></span><div className="ln-content"><div className="ln-title"><h3>{content.title}</h3>{!item.isRead && <span className="ln-badge">{t.new}</span>}</div><p>{content.body}</p><div className="ln-actions">{!item.isRead && <button className="ln-read-button" disabled={busy} onClick={() => onRead(item.id)}>{t.markRead}</button>}</div></div><time dateTime={item.createdAt}>{new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}</time></article>;
+      return <article key={item.id} className={`ln-card${item.isRead ? '' : ' unread'}`}><span className="ln-icon"><Icon name="info"/></span><div className="ln-content"><div className="ln-title"><h3>{content.title}</h3>{!item.isRead && <span className="ln-badge">{t.new}</span>}</div><p>{content.body}</p><div className="ln-actions">{notificationTarget(item) && <Link className="ln-read-button" to={notificationTarget(item)}>{item.notificationType === 'course.published' ? (language === 'ar' ? 'عرض الدورة' : 'View course') : (language === 'ar' ? 'عرض ملاحظات المراجعة' : 'View review feedback')}</Link>}{!item.isRead && <button className="ln-read-button" disabled={busy} onClick={() => onRead(item.id)}>{t.markRead}</button>}</div></div><time dateTime={item.createdAt}>{new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}</time></article>;
     })}</div></section> : null;
   });
 }

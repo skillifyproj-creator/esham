@@ -1,3 +1,4 @@
+require('./require-isolated-test-target.cjs')();
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const os = require('node:os');
@@ -17,11 +18,11 @@ const path = require('node:path');
     else if (!request.url().endsWith('/lessons/readiness')) writes.push(request.url());
   });
   const get = async suffix => {
-    const response = await context.request.get(`http://localhost:5206/api/courses/${courseId}${suffix}`);
+    const response = await context.request.get(`http://localhost:5216/api/courses/${courseId}${suffix}`);
     assert(response.ok(), `${response.status()}: ${await response.text()}`); return response.json();
   };
   try {
-    await page.goto('http://localhost:5173/login');
+    await page.goto('http://localhost:5175/login');
     await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
     await page.locator('[name=password]').fill(process.env.ESHAM_TEST_PASSWORD);
     await page.locator('button[type=submit]').click(); await page.waitForURL(url => ['/instructor', '/learner'].includes(url.pathname));
@@ -33,9 +34,9 @@ const path = require('node:path');
     assert.equal(lesson.readiness.percentage, 100); assert.equal(section.readiness.percentage, 100); assert.equal(initial.percentage, 100);
     const media = await get(`/draft/sections/${section.id}/lessons/${lessonId}/media`);
     const primary = media.find(item => item.mediaAssetId === lesson.primaryVideoMediaAssetId && item.isPrimary); assert(primary);
-    const content = await context.request.get(`http://localhost:5206${primary.contentUrl}`, { headers: { Range: 'bytes=0-15' } });
+    const content = await context.request.get(`http://localhost:5216${primary.contentUrl}`, { headers: { Range: 'bytes=0-15' } });
     assert.equal(content.status(), 206); assert.equal((await content.body()).length, 16);
-    const editor = `http://localhost:5173/instructor/courses/${courseId}/sections/${section.id}/lessons/${lessonId}/edit`;
+    const editor = `http://localhost:5175/instructor/courses/${courseId}/sections/${section.id}/lessons/${lessonId}/edit`;
     await page.goto(editor);
     await page.waitForFunction(() => document.querySelector('.instructor-readiness-score strong')?.textContent === '100%');
     assert.equal(await page.locator('.instructor-readiness-list .done').count(), 4);

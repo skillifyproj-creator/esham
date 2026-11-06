@@ -7,9 +7,11 @@ import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router';
 const server = await createServer({ cacheDir:'node_modules/.vite-tests', optimizeDeps:{noDiscovery:true,include:[]}, server: { middlewareMode: true }, appType: 'custom' });
-let sharedHeader, publishing, submissions, mediaValidation, videoValidation, accountApi, certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages, ledger, courseStorage;
+let publicCurriculum, unchangedDialog, sharedHeader, publishing, submissions, mediaValidation, videoValidation, accountApi, certificatePolicy, reportPolicy, newPages, adminModules, recommendations, safety, categories, courses, profile, draft, workspace, reviews, providers, learnerPages, learnerNavigation, instructorPages, ledger, courseStorage;
 let googleAuth, goalGuidance;
 try {
+  publicCurriculum=await server.ssrLoadModule('/src/components/PublicCourseCurriculum.jsx');
+  unchangedDialog=await server.ssrLoadModule('/src/components/instructor/UnchangedResubmissionDialog.jsx');
   [googleAuth, goalGuidance] = await Promise.all(['/src/services/googleAuth.js', '/src/data/instructorGoalGuidance.js'].map(path => server.ssrLoadModule(path)));
   [categories, courses, profile, draft, workspace, reviews] = await Promise.all([
     '/src/data/categories.js', '/src/data/courses.js', '/src/hooks/useAccountProfile.js',
@@ -368,7 +370,7 @@ test('recommendations exclude enrolled and unavailable courses and respond to fe
  assert.equal(recommendations.recommendCourses({...args,review:null}).length,0);
 });
 
-test('all administrator pages render in both languages with scoped providers', () => {
+test('administrator route providers wait for verified sessions in both languages', () => {
  for(const language of ['ar','en']) {
   localStorage.setItem('esham-language',language);
   for(const [index,names] of [[0,['Dashboard','AdminsPage','UsersPage','CoursesPage','CategoriesPage','ReportsPage','AnnouncementsPage','ActivityPage']],[1,['Dashboard','CoursesPage','ReviewPage','ActivityPage','NotificationsPage']]]) {
@@ -376,7 +378,8 @@ test('all administrator pages render in both languages with scoped providers', (
    for(const name of names){
     const review=name==='ReviewPage',path=review?root+'/courses/c2/review':root;
     const html=renderToString(h(providers[0].PreferencesProvider,null,h(MemoryRouter,{initialEntries:[path]},h(Routes,null,h(Route,{path:root,element:h(module[index===0?'SuperAdminRoutes':'CategoryAdminProvider'])},h(Route,{path:review?'courses/:courseId/review':undefined,index:!review,element:h(module[name])}))))));
-    assert.ok(html.includes('<h1'),language+' '+name);
+    assert.ok(html.includes('role="status"'), language+' '+name);
+    if(index === 1) assert.ok(!html.includes('esham-category-admin-courses-v1'));
    }
   }
  }
@@ -474,4 +477,36 @@ test('account requests use cookies and safely classify invalid responses, failur
  await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base,fetcher:async()=>{throw TypeError('network');}}),error=>error.code==='network');
  await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base,timeout:5,fetcher:async(url,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('aborted','AbortError'))))}),error=>error.code==='timeout');
  await assert.rejects(accountApi.accountRequest('/auth/login',{}, {base:''}),error=>error.code==='unconfigured');
+});
+
+test('real rejected and changes-requested course cards render without a mock reviewNote field', () => {
+  for (const language of ['ar', 'en']) {
+    const course = {id:'11111111-1111-1111-1111-111111111111',courseStatus:'rejected',title:{ar:'Course',en:'Course'},category:{ar:'Category',en:'Category'}};
+    const html=renderToString(h(MemoryRouter,null,h(instructorPages[1].CourseCard,{course,copy:{},language})));
+    assert.ok(html.includes('/instructor/courses/'+course.id+'/review'));
+    assert.ok(!html.includes('undefined'));
+  }
+});
+
+test('unchanged resubmission reuses the native dialog with exact bilingual copy', () => {
+ for(const language of ['ar','en']) {
+  localStorage.setItem('esham-language',language);
+  const html=renderToString(h(providers[0].PreferencesProvider,null,h(unchangedDialog.default,{onClose(){}})));
+  assert.match(html,/<dialog/);assert.match(html,/aria-labelledby="modal-title"/);
+  assert.ok(html.includes(language==='ar'?'لم يتم إرسال الدورة للمراجعة':'Course Not Submitted'));
+  assert.ok(html.includes(language==='ar'?'فهمت':'Got it'));
+ }
+});
+
+test('Instructor View Course retains the published course link while a new draft exists', () => {
+ const course={id:'11111111-1111-1111-1111-111111111111',publishedVersionId:'22222222-2222-2222-2222-222222222222',courseStatus:'draft',title:{ar:'Course',en:'Course'},category:{ar:'Category',en:'Category'},description:{ar:'',en:''}};
+ const html=renderToString(h(MemoryRouter,null,h(instructorPages[1].CourseCard,{course,copy:{},language:'en'})));
+ assert.ok(html.includes('href="/courses/'+course.id+'"'));
+ assert.ok(html.includes('/instructor/courses/'+course.id+'/edit'));
+});
+
+test('published curriculum uses accessible existing details layout and renders no playable private media', () => {
+ const course={lessons:1,taskCount:1,curriculum:[{id:'section',title:{ar:'????? ???????',en:'Published section'},lessons:[{id:'lesson',title:{ar:'????? ???????',en:'Published lesson'},contentType:'video',storageKey:'PRIVATE_SECRET',videoUrl:'PRIVATE_SECRET'}]}]};
+ for(const language of ['ar','en']){localStorage.setItem('esham-language',language);const html=renderToString(h(providers[0].PreferencesProvider,null,h(publicCurriculum.default,{course})));
+ assert.ok(html.includes('<details'));assert.ok(html.includes('<summary>'));assert.ok(html.includes(course.curriculum[0].lessons[0].title[language]));assert.ok(!html.includes('PRIVATE_SECRET'));assert.ok(!html.includes('<video'));}
 });

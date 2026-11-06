@@ -125,6 +125,8 @@ const extendedText = {
 export const adminCopy = { ar, en };
 export function translateAdminText(value, language = 'ar') {
   if (typeof value !== 'string') return value;
+  const integrationLabels = { 'مطلوب تعديلات': 'Changes requested', 'معتمدة وغير منشورة': 'Approved, unpublished' };
+  if (language === 'en' && integrationLabels[value]) return integrationLabels[value];
   if (language === 'ar') {
     if (value === 'Super Admin') return 'مدير النظام';
     if (value === 'Category Admin') return 'مدير التصنيف';

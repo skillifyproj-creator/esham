@@ -1,10 +1,11 @@
+require('./require-isolated-test-target.cjs')();
 // Compare real account sessions and verify redirect guards. Passwords are environment-only.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const { randomBytes } = require('node:crypto');
 const { existsSync, readFileSync, writeFileSync } = require('node:fs');
-const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5173';
-const api = process.env.ESHAM_TEST_API || 'http://localhost:5206';
+const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5175';
+const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
 const diagnose = process.argv.includes('--diagnose');
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });

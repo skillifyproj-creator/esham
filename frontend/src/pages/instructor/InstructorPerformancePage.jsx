@@ -1,93 +1,43 @@
-import { pointsPolicy } from '../../data/pointsPolicy';
-import { useLearnerWallet } from '../../hooks/useLearnerWallet';
-import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
+import useInstructorInsights from '../../hooks/useInstructorInsights';
+import { localizedInstructorText } from '../../services/instructorInsights';
+
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import Icon from "../../components/Icon";
 import { usePreferences } from "../../context/PreferencesContext";
-import { instructorDemo } from "../../data/instructorDemo";
+
 import instructorCopy from "../../i18n/instructorCopy";
-
-const performanceData = {
-  learners: {
-    enrolled: 248,
-    started: 248,
-    inProgress: 80,
-    completed: 168,
-  },
-
-  ratings: {
-    average: 4.7,
-    total: 42,
-    distribution: {
-      5: 28,
-      4: 10,
-      3: 3,
-      2: 1,
-      1: 0,
-    },
-  },
-
-  sections: [
-    { id: "section-1", completionRate: 92 },
-    { id: "section-2", completionRate: 78 },
-    { id: "section-3", completionRate: 64 },
-  ],
-
-  pointsPerCompletion: pointsPolicy.instructorEnrollmentReward,
-
-  reviews: [
-    {
-      id: 1,
-      rating: 5,
-    },
-    {
-      id: 2,
-      rating: 5,
-    },
-  ],
-};
 
 const periodValues = ["7d", "30d", "3m", "all"];
 
 export default function InstructorPerformancePage() {
-  const { transactions } = useLearnerWallet();
+
   const [period, setPeriod] = useState("30d");
   const { courseId } = useParams();
   const { language } = usePreferences();
   const t = instructorCopy[language].performancePage;
 
-  const course = instructorDemo.courses.find(
-    (item) => item.id === courseId,
-  );
-  const courseTitle = course?.title?.[language] || "—";
-  const courseStatus = course?.status?.[language] || "—";
-  const scopedData = courseId && course
-    ? {
-        learners: {
-          enrolled: course.learners,
-          started: course.learners,
-          completed: Math.round(course.learners * performanceData.learners.completed / performanceData.learners.enrolled),
-          inProgress: course.learners - Math.round(course.learners * performanceData.learners.completed / performanceData.learners.enrolled),
-        },
-        ratings: { ...performanceData.ratings, average: course.rating, total: course.ratingCount },
-        sections: course.id === "photography" ? performanceData.sections : [],
-        pointsPerCompletion: pointsPolicy.instructorEnrollmentReward,
-        reviews: course.id === "photography" ? performanceData.reviews : [],
-      }
-    : performanceData;
-  const { learners, ratings, sections, pointsPerCompletion, reviews } = scopedData;
+  const { data, loading, error } = useInstructorInsights('performance', { courseId, period });
+  const latest = useInstructorInsights('reviews', { courseId });
+  const course = data?.course;
+  const courseTitle = localizedInstructorText(course, language);
+  const courseStatus = course?.status || '—';
+  const learners = data?.learners || { enrolled: 0, started: 0, inProgress: 0, completed: 0 };
+  const ratings = data?.ratings || { average: 0, total: 0, distribution: {} };
+  const sections = data?.sections || [];
+  const reviews = latest.data?.items?.slice(0, 2) || [];
+  const earnedPoints = data?.earnedPoints || 0;
 
   const completionRate =
     learners.enrolled > 0
       ? Math.round((learners.completed / learners.enrolled) * 100)
       : 0;
 
-  const earnedPoints = transactions.filter(item => item.type === 'teaching' && (!courseId || item.courseId === instructorPublicCourseIds[courseId])).reduce((sum, item) => sum + item.points, 0);
-
-  if (courseId && !course) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></main>;
+  if (loading || error) return <main className="container instructor-detail-page"><h1>{courseId ? t.titleCourse : t.titleGeneral}</h1><p role={error ? 'alert' : 'status'}>{error || (language === 'ar' ? 'جارٍ التحميل…' : 'Loading…')}</p></main>;
   return (<div className="instructor-performance-page instructor-detail-page">
       <div className="container">
+        {loading && <p role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}
+        {(error || latest.error) && <p role="alert">{error || latest.error}</p>}
         {/* Header */}
         <header className="instructor-performance-header">
           <div>
@@ -114,7 +64,7 @@ export default function InstructorPerformancePage() {
             </label>
 
             {courseId && (<Link
-              to={instructorPublicCourseIds[courseId] ? `/courses/${instructorPublicCourseIds[courseId]}` : "/instructor/courses"}
+              to={`/courses/${courseId}`}
               className="instructor-performance-button"
             >
               <Icon name="eye" size={15} />
@@ -159,7 +109,7 @@ export default function InstructorPerformancePage() {
             <Icon name="award" size={18} />
             <span>{t.pointsAwarded}</span>
             <strong>{earnedPoints.toLocaleString("en-US")}</strong>
-            <small>{t.pointsPerCompletion.replace("{count}", pointsPerCompletion)}</small>
+            <small>{language === 'ar' ? 'نقاط التدريس المسجلة' : 'Recorded teaching points'}</small>
           </article>
         </section>
 
@@ -170,6 +120,7 @@ export default function InstructorPerformancePage() {
             <div className="instructor-performance-card-header">
               <div>
                 <h2>{t.learnerProgress}</h2>
+                <p>{language === 'ar' ? 'بانتظار المراجعة' : 'Awaiting review'}: {data?.taskStats?.awaitingReview ?? 0} · {language === 'ar' ? 'محاولات معتمدة' : 'Approved attempts'}: {data?.taskStats?.approvedAttempts ?? 0}</p>
                 <p>
                   {t.completionSummary.replace("{completed}", learners.completed).replace("{total}", learners.enrolled)}
                 </p>
@@ -213,7 +164,7 @@ export default function InstructorPerformancePage() {
                   key={section.id}
                 >
                   <div>
-                    <strong>{t.sections[section.id]}</strong>
+                    <strong>{localizedInstructorText(section, language)}</strong>
                     <span>{section.completionRate}%</span>
                   </div>
 
@@ -245,14 +196,14 @@ export default function InstructorPerformancePage() {
               <strong>{ratings.average}</strong>
 
               <div>
-                <div className="instructor-stars">★★★★★</div>
+                <div className="instructor-stars" aria-label={`${ratings.average} / 5`}>{'★'.repeat(Math.round(ratings.average))}{'☆'.repeat(5 - Math.round(ratings.average))}</div>
                 <span>{t.averageFrom.replace("{count}", ratings.total)}</span>
               </div>
             </div>
 
             <div className="instructor-rating-distribution">
               {[5, 4, 3, 2, 1].map((star) => {
-                const count = ratings.distribution[star];
+                const count = ratings.distribution[star] || 0;
                 const width =
                   ratings.total > 0 ? (count / ratings.total) * 100 : 0;
 
@@ -286,12 +237,12 @@ export default function InstructorPerformancePage() {
                   key={review.id}
                 >
                   <div className="instructor-latest-review-top">
-                    <strong>{t.reviewSamples[review.id].name}</strong>
-                    <span>★★★★★</span>
+                    <strong>{language === 'ar' ? review.learnerName || review.learnerNameEn : review.learnerNameEn || review.learnerName}</strong>
+                    <span aria-label={`${review.rating} / 5`}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
                   </div>
 
-                  <p>«{t.reviewSamples[review.id].comment}»</p>
-                  <small>{t.reviewSamples[review.id].date}</small>
+                  <p>«{review.comment}»</p>
+                  <small>{new Date(review.createdAt).toLocaleDateString(language)}</small>
                 </div>
               ))}
               {!reviews.length && <p>{t.noReviews}</p>}
@@ -315,7 +266,7 @@ export default function InstructorPerformancePage() {
             <div>
               <span>{t.pointsSystem}</span>
               <p>
-                {t.pointsDescription.replace("{points}", pointsPerCompletion)}
+                {language === 'ar' ? 'نقاط التدريس المسجلة على الخادم' : 'Teaching points recorded on the server'}
               </p>
             </div>
           </div>

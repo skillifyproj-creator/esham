@@ -1,7 +1,8 @@
+require('./require-isolated-test-target.cjs')();
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
-const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5173';
-const api = process.env.ESHAM_TEST_API || 'http://localhost:5206';
+const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5175';
+const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const checks = [];

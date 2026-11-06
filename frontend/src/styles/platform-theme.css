@@ -1,0 +1,138 @@
+@import './theme-surfaces.css';
+
+/* The immutable palette lives in global.css. Theme semantics are confined to
+   non-chatbot documents; the chatbot continues to inherit its original tokens. */
+:root[data-platform-theme="enabled"]:not(:has(.esham-chatbot)) {
+  --focus-ring: var(--primary-200);
+  --control-border: var(--primary-100);
+  --muted: var(--black-300);
+  --text-muted: var(--muted);
+  --success-surface: var(--secondary-300);
+  --purple-surface: var(--tertiary-300);
+  --danger-surface: var(--error-00);
+}
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) {
+  color-scheme: dark;
+  --background: var(--primary-00);
+  --surface: var(--primary-300);
+  --surface-soft: var(--primary-300);
+  --surface-raised: var(--primary-200);
+  --text: var(--white-00);
+  --muted: var(--white-300);
+  --text-muted: var(--muted);
+  --tint: var(--primary-300);
+  --header-bg: var(--primary-00);
+  --image-bg: var(--primary-300);
+  --hover-bg: var(--primary-200);
+  --caption-bg: var(--primary-300);
+  --line: var(--primary-100);
+  --border: var(--primary-100);
+  --step-border: var(--primary-100);
+  --icon-color: var(--white-300);
+  --primary: var(--primary-200);
+  --on-primary: var(--white-00);
+  --green: var(--white-300);
+  --rose: var(--white-300);
+  --success: var(--white-300);
+  --footer-bg: var(--primary-00);
+  --footer-text: var(--white-00);
+  --focus-ring: var(--white-300);
+  --control-border: var(--white-300);
+  --task-danger-text: var(--error-200);
+  --task-danger-bg: var(--error-00);
+  --task-danger-border: var(--error-200);
+}
+/* Original artwork, never a filtered/recolored approximation. */
+:root[data-platform-theme="enabled"]:not(:has(.esham-chatbot)) img[data-esham-logo] {
+  filter: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+@media screen {
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)),
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(body,#root) {
+    background: var(--background) !important;
+    color: var(--text) !important;
+  }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(main,.instructor-app,.instructor-main,.learner-app,.learner-main,.learner-dashboard,.admin-main,.admin-content,.auth-page,.onboarding-page) {
+    background-color: var(--background) !important;
+    color: var(--text);
+  }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .admin-workspace {
+    /* Undo local primitive aliases: palette tokens always retain their original identity. */
+    --primary-00: #2C151A; --primary-100: #9E727B; --primary-200: #6D4A52; --primary-300: #4D3036;
+    --white-00: #FEFEFD; --white-100: #FCFBF8; --white-200: #FBF9F6; --white-300: #F6F3ED;
+    --black-00: #1C1C17; --black-100: #93908A; --black-200: #797770; --black-300: #31302B;
+    --admin-bg: var(--primary-00); --admin-sidebar: var(--primary-300);
+    --admin-surface: var(--primary-300); --admin-surface-soft: var(--primary-200);
+    --admin-text: var(--white-00); --admin-text-muted: var(--white-300);
+    --admin-border: var(--primary-100); --admin-accent: var(--primary-200); --admin-hover: var(--primary-200);
+    --on-primary: var(--white-00);
+    --task-danger-text: var(--error-200); --task-danger-bg: var(--error-00); --task-danger-border: var(--error-200);
+  }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(h1,h2,h3,h4,h5,h6,label,legend,th,td) { color: var(--text); }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea,select,option) {
+    background-color: var(--surface) !important; color: var(--text) !important; border-color: var(--control-border) !important;
+  }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(input,textarea)::placeholder { color: var(--muted) !important; opacity: 1; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(input[type=checkbox],input[type=radio],progress,meter) { accent-color: var(--white-300); }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(button,a,input,textarea,select,summary):focus-visible:not(.esham-assistant-launcher) { outline: 2px solid var(--focus-ring) !important; outline-offset: 3px; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.button,.auth-submit,.sa-button.primary,.ca-button.primary,.filter.active) {
+    background: var(--primary-200) !important; color: var(--white-00) !important; border-color: var(--control-border) !important;
+  }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.button-outline,.sa-button:not(.primary),.ca-button.secondary,.auth-google-button) {
+    background: var(--surface) !important; color: var(--white-00) !important; border-color: var(--control-border) !important;
+  }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.button,.auth-submit,.sa-button,.ca-button):not(:disabled):hover { background: var(--primary-300) !important; color: var(--white-00) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.button,.sa-button,.ca-button,.auth-submit) :is(span,strong,small) { color: inherit !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.admin-sidebar,.admin-topbar) { background: var(--admin-sidebar) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.admin-nav-link.active,.workspace-nav-link.active) { background: var(--primary-200) !important; color: var(--white-00) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.sa-pill.active,.sa-pill.published,.ca-status.approved,.icon-box.green) { background: var(--secondary-300) !important; color: var(--white-00) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.icon-box.purple,.purple) { background-color: var(--tertiary-300) !important; color: var(--white-00) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.error-bg,.auth-alert-error,.video-error,[role=alert]) { background-color: var(--error-00) !important; color: var(--white-00) !important; border-color: var(--error-200) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(dialog,.modal,.workspace-dropdown) { background-color: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) dialog::backdrop { background: color-mix(in srgb,var(--primary-00) 75%,transparent); }
+}
+
+@media screen {
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) :is(.sa-progress i,.learner-progress-fill,.progress-fill) { background: var(--white-300) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .sa-progress i.published { background: var(--secondary-100) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .sa-progress i.pending { background: var(--tertiary-100) !important; }
+  :root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .sa-progress i.rejected { background: var(--error-200) !important; }
+}
+
+/* Light-mode accessibility corrections retain the existing surfaces/layout. */
+:root[data-platform-theme="enabled"][data-theme="light"]:not(:has(.esham-chatbot)) .admin-workspace { --admin-text-muted: var(--black-300); }
+:root[data-platform-theme="enabled"][data-theme="light"]:not(:has(.esham-chatbot)) .rating-stars { color: var(--primary-200); }
+
+:root[data-platform-theme="enabled"]:not(:has(.esham-chatbot)) :is(button,a,input,textarea,select,summary):focus-visible:not(.esham-assistant-launcher) {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 3px;
+}
+
+:root[data-platform-theme="enabled"][data-theme="light"]:not(:has(.esham-chatbot)) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea,select,.button-outline,.sa-button:not(.primary),.ca-button.secondary,.admin-utility,.workspace-account-trigger) {
+  border-color: var(--control-border) !important;
+}
+
+/* Existing green badges need a darker palette shade behind cream lettering. */
+:root[data-platform-theme="enabled"]:not(:has(.esham-chatbot)) :is(.create-preview-points,.create-image-ratio,.instructor-feedback-stat-icon.green) {
+  background: var(--secondary-300) !important; color: var(--white-00) !important;
+}
+:root[data-platform-theme="enabled"][data-theme="light"]:not(:has(.esham-chatbot)) :is(.create-preview-rating span,.instructor-stars,.instructor-feedback-stat-icon.gold,.instructor-feedback-star) { color: var(--primary-200) !important; }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .instructor-stars { color: var(--warning-yellow) !important; }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) progress { background: var(--surface) !important; color: var(--text) !important; }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) progress::-webkit-progress-bar { background: var(--primary-300); }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) progress::-webkit-progress-value { background: var(--secondary-100); }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .video-source-page .video-dropzone { border-color: var(--control-border) !important; color: var(--text); }
+@media print {
+  :root[data-platform-theme="enabled"]:not(:has(.esham-chatbot)) img[data-esham-logo] { content: url('../assets/esham-logo.png'); }
+}
+
+:root[data-platform-theme="enabled"][data-theme="light"]:not(:has(.esham-chatbot)) .instructor-feedback-distribution-rating span { color: var(--primary-200) !important; }
+
+/* Keep chart series distinguishable without changing chart data or geometry. */
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .instructor-dashboard .instructor-chart { background: var(--primary-00) !important; }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .instructor-dashboard :is(.chart-bar.dark,.legend-dot.dark) { background: var(--primary-100) !important; }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .instructor-dashboard :is(.chart-bar.green,.legend-dot.green) { background: var(--secondary-100) !important; }
+:root[data-platform-theme="enabled"][data-theme="dark"]:not(:has(.esham-chatbot)) .instructor-dashboard .legend-dot.dark { outline: 1px solid var(--white-300); }

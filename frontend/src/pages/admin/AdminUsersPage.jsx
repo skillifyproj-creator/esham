@@ -1,3 +1,4 @@
+import CreateAdministratorDialog from '../../components/admin/CreateAdministratorDialog';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useAccountSession } from '../../context/AccountSessionContext';
@@ -15,11 +16,11 @@ export function AdminAccess({ children }) {
   return children;
 }
 
-export default function AdminUsersPage({ administratorsOnly = false }) {
-  return <AdminAccess><Directory administratorsOnly={administratorsOnly}/></AdminAccess>;
+export default function AdminUsersPage({ administratorsOnly = false, onCreated }) {
+  return <AdminAccess><Directory administratorsOnly={administratorsOnly} onCreated={onCreated}/></AdminAccess>;
 }
 
-function Directory({ administratorsOnly }) {
+function Directory({ administratorsOnly, onCreated }) {
   const { language } = usePreferences();
   const session = useAccountSession();
   const t = (ar, en) => language === 'ar' ? ar : en;
@@ -28,6 +29,8 @@ function Directory({ administratorsOnly }) {
   const [target, setTarget] = useState(null), [detailLoading, setDetailLoading] = useState(false), [detailError, setDetailError] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const detailGeneration = useRef(0);
+  const [creating, setCreating] = useState(false);
+  const [createdNotice, setCreatedNotice] = useState(false);
   useEffect(() => {
     let disposed = false;
     setLoading(true); setError(null);
@@ -47,11 +50,13 @@ function Directory({ administratorsOnly }) {
   }
   const filter = setter => event => { setter(event.target.value); setPage(1); };
   return <>
-    <div className="sa-page-head"><div><h1>{administratorsOnly ? t('المديرون', 'Administrators') : t('المستخدمون', 'Users')}</h1><p>{t('الحسابات والأدوار الفعلية وحالة قفل الدخول.', 'Account memberships and Identity sign-in lockout status.')}</p></div><button className="sa-button" disabled title={t('إضافة حسابات جديدة أو إسناد التصنيفات غير متاح هنا.', 'Account creation and category assignments are unavailable here.')}>{t('إضافة حساب', 'Add account')}</button></div>
+    <div className="sa-page-head"><div><h1>{administratorsOnly ? t('المديرون', 'Administrators') : t('المستخدمون', 'Users')}</h1><p>{t('الحسابات والأدوار الفعلية وحالة قفل الدخول.', 'Account memberships and Identity sign-in lockout status.')}</p></div>{administratorsOnly ? <button className="sa-button primary" onClick={() => setCreating(true)}>{t('إضافة مدير', 'Add Administrator')}</button> : <button className="sa-button" disabled>{t('إضافة حساب — غير متاح', 'Add account — unavailable')}</button>}</div>
     <div className="sa-filters"><Icon name="search" size={18}/><input type="search" maxLength={100} aria-label={t('بحث المستخدمين', 'Search users')} placeholder={t('الاسم أو البريد أو اسم المستخدم', 'Name, email or username')} value={search} onChange={filter(setSearch)}/><select aria-label={t('الدور', 'Role')} value={role} onChange={filter(setRole)}><option value="">{t('كل الأدوار', 'All roles')}</option>{(administratorsOnly ? ['GeneralAdmin', 'CategoryAdmin'] : managedRoles).map(value => <option key={value}>{value}</option>)}</select><select aria-label={t('قفل الدخول', 'Sign-in lockout')} value={status} onChange={filter(setStatus)}><option value="">{t('كل الحالات', 'All lockout states')}</option><option value="unlocked">{t('غير مقفل', 'Unlocked')}</option><option value="locked">{t('مقفل مؤقتًا', 'Locked out')}</option></select></div>
+    {createdNotice && <p role="status">{t('تم إنشاء مدير التصنيف وحفظ الإسنادات في الخادم.', 'CategoryAdmin and assignments created on the server.')}</p>}
     {loading && <section className="sa-panel" role="status">{t('جارٍ تحميل الحسابات…', 'Loading accounts…')}</section>}
     {error && <section className="sa-panel"><p role="alert">{adminUserMessage(error, language)}</p><button className="sa-button" onClick={() => setRevision(value => value + 1)}>{t('إعادة المحاولة', 'Retry')}</button></section>}
     {!loading && !error && <section className="sa-panel"><div className="sa-table-wrap"><table><thead><tr>{[t('الاسم', 'Name'), t('البريد الإلكتروني', 'Email'), t('أدوار Identity', 'Identity roles'), t('قفل الدخول', 'Sign-in lockout'), t('الإجراءات', 'Actions')].map(value => <th key={value}>{value}</th>)}</tr></thead><tbody><AdminUserRows users={data?.items || []} onDetails={details}/></tbody></table></div>{!data?.items.length && <p role="status">{t('لا توجد حسابات مطابقة.', 'No matching accounts.')}</p>}<div className="sa-form-actions"><button className="sa-button" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>{t('السابق', 'Previous')}</button><span>{page} · {data?.totalCount ?? 0} {t('حساب', 'accounts')}</span><button className="sa-button" disabled={!data || page * data.pageSize >= data.totalCount} onClick={() => setPage(value => value + 1)}>{t('التالي', 'Next')}</button></div></section>}
+    {creating && <CreateAdministratorDialog onClose={() => setCreating(false)} onCreated={created => { setCreating(false); setCreatedNotice(true); setSearch(created.email); setRole(''); setStatus(''); setPage(1); setRevision(value => value + 1); onCreated?.(); }}/>}
     {(detailLoading || detailError || target) && <Modal title={t('تفاصيل الحساب', 'Account details')} onClose={() => { detailGeneration.current++; setTarget(null); setDetailError(null); setDetailLoading(false); }}>
       {detailLoading && <p role="status">{t('جارٍ تحميل التفاصيل…', 'Loading details…')}</p>}{detailError && <><p role="alert">{adminUserMessage(detailError, language)}</p><button className="sa-button" onClick={() => details(detailId)}>{t('إعادة المحاولة', 'Retry')}</button></>}
       {target && <UserDetails key={target.id} user={target} actorId={session.session.profile.id} onReload={() => details(target.id)} onChanged={value => { setTarget(value); setRevision(previous => previous + 1); }}/>}</Modal>}
@@ -80,7 +85,7 @@ export function UserDetails({ user, actorId, onReload, onChanged }) {
     {self && <p role="status">{t('لا يمكنك تعديل صلاحيات حسابك أو قفله من هذه الشاشة.', 'You cannot change your own privileges or lockout here.')}</p>}
     <fieldset disabled={busy || self || unsupportedRoles}><legend>{t('الأدوار', 'Roles')}</legend>{managedRoles.map(role => <label className="sa-check" key={role}><input type="checkbox" checked={roles.includes(role)} disabled={role === 'CategoryAdmin'} onChange={event => setRoles(previous => event.target.checked ? [...previous, role] : previous.filter(value => value !== role))}/>{role}</label>)}</fieldset>
     {unsupportedRoles && <p role="status">{t('توجد أدوار قديمة غير مدعومة؛ يلزم تنسيق قبل تعديل العضويات.', 'Unsupported legacy roles require coordination before membership changes.')}</p>}
-    <p className="sa-helper">{t('إسناد CategoryAdmin ونطاق التصنيفات يتطلب تنسيقًا منفصلًا. يُحفظ الدور الحالي.', 'CategoryAdmin membership and category scope require separate coordination. Existing membership is preserved.')}</p>
+    <p className="sa-helper">{t('لا يتم منح دور CategoryAdmin هنا. يمكن إدارة نطاق الحسابات الحالية من صفحة التصنيفات.', 'CategoryAdmin membership is not granted here. Manage existing accounts’ category scope on the Categories page.')}</p>
     <button className="sa-button primary" disabled={busy || self || unsupportedRoles} onClick={() => { if (window.confirm(t('تأكيد تغيير الأدوار؟ ستنتهي جلسات الحساب الحالية.', 'Change roles and invalidate the account’s current sessions?'))) save(() => updateAdminRoles(user, roles)); }}>{t('حفظ الأدوار', 'Save roles')}</button>
     <label>{t('قفل تسجيل الدخول حتى', 'Lock sign-in until')}<input type="datetime-local" value={until} disabled={busy || self || !user.lockoutEnabled} onChange={event => setUntil(event.target.value)}/></label><div className="sa-form-actions"><button className="sa-button" disabled={busy || self || !user.lockoutEnabled || !until} onClick={() => { if (window.confirm(t('تأكيد قفل الدخول مؤقتًا؟', 'Apply this timed sign-in lockout?'))) save(() => updateAdminLockout(user, new Date(until).toISOString())); }}>{t('تطبيق القفل المؤقت', 'Apply timed lockout')}</button><button className="sa-button" disabled={busy || self} onClick={() => save(() => updateAdminLockout(user, null))}>{t('إلغاء القفل / تصفير المحاولات', 'Unlock / reset failed attempts')}</button></div>
     <div className="sa-form-actions"><button className="sa-button" disabled title={t('لا يوجد حقل تفعيل أو تعليق حساب في النموذج الحالي.', 'The current model has no activation or suspension field.')}>{t('تفعيل / تعليق الحساب — غير متاح', 'Activate / suspend — unavailable')}</button><button className="sa-button" disabled>{t('حذف الحساب — غير متاح', 'Delete account — unavailable')}</button></div>

@@ -1,3 +1,4 @@
+require('./require-isolated-test-target.cjs')();
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -11,12 +12,12 @@ const path = require('node:path');
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const request = async (url, method = 'GET', data) => {
-    const response = await context.request.fetch(`http://localhost:5206${url}`, { method, data });
+    const response = await context.request.fetch(`http://localhost:5216${url}`, { method, data });
     assert(response.ok(), `${method} ${url}: ${response.status()} ${await response.text()}`);
     return response.json();
   };
   try {
-    await page.goto('http://localhost:5173/login');
+    await page.goto('http://localhost:5175/login');
     await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
     await page.locator('[name=password]').fill(process.env.ESHAM_TEST_PASSWORD);
     await page.locator('button[type=submit]').click();
@@ -27,7 +28,7 @@ const path = require('node:path');
       descriptionAr: 'دورة تحقق مؤقتة', descriptionEn: 'Temporary verification course', objectives: [], language: 'ar', level: 'beginner' });
     fs.writeFileSync(path.join(os.tmpdir(), 'esham-curriculum-ux-cleanup.json'), JSON.stringify({ courseId: course.courseId, ownerId: course.owner.id, titleEn: course.draft.titleEn }));
     const root = `/api/courses/${course.courseId}/draft/sections`;
-    const curriculum = `http://localhost:5173/instructor/courses/${course.courseId}/curriculum`;
+    const curriculum = `http://localhost:5175/instructor/courses/${course.courseId}/curriculum`;
     assert.equal((await request(root)).length, 0);
     // Concurrent initializers must serialize at the course lock.
     const initialized = await Promise.all(Array.from({ length: 4 }, () => request(`${root}/ensure-default`, 'POST')));
@@ -73,7 +74,7 @@ const path = require('node:path');
     await page.getByText('درس محفوظ من المتصفح', { exact: true }).waitFor();
     await page.screenshot({ path: path.join(os.tmpdir(), 'esham-curriculum-ux-rtl.png'), fullPage: true });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Laptop curriculum overflow');
-    await page.goto(`http://localhost:5173/instructor/courses/${course.courseId}/sections/${section.id}/lessons/${lesson.id}/edit`);
+    await page.goto(`http://localhost:5175/instructor/courses/${course.courseId}/sections/${section.id}/lessons/${lesson.id}/edit`);
     await page.locator('.lesson-article-editor textarea').waitFor();
     assert.equal(await page.locator('.lesson-article-editor textarea').inputValue(), lesson.descriptionAr);
     assert(await page.locator('input[value=article]').isChecked());

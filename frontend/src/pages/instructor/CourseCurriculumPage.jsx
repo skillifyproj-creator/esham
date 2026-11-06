@@ -734,10 +734,7 @@ export default function CourseCurriculumPage() {
               <div className="curriculum-readiness-heading">
                 <div>
                   <h3>
-                    {c.curriculum?.readiness ||
-                      (language === "en"
-                        ? "Publishing readiness"
-                        : "جاهزية النشر")}
+                    {language === 'ar' ? 'جاهزية المحتوى' : 'Content readiness'}
                   </h3>
 
                   <strong>

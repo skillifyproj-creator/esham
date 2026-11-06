@@ -7,7 +7,12 @@ export async function courseRequest(path, body, method = 'GET', signal) {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const data = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) throw new Error(Object.values(data?.errors || {}).flat().join(' ') || data?.title || `Request failed (${response.status})`);
+  if (!response.ok) {
+    const error = new Error(Object.values(data?.errors || {}).flat().join(' ') || data?.title || `Request failed (${response.status})`);
+    error.status = response.status;
+    error.code = typeof data?.code === 'string' ? data.code : null;
+    throw error;
+  }
   return data;
 }
 export const curriculumPath = courseId => `/courses/${courseId}/draft/sections`;

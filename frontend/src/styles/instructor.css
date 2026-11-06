@@ -9476,3 +9476,14 @@ html body .instructor-review-page .instructor-review-points-card {
   }
 }
 .instructor-media-demo-note { padding: 12px 18px; margin: 0 auto 24px; max-width: 1200px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+
+/* Curriculum eligibility labels must not inherit the circular readiness counters. */
+.instructor-curriculum-page .submission-eligibility { min-width: 0; margin-block-start: 24px; padding-block-start: 20px; border-top: 1px solid var(--border); }
+.instructor-curriculum-page .submission-eligibility > strong { display: block; margin-block-end: 16px; font-size: 16px; line-height: 1.6; }
+.instructor-curriculum-page .submission-eligibility .instructor-readiness-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.instructor-curriculum-page .submission-eligibility .instructor-readiness-list > div { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0; }
+.instructor-curriculum-page .submission-eligibility .instructor-readiness-list > div > svg { width: 18px; height: 18px; margin-block-start: 4px; color: var(--muted); }
+.instructor-curriculum-page .submission-eligibility .instructor-readiness-list > div[data-met="true"] > svg { color: var(--green, #267b57); }
+.instructor-curriculum-page .submission-eligibility .instructor-readiness-list > div > span { display: block; width: auto; height: auto; min-width: 0; background: none; border-radius: 0; color: var(--text); font-size: 14px; line-height: 1.8; white-space: normal; overflow-wrap: break-word; text-align: start; }
+.instructor-curriculum-page .submission-eligibility > p { font-size: 13px; line-height: 1.8; margin-block: 16px 0; }
+.instructor-curriculum-page .submission-eligibility [data-submission-unavailable] { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); }

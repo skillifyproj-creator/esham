@@ -1,3 +1,4 @@
+require('./require-isolated-test-target.cjs')();
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict'), crypto = require('node:crypto');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
@@ -7,11 +8,11 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
   await context.addInitScript(() => localStorage.setItem('esham-language', 'ar'));
   const page = await context.newPage(); page.setDefaultTimeout(30000);
   const courseId = process.env.ESHAM_TEST_COURSE_ID; assert(courseId && process.env.ESHAM_TEST_EMAIL && process.env.ESHAM_TEST_PASSWORD);
-  const root = `/api/courses/${courseId}`, base = `http://localhost:5173/instructor/courses/${courseId}`;
+  const root = `/api/courses/${courseId}`, base = `http://localhost:5175/instructor/courses/${courseId}`;
   const manifestPath = path.join(os.tmpdir(), 'esham-cover-verification.json');
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   const get = async suffix => {
-    const response = await context.request.get(`http://localhost:5206${root}${suffix}`);
+    const response = await context.request.get(`http://localhost:5216${root}${suffix}`);
     assert(response.ok(), `${response.status()}: ${await response.text()}`); const body = await response.text(); return body ? JSON.parse(body) : null;
   };
   const metadata = detail => {
@@ -20,7 +21,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
       safetyStatus: detail.safetyStatus, enrollmentPaused: detail.enrollmentPaused, owner: detail.owner };
   };
   try {
-    await page.goto('http://localhost:5173/login'); await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
+    await page.goto('http://localhost:5175/login'); await page.locator('[name=email]').fill(process.env.ESHAM_TEST_EMAIL);
     await page.locator('[name=password]').fill(process.env.ESHAM_TEST_PASSWORD); await page.locator('button[type=submit]').click();
     await page.waitForURL(url => ['/learner', '/instructor'].includes(url.pathname));
     const before = await get('');
@@ -56,13 +57,13 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
     assert.deepEqual(metadata(after), metadata(before), 'Unrelated real course metadata must remain unchanged');
     const eligibility = await get('/draft/submission-eligibility'); assert.equal(eligibility.checks.find(check => check.code === 'cover').isMet, true);
     assert.deepEqual(eligibility.checks.filter(check => check.code !== 'cover'), beforeEligibility.checks.filter(check => check.code !== 'cover'), 'Other eligibility checks must retain their live baseline state');
-    const bytesResponse = await context.request.get(`http://localhost:5206${savedCover.contentUrl}`);
+    const bytesResponse = await context.request.get(`http://localhost:5216${savedCover.contentUrl}`);
     assert(bytesResponse.ok()); assert(bytesResponse.headers()['content-type'].startsWith('image/png'));
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     assert.deepEqual(metadata(after), manifest.beforeMetadata, 'Metadata must also match the original pre-upload snapshot');
     assert.equal(crypto.createHash('sha256').update(await bytesResponse.body()).digest('hex'), manifest.hash);
     // Stable retry must not create another asset.
-    const retry = await context.request.put(`http://localhost:5206${root}/draft/cover`, { data: await bytesResponse.body(), headers: {
+    const retry = await context.request.put(`http://localhost:5216${root}/draft/cover`, { data: await bytesResponse.body(), headers: {
       'Content-Type': 'image/png', 'X-Requested-With': 'XMLHttpRequest', 'X-Upload-Id': savedCover.mediaAssetId, 'X-File-Name': 'cpp-verification-cover.png' } });
     assert(retry.ok(), await retry.text()); assert.equal((await retry.json()).mediaAssetId, savedCover.mediaAssetId);
     await page.evaluate(() => { localStorage.clear(); localStorage.setItem('esham-language', 'ar'); });
@@ -75,7 +76,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
     await page.waitForFunction(() => document.querySelector('.instructor-course-preview-cover img')?.naturalWidth === 1280);
     await page.reload(); await page.locator('[data-eligibility-check=cover][data-met=true]').waitFor();
     assert.deepEqual(metadata(await get('')), metadata(before));
-    const anonymous = await browser.newContext(); assert.equal((await anonymous.request.get(`http://localhost:5206${savedCover.contentUrl}`)).status(), 401); await anonymous.close();
+    const anonymous = await browser.newContext(); assert.equal((await anonymous.request.get(`http://localhost:5216${savedCover.contentUrl}`)).status(), 401); await anonymous.close();
     assert.deepEqual(errors, []);
     console.log(JSON.stringify({ result: 'PASS', courseId, courseVersionId: savedCover.courseVersionId, coverMediaAssetId: savedCover.mediaAssetId,
       upload: 'real PNG bytes', patch: 'cover only', refresh: 'persistent', reopen: 'persistent', eligibilityCover: true, unrelatedMetadata: 'unchanged', retry: 'same asset' }));

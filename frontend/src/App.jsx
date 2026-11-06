@@ -1,12 +1,12 @@
+import { CourseReviewAdminDetail } from './pages/shared/CourseReviewAdminPages';
 import LogoThemeFilter from './components/LogoThemeFilter';
 import GoogleAuthComplete from './pages/auth/GoogleAuthComplete';
 const PlatformHelpPage = lazy(() => import('./pages/shared/PlatformHelpPage'));
-const InstructorReviewReportPage = lazy(() => import('./pages/instructor/InstructorReviewReportPage'));
+const InstructorReviewReportPage = lazy(() => import('./pages/instructor/CourseReviewPage'));
 const InstructorCertificatesPage = lazy(() => import('./pages/instructor/InstructorCertificatesPage'));
 const ModerationQueuePage = lazy(() => import('./pages/shared/ModerationQueuePage'));
 const LearnerCertificatesPage = lazy(() => import('./pages/learner/LearnerCertificatesPage'));
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
-import DevelopmentAdminAccess from './components/shared/DevelopmentAdminAccess';
 import StorageNotice from './components/shared/StorageNotice';
 import { AccountSessionProvider } from './context/AccountSessionContext';
 import { CategoryCatalogProvider } from './context/CategoryCatalogContext';
@@ -156,11 +156,17 @@ function RouteShell() {
       ? "/instructor/assistant"
       : "/assistant";
   const isAssistantPage = pathname === assistantPath;
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (isAssistantPage) delete root.dataset.platformTheme;
+    else root.dataset.platformTheme = 'enabled';
+    return () => { delete root.dataset.platformTheme; };
+  }, [isAssistantPage]);
+
 
   return (
     <>
       <LogoThemeFilter />
-      <DevelopmentAdminAccess />
       <StorageNotice />
       {/* Public Header only */}
       {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && !isAssistantPage && <Header />}
@@ -173,7 +179,7 @@ function RouteShell() {
             <Route path="admins" element={<AdminsPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="notifications" element={<NotificationsPage role="admin" />} />
-            <Route path="courses" element={<AdminCoursesPage />} />
+            <Route path="courses" element={<AdminCoursesPage />} /><Route path="courses/:courseId/review" element={<CourseReviewAdminDetail />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="reports" element={<ReportsPage />} /><Route path="moderation" element={<ModerationQueuePage/>}/>
             <Route path="announcements" element={<AnnouncementsPage />} />

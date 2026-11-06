@@ -25,3 +25,17 @@ test('public list/detail requests use the real API and never fall back to static
     assert.equal((await loadPublicCourse('real-course-guid')).objectives[0].en, 'Published goal');
   } finally { globalThis.fetch = original; }
 });
+
+test('published details map actual cover and a safe outline without protected files or task bodies', () => {
+ const course=mapPublicCourse({...row,coverMedia:{id:'cover'},taskCount:2,ratingCount:3,averageRating:4.5,sections:[{id:'section',titleEn:'Published section',lessons:[{id:'lesson',titleEn:'Published lesson',contentType:'video',durationSeconds:120,storageKey:'PRIVATE',videoUrl:'PRIVATE',descriptionEn:'PRIVATE'}]}]});
+ assert.equal(course.image,'/api/courses/public/'+row.courseId+'/cover?version='+row.publishedVersionId);
+ assert.equal(course.curriculum[0].lessons[0].title.en,'Published lesson');assert.equal(course.lessons,1);assert.equal(course.rating,4.5);assert.equal(course.taskCount,2);
+ assert.ok(!JSON.stringify(course).includes('PRIVATE'));
+});
+
+test('browser test guard rejects shared targets before making requests', async () => {
+ const {createRequire}=await import('node:module');const require=createRequire(import.meta.url);
+ const guard=require('../scripts/require-isolated-test-target.cjs');const old=process.env.ESHAM_TEST_API;
+ try{process.env.ESHAM_TEST_API='http://localhost:5206';assert.throws(()=>guard(),/Shared targets are forbidden/)}
+ finally{if(old===undefined)delete process.env.ESHAM_TEST_API;else process.env.ESHAM_TEST_API=old}
+});

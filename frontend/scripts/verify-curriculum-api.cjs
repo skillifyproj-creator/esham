@@ -1,8 +1,9 @@
+require('./require-isolated-test-target.cjs')();
 // Same environment variables as verify-curriculum.cjs. Leaves existing content intact.
 const { request } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 (async () => {
-  const api = await request.newContext({ baseURL: process.env.ESHAM_TEST_API || 'http://localhost:5206' });
+  const api = await request.newContext({ baseURL: process.env.ESHAM_TEST_API || 'http://localhost:5216' });
   const course = process.env.ESHAM_TEST_COURSE_ID;
   const root = `/api/courses/${course}/draft/sections`;
   const created = [];
@@ -34,7 +35,7 @@ const assert = require('node:assert/strict');
     await call(`${root}/${section}/lessons/reorder`, 'PUT', { ids: [lessons[0].id, lessons[0].id] }, 400);
     await call(root, 'POST', { titleEn: ' ', sortOrder: -1 }, 400);
     const anonymous = await request.newContext();
-    assert.equal((await anonymous.get(`${process.env.ESHAM_TEST_API || 'http://localhost:5206'}${root}`)).status(), 401);
+    assert.equal((await anonymous.get(`${process.env.ESHAM_TEST_API || 'http://localhost:5216'}${root}`)).status(), 401);
     await anonymous.dispose();
     console.log('PASS: real SQL Server API create, read, edit, reorder, fresh read, validation, section/lesson boundary and safe-delete behavior; anonymous access rejected.');
     // Restore original order values, including any gaps.

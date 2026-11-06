@@ -1,10 +1,11 @@
+require('./require-isolated-test-target.cjs')();
 // Layout-only checks: all auth API responses are intercepted; no account/database writes.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const { mkdirSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
-const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5173';
-const api = process.env.ESHAM_TEST_API || 'http://localhost:5206';
+const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5175';
+const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
 const artifacts = process.env.ESHAM_LAYOUT_ARTIFACTS;
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });

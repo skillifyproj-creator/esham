@@ -1,9 +1,10 @@
+require('./require-isolated-test-target.cjs')();
 // Run with ESHAM_TEST_EMAIL, ESHAM_TEST_PASSWORD, ESHAM_TEST_COURSE_ID and
 // PLAYWRIGHT_MODULE set. Uses an installed Edge browser; no credentials are saved.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
-const base = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5173';
-const api = process.env.ESHAM_TEST_API || 'http://localhost:5206';
+const base = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5175';
+const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
 const courseId = process.env.ESHAM_TEST_COURSE_ID;
 const path = `/api/courses/${courseId}/draft/sections`;
 (async () => {

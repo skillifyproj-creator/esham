@@ -1,7 +1,7 @@
+import ThemeLogo from './ThemeLogo';
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import Icon from "./Icon";
-import logo from "../assets/esham-logo.png";
 import useAccountProfile from "../hooks/useAccountProfile";
 import { accountWorkspace } from "../data/accountNavigation";
 import LearnerNavigation from "./learner/LearnerNavigation";
@@ -44,11 +44,7 @@ function VisitorHeader() {
             aria-label={`${c.brand} — ${c.home}`}
             onClick={() => setOpen(false)}
           >
-            <img
-  src={logo}
-  alt={c.brand}
-  className="site-logo"
-/>
+            <ThemeLogo alt={c.brand} className="site-logo" />
           </Link>
           <button
             className="menu-toggle"

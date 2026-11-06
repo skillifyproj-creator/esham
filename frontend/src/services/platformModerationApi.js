@@ -1,0 +1,14 @@
+import { courseRequest } from './curriculumApi.js';
+export const listAnnouncements=(administrative=false,signal)=>courseRequest(administrative?'/admin/announcements':'/announcements',undefined,'GET',signal);
+export const saveAnnouncement=(id,input)=>courseRequest('/admin/announcements'+(id?'/'+id:''),input,id?'PUT':'POST');
+export const setAnnouncementStatus=(id,status,expectedVersion)=>courseRequest(`/admin/announcements/${id}/status`,{status,expectedVersion},'PUT');
+export const listCourseReports=(mine=false,signal)=>courseRequest('/course-reports'+(mine?'?mine=true':''),undefined,'GET',signal);
+export const listSafetyCases=signal=>courseRequest('/course-safety',undefined,'GET',signal);
+export const fileCourseReport=(courseId,input)=>courseRequest(`/courses/${courseId}/reports`,input,'POST');
+export const resolveCourseReport=(courseId,reportId,status,resolution,expectedStatus)=>courseRequest(`/courses/${courseId}/reports/${reportId}`,{status,resolution,expectedStatus},'PUT');
+export const loadCourseSafety=(courseId,versionId,signal)=>courseRequest(`/courses/${courseId}/safety${versionId?'?versionId='+encodeURIComponent(versionId):''}`,undefined,'GET',signal);
+export const issueWarning=(courseId,input)=>courseRequest(`/courses/${courseId}/warnings`,input,'POST');
+export const suspendCourse=(courseId,input)=>courseRequest(`/courses/${courseId}/suspend`,input,'POST');
+export const submitAppeal=(courseId,courseWarningId,explanation)=>courseRequest(`/courses/${courseId}/appeals`,{courseWarningId,explanation},'POST');
+export const decideAppeal=(courseId,appealId,decision,comment)=>courseRequest(`/courses/${courseId}/appeals/${appealId}/decision`,{decision,comment},'POST');
+export const listAdminActivity=signal=>courseRequest('/admin/activity',undefined,'GET',signal);

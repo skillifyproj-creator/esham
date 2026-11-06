@@ -1,8 +1,8 @@
+import ThemeLogo from '../../components/ThemeLogo';
 import { Link } from 'react-router';
 import { usePreferences } from '../../context/PreferencesContext';
 import { recoveryCopy } from '../../i18n/recoveryCopy';
 import Icon from '../../components/Icon';
-import logo from '../../assets/esham-logo.png';
 import '../../styles/auth.css';
 import '../../styles/auth-recovery.css';
 
@@ -14,7 +14,7 @@ export default function RecoveryLayout({ title, intro, children }) {
     <main className="auth-page auth-recovery" dir={direction}>
       <section className="auth-form-panel" aria-labelledby="recovery-title" dir={direction}>
         <header className="auth-topbar">
-          <Link to="/" aria-label={t.home}><img src={logo} alt={language === 'ar' ? 'إسهام' : 'Esham'} /></Link>
+          <Link to="/" aria-label={t.home}><ThemeLogo alt={language === 'ar' ? 'إسهام' : 'Esham'} /></Link>
           <div className="auth-tools">
             <button type="button" onClick={toggleLanguage} aria-label={language === 'ar' ? 'Switch to English' : 'التبديل للعربية'}>{language === 'ar' ? 'English' : 'العربية'}</button>
             <button type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? t.light : t.dark}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={20} /></button>

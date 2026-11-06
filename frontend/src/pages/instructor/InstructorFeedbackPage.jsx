@@ -1,51 +1,29 @@
-import useAccountProfile from '../../hooks/useAccountProfile';
-import { accountId } from '../../data/pointsLedger';
+import useInstructorInsights from '../../hooks/useInstructorInsights';
+import { localizedInstructorText } from '../../services/instructorInsights';
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 import Icon from "../../components/Icon";
-import { instructorFeedback } from "../../data/instructorFeedback";
+
 import { usePreferences } from "../../context/PreferencesContext";
 import instructorCopy from "../../i18n/instructorCopy";
-import { instructorDemo } from "../../data/instructorDemo";
+
 
 export default function InstructorFeedbackPage() {
   const { language } = usePreferences();
-  const profile = useAccountProfile();
-  const replyKey = `esham-instructor-replies:${accountId(profile)}`;
-  const [replyError, setReplyError] = useState('');
   const { courseId } = useParams();
+  const [page, setPage] = useState(1);
+  const { data, loading, error } = useInstructorInsights('reviews', { courseId, page });
+  const analytics = useInstructorInsights('performance', { courseId });
   const c = instructorCopy[language].feedbackPage;
-  const selectedCourse = instructorDemo.courses.find((item) => item.id === courseId);
-  const aliases = { photography: "photography-beginners", "graphic-design": "design-basics", "digital-content": "digital-content" };
-  const courseIdByFeedbackId = Object.fromEntries(Object.entries(aliases).map(([id, feedbackId]) => [feedbackId, id]));
-  const courseReviews = courseId
-    ? instructorFeedback.filter((review) => review.courseId === aliases[courseId])
-    : instructorFeedback;
-  const localizedReviews = courseReviews.map((review) => {
-    const course = instructorDemo.courses.find((item) => item.id === courseIdByFeedbackId[review.courseId]);
-    const localized = c.reviewContent?.[review.id] || {};
-    return {
-      ...review,
-      learner: {
-        ...review.learner,
-        name: localized.name || review.learner.name,
-        initials: localized.initials || review.learner.initials,
-      },
-      comment: localized.comment || review.comment,
-      courseName: course?.title?.[language] || review.courseName,
-      courseLabel: course?.title?.[language] || review.courseLabel,
-    };
-  });
+  const selectedCourse = analytics.data?.course;
+  const localizedReviews = (data?.items || []).map(review => ({ ...review,
+    learner: { name: (language === 'ar' ? review.learnerName || review.learnerNameEn : review.learnerNameEn || review.learnerName) || '—', initials: (review.learnerName || review.learnerNameEn || '—').slice(0, 2) },
+    date: review.createdAt.slice(0, 10), courseLabel: localizedInstructorText(review, language), courseName: localizedInstructorText(review, language)
+  }));
+  const replies = Object.fromEntries(localizedReviews.map(review => [review.id, review.instructorReply || '']));
   const [courseFilter, setCourseFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [responseFilter, setResponseFilter] = useState("all");
-  const [replies, setReplies] = useState(() => {
-    const initial = Object.fromEntries(localizedReviews.map(review => [review.id, review.instructorReply || '']));
-    try { const stored = JSON.parse(localStorage.getItem(replyKey) || '{}'); return { ...initial, ...Object.fromEntries(Object.entries(stored).filter(([,value]) => typeof value === 'string')) }; } catch { return initial; }
-  });
-  const [editingReviewId, setEditingReviewId] = useState(null);
-  const [replyDraft, setReplyDraft] = useState("");
-
   const courses = useMemo(
     () => Array.from(new Map(localizedReviews.map((review) => [
       review.courseId,
@@ -122,34 +100,13 @@ export default function InstructorFeedbackPage() {
     URL.revokeObjectURL(url);
   };
 
-  const beginReply = (review) => {
-    setReplyDraft(replies[review.id] || "");
-    setEditingReviewId(review.id);
-  };
-
-  const saveReply = (reviewId) => {
-    const value = replyDraft.trim();
-    if (!value) return;
-
-    const next = { ...replies, [reviewId]: value };
-    try { localStorage.setItem(replyKey, JSON.stringify(next)); setReplies(next); setReplyError(''); }
-    catch { setReplyError(language === 'ar' ? 'تعذّر حفظ الرد. تحقق من تخزين المتصفح.' : 'Unable to save the reply. Check browser storage.'); return; }
-    setEditingReviewId(null);
-    setReplyDraft("");
-  };
-
-  const cancelReply = () => {
-    setEditingReviewId(null);
-    setReplyDraft("");
-  };
-
-  if (courseId && !selectedCourse) return <main className="container instructor-detail-page"><h1>{language === 'ar' ? 'الدورة غير موجودة' : 'Course not found'}</h1><Link to="/instructor/courses">{language === 'ar' ? 'العودة إلى دوراتي' : 'Back to my courses'}</Link></main>;
+  if (loading || error || analytics.error) return <main className="container instructor-detail-page"><h1>{c.title}</h1><p role={error || analytics.error ? 'alert' : 'status'}>{error || analytics.error || (language === 'ar' ? 'جارٍ التحميل…' : 'Loading…')}</p></main>;
   return (<main className="instructor-feedback-page instructor-detail-page">
-      <div className="container">{replyError && <p role="alert">{replyError}</p>}
+      <div className="container">{loading && <p role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}{(error || analytics.error) && <p role="alert">{error || analytics.error}</p>}<p>{language === 'ar' ? 'عرض التقييمات المحفوظة فقط. الملخص والفلاتر والتصدير للصفحة الحالية.' : 'Read-only saved reviews. Summary, filters and export apply to the current page.'}</p><div className="account-actions"><button disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}>{language === 'ar' ? 'السابق' : 'Previous'}</button><span>{page}</span><button disabled={loading || page * 50 >= (data?.total || 0)} onClick={() => setPage(p => p + 1)}>{language === 'ar' ? 'التالي' : 'Next'}</button></div>
         <header className="instructor-feedback-heading">
           <div>
             <h1>{courseId ? c.courseTitle : c.title}</h1>
-            <p>{courseId ? c.courseIntro.replace("{course}", selectedCourse?.title?.[language] || "—") : c.intro}</p>
+            <p>{courseId ? c.courseIntro.replace("{course}", localizedInstructorText(selectedCourse, language)) : c.intro}</p>
           </div>
           <button
             type="button"
@@ -273,7 +230,7 @@ export default function InstructorFeedbackPage() {
               const reply = storedReply === sourceReply
                 ? (c.reviewContent?.[review.id]?.reply || sourceReply)
                 : storedReply;
-              const isEditing = editingReviewId === review.id;
+
 
               return (
                 <article className="instructor-feedback-card" key={review.id}>
@@ -299,56 +256,8 @@ export default function InstructorFeedbackPage() {
 
                   <p className="instructor-feedback-comment">{review.comment}</p>
 
-                  {isEditing ? (
-                    <div className="instructor-feedback-reply-area">
-                      <div className="instructor-feedback-reply-heading">
-                        <strong>{c.yourReply}</strong>
-                      </div>
-                      <textarea
-                        rows={3}
-                        value={replyDraft}
-                        onChange={(event) => setReplyDraft(event.target.value)}
-                        placeholder={c.replyPlaceholder}
-                      />
-                      <div className="instructor-feedback-reply-actions">
-                        <button
-                          type="button"
-                          className="instructor-feedback-send"
-                          disabled={!replyDraft.trim()}
-                          onClick={() => saveReply(review.id)}
-                        >
-                          {c.sendReply}
-                        </button>
-                        <button
-                          type="button"
-                          className="instructor-feedback-cancel"
-                          onClick={cancelReply}
-                        >
-                          {c.cancel}
-                        </button>
-                      </div>
-                    </div>
-                  ) : reply ? (
-                    <div className="instructor-feedback-existing-reply">
-                      <div className="instructor-feedback-reply-heading">
-                        <strong>{c.replyStatus}</strong>
-                        <button type="button" onClick={() => beginReply(review)}>
-                          {c.editReply}
-                        </button>
-                      </div>
-                      <p>{reply}</p>
-                    </div>
-                  ) : (
-                    <div className="instructor-feedback-reply-area">
-                      <button
-                        type="button"
-                        className="instructor-feedback-add-reply"
-                        onClick={() => beginReply(review)}
-                      >
-                        {c.replyAction}
-                      </button>
-                    </div>
-                  )}
+                  {reply && <div className="instructor-feedback-existing-reply"><strong>{c.replyStatus}</strong><p>{reply}</p></div>}
+
                 </article>
               );
             })

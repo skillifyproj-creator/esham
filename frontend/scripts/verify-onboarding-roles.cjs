@@ -1,11 +1,12 @@
+require('./require-isolated-test-target.cjs')();
 // UI verification against the configured API. Credentials are generated in memory, never logged.
 // ESHAM_ROLE_MANIFEST is a temporary path for the three test account IDs/emails, for cleanup.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const { randomBytes } = require('node:crypto');
 const { writeFileSync, readFileSync, existsSync } = require('node:fs');
-const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5173';
-const api = process.env.ESHAM_TEST_API || 'http://localhost:5206';
+const origin = process.env.ESHAM_TEST_FRONTEND || 'http://localhost:5175';
+const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
 (async () => {
   assert(process.env.ESHAM_ROLE_MANIFEST, 'A temporary account cleanup manifest path is required.');
   const browser = await chromium.launch({ channel: 'msedge', headless: true });

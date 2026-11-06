@@ -1,3 +1,4 @@
+import { useEffect as useCatalogRefreshEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { usePreferences } from '../context/PreferencesContext';
 import { coursePagesCopy } from '../i18n/coursePagesCopy';
@@ -12,7 +13,8 @@ function normalize(text){return text.toLowerCase().normalize('NFKD').replace(/[\
 export default function CoursesPage(){
  const {copy:c,language}=usePreferences();const p=coursePagesCopy[language];
  const { courses, loading, error, reload } = usePublicCatalog();
- const catalog = useCategoryCatalog();
+ const catalog = useCategoryCatalog(); useCatalogRefreshEffect(() => { const controller = new AbortController(); reload(controller.signal); return () => controller.abort(); }, [reload]);
+
  const categoryKeys = ['all', ...catalog.categories.map(x => x.id)];
  const categoryName = key => key === 'all' ? c.allCourses : (language === 'ar' ? catalog.categories.find(x => x.id === key)?.nameAr : catalog.categories.find(x => x.id === key)?.nameEn);
  const [params,setParams]=useSearchParams();

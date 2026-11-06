@@ -1,3 +1,4 @@
+import ThemeLogo from '../../components/ThemeLogo';
 import AuthAlert from '../../components/AuthAlert';
 import GoogleSignIn from '../../components/GoogleSignIn';
 import { useAccountSession } from '../../context/AccountSessionContext';
@@ -8,7 +9,6 @@ import { Link, useNavigate } from "react-router";
 import { usePreferences } from "../../context/PreferencesContext";
 import { signupCopy } from "../../i18n/signupCopy";
 import Icon from "../../components/Icon";
-import logo from "../../assets/esham-logo.png";
 
 import "../../styles/auth.css";
 
@@ -106,8 +106,7 @@ export default function SignupPage() {
       >
         <header className="auth-topbar">
           <Link to="/" aria-label={t.back}>
-            <img
-              src={logo}
+            <ThemeLogo
               alt={language === "ar" ? "إسهام" : "Esham"}
             />
           </Link>
@@ -241,7 +240,7 @@ export default function SignupPage() {
               {t.submit}
             </button>
 
-            
+
             {ready && !requestError && (
               <p className="auth-status" role="status">
                 {t.ready}

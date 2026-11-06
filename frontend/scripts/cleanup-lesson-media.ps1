@@ -4,10 +4,17 @@ $manifest = Get-Content -Raw $manifestPath | ConvertFrom-Json
 if ($manifest.titleEn -ne 'Temporary video integration verification') { throw 'Unexpected verification manifest.' }
 $courseId = [Guid]::Parse($manifest.courseId)
 $mediaIds = @($manifest.mediaIds | ForEach-Object { [Guid]::Parse($_).ToString() })
-$secretsPath = Join-Path $env:APPDATA 'Microsoft/UserSecrets/a664d104-d79c-4946-b86e-44581734e3b3/secrets.json'
-$secrets = Get-Content -Raw $secretsPath | ConvertFrom-Json
-$connection = [System.Data.SqlClient.SqlConnection]::new($secrets.'ConnectionStrings:DefaultConnection')
+# Cleanup is restricted to explicitly configured disposable LocalDB databases.
+$isolatedConnection = $env:ESHAM_ISOLATED_SQL
+if ([string]::IsNullOrWhiteSpace($isolatedConnection)) { throw 'Explicit isolated SQL configuration is required; shared User Secrets are never used.' }
+$isolatedTarget = [System.Data.SqlClient.SqlConnectionStringBuilder]::new($isolatedConnection)
+if ($isolatedTarget.DataSource -ne '(localdb)\MSSQLLocalDB' -or -not $isolatedTarget.InitialCatalog.StartsWith('Esham_AccountTests_')) { throw 'Cleanup requires an isolated LocalDB test database.' }
+$connection = [System.Data.SqlClient.SqlConnection]::new($isolatedConnection)
 $connection.Open()
+$identityCheck = $connection.CreateCommand()
+$identityCheck.CommandText = 'SELECT DB_NAME()'
+if ([string]$identityCheck.ExecuteScalar() -ne $isolatedTarget.InitialCatalog) { $connection.Dispose(); throw 'Database identity mismatch.' }
+
 $transaction = $connection.BeginTransaction()
 $keys = [System.Collections.Generic.List[string]]::new()
 try {

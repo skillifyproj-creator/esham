@@ -1,22 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePreferences } from '../../context/PreferencesContext';
-import useAccountProfile from '../../hooks/useAccountProfile';
-import { accountId } from '../../data/pointsLedger';
-import { courses } from '../../data/courses';
-import { courseTasks, readTaskSubmissions, reviewTaskSubmission, TASK_EVENT } from '../../services/taskSubmissions';
-import { StoredFileLink } from '../../components/shared/StoredMedia';
+import useInstructorInsights from '../../hooks/useInstructorInsights';
+import { localizedInstructorText, reviewInstructorSubmission } from '../../services/instructorInsights';
+import { apiBase } from '../../services/accountApi';
 
 export default function InstructorSubmissionsPage() {
-  const {language}=usePreferences(),profile=useAccountProfile(),t=(ar,en)=>language==='ar'?ar:en;
-  const [,refresh]=useState(0),[selected,setSelected]=useState(''),[feedback,setFeedback]=useState(''),[error,setError]=useState(''),[status,setStatus]=useState('awaitingReview');
-  useEffect(()=>{const update=()=>refresh(value=>value+1);window.addEventListener(TASK_EVENT,update);window.addEventListener('storage',update);return()=>{window.removeEventListener(TASK_EVENT,update);window.removeEventListener('storage',update);};},[]);
-  const owned=courses.filter(course=>course.instructorId===accountId(profile));
-  const list=readTaskSubmissions().filter(item=>owned.some(course=>course.id===item.courseId)&&(!status||item.status===status));
-  const current=list.find(item=>item.id===selected),task=courseTasks().find(item=>item.id===current?.taskId);
-  function decide(approved){try{reviewTaskSubmission(profile,current.id,approved,feedback);setSelected('');setFeedback('');setError('');refresh(value=>value+1);}catch{setError(t('تعذّر الاعتماد. تحقق من صلاحية الدورة وحالة التسليم وأضف ملاحظة عند طلب تعديل.','Review failed. Check course ownership and submission status; add feedback when requesting revisions.'));}}
-  return <main className="container section"><h1>{t('مراجعة تسليمات المتعلّمين','Review learner submissions')}</h1><p>{t('تسليمات الدورات التي تملكها على هذا الجهاز. الاعتماد لا يمنح نقاطًا؛ نقاط التدريس تأتي من التسجيل.','Submissions for courses you own on this device. Approval does not award points; teaching points come from enrollments.')}</p>
-    <label>{t('الحالة','Status')} <select value={status} onChange={event=>{setStatus(event.target.value);setSelected('');}}><option value="">{t('الكل','All')}</option><option value="awaitingReview">{t('بانتظار المراجعة','Awaiting review')}</option><option value="completed">{t('معتمدة','Approved')}</option><option value="inProgress">{t('مسودة أو تحتاج تعديلًا','Draft or revision requested')}</option></select></label>
-    <div className="community-grid"><section className="learner-panel">{list.length?list.map(item=><button key={item.id} className="report-list-button" onClick={()=>{setSelected(item.id);setFeedback(item.feedback||'');setError('');}}><strong>{item.learnerName}</strong><span>{courses.find(course=>course.id===item.courseId)?.title[language]}</span></button>):<p>{t('لا توجد تسليمات بهذه الحالة.','No submissions match this status.')}</p>}</section>
-      {current&&<section className="learner-panel"><h2>{task?.title?.[language]||t('التسليم','Submission')}</h2><p style={{whiteSpace:'pre-wrap'}}>{current.answer}</p>{current.link&&<a href={current.link} target="_blank" rel="noopener noreferrer">{t('فتح العمل','Open work')}</a>}<ul>{current.files?.map(file=><li key={file.id}><StoredFileLink file={file}/></li>)}</ul><label>{t('ملاحظات المراجعة','Review feedback')}<textarea rows={4} value={feedback} maxLength={2000} onChange={event=>setFeedback(event.target.value)} disabled={current.status!=='awaitingReview'}/></label>{current.status==='awaitingReview'&&<div className="account-actions"><button className="button" onClick={()=>decide(true)}>{t('اعتماد المهمة','Approve task')}</button><button className="button button-outline" onClick={()=>decide(false)}>{t('طلب تعديل','Request revision')}</button></div>}{error&&<p role="alert">{error}</p>}</section>}
+  const { language } = usePreferences(), t = (ar, en) => language === 'ar' ? ar : en;
+  const [selected, setSelected] = useState(''), [feedback, setFeedback] = useState(''), [error, setError] = useState(''), [status, setStatus] = useState('awaitingReview');
+  const [page, setPage] = useState(1), [revision, refresh] = useState(0), [saving, setSaving] = useState(false);
+  const list = useInstructorInsights('submissions', { status, page, revision });
+  const detail = useInstructorInsights(selected ? `submissions/${selected}` : null, { revision });
+  const current = selected ? detail.data?.items?.[0] : null;
+  async function decide(decision) {
+    if (!current || saving) return;
+    setSaving(true); setError('');
+    try { await reviewInstructorSubmission(current.id, decision, feedback); setSelected(''); setFeedback(''); refresh(n => n + 1); }
+    catch (e) { setError(e.message); } finally { setSaving(false); }
+  }
+  function filter(value) { setStatus(value); setPage(1); setSelected(''); }
+  return <main className="container section"><h1>{t('مراجعة تسليمات المتعلّمين', 'Review learner submissions')}</h1><p>{t('تسليمات دوراتك المحفوظة على الخادم. المراجعة لا تمنح نقاطًا ولا تغيّر إكمال الدورة.', 'Saved submissions for your courses. Review does not award points or change course completion.')}</p>
+    <label>{t('الحالة', 'Status')} <select value={status} disabled={saving} onChange={event => filter(event.target.value)}><option value="">{t('الكل', 'All')}</option><option value="awaitingReview">{t('بانتظار المراجعة', 'Awaiting review')}</option><option value="approved">{t('معتمدة', 'Approved')}</option><option value="rejected">{t('تحتاج تعديلًا', 'Revision requested')}</option></select></label>
+    {list.loading && <p role="status">{t('جارٍ التحميل…', 'Loading…')}</p>}{(error || list.error || (selected && detail.error)) && <p role="alert">{error || list.error || detail.error}</p>}
+    <div className="community-grid"><section className="learner-panel">{list.data?.items?.length ? list.data.items.map(item => <button key={item.id} className="report-list-button" disabled={saving} onClick={() => { setSelected(item.id); setFeedback(''); setError(''); }}><strong>{language === 'ar' ? item.learnerName || item.learnerNameEn : item.learnerNameEn || item.learnerName}</strong><span>{localizedInstructorText(item, language)} · {item.attemptNumber}</span></button>) : !list.loading && !list.error && <p>{t('لا توجد تسليمات بهذه الحالة.', 'No submissions match this status.')}</p>}
+      <div className="account-actions"><button disabled={page === 1 || list.loading || saving} onClick={() => { setPage(p => p - 1); setSelected(''); }}>{t('السابق', 'Previous')}</button><span>{page}</span><button disabled={list.loading || saving || page * 50 >= (list.data?.total || 0)} onClick={() => { setPage(p => p + 1); setSelected(''); }}>{t('التالي', 'Next')}</button></div></section>
+      {selected && detail.loading && <p role="status">{t('جارٍ التحميل…', 'Loading…')}</p>}
+      {current && <section className="learner-panel"><h2>{localizedInstructorText(current, language)}</h2><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{current.answerText}</p>{/^https?:\/\//i.test(current.workUrl || '') && <a href={current.workUrl} target="_blank" rel="noopener noreferrer">{t('فتح العمل', 'Open work')}</a>}<ul>{current.files?.map(file => <li key={file.id}><a href={`${apiBase}/api/instructor/submissions/${current.id}/attachments/${file.id}`} target="_blank" rel="noopener noreferrer">{file.name}</a></li>)}</ul>
+      {current.reviews?.map((r, i) => <p key={i}>{r.decision}: {r.feedback}</p>)}
+      {current.status === 'awaitingReview' && <><label>{t('ملاحظات المراجعة', 'Review feedback')}<textarea rows={4} value={feedback} maxLength={2000} onChange={event => setFeedback(event.target.value)} disabled={saving}/></label><div className="account-actions"><button className="button" disabled={saving} onClick={() => decide('approved')}>{t('اعتماد المهمة', 'Approve task')}</button><button className="button button-outline" disabled={saving || !feedback.trim()} onClick={() => decide('rejected')}>{t('طلب تعديل', 'Request revision')}</button></div></>}
+      </section>}
     </div></main>;
 }

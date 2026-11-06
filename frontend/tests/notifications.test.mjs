@@ -153,3 +153,19 @@ test('empty, loading, failure and expired session pages do not show fake notific
   const failed = render(h(pageModule.default), { error: { status: 503 } }); assert.match(failed, /Retry/); assert.ok(!failed.includes('No notifications yet'));
   const expired = render(h(pageModule.default), { status: 'anonymous', error: { status: 401 } }); assert.match(expired, /Sign in/); assert.ok(!expired.includes('ln-card unread'));
 });
+
+test('revision notification links accept only the server-resolved local review workflow', async () => {
+  const {notificationTarget}=await import('../src/services/notifications.js');
+  const item={notificationType:'course.changes_requested',targetUrl:'/instructor/courses/11111111-1111-1111-1111-111111111111/review'};
+  assert.equal(notificationTarget(item),item.targetUrl);
+  for(const targetUrl of ['https://evil.example','//evil.example', '/admin', item.targetUrl+'?next=https://evil.example']) assert.equal(notificationTarget({...item,targetUrl}),null);
+  assert.equal(notificationTarget({...item,notificationType:'unknown'}),null);
+});
+
+test('owner publication notification links only to a real local public course route', async () => {
+ const {notificationTarget}=await import('../src/services/notifications.js');
+ const item={notificationType:'course.published',targetUrl:'/courses/11111111-1111-1111-1111-111111111111'};
+ assert.equal(notificationTarget(item),item.targetUrl);
+ assert.equal(notificationTarget({...item,targetUrl:'https://outside.example'}),null);
+ assert.equal(notificationTarget({...item,targetUrl:'/instructor/courses/11111111-1111-1111-1111-111111111111/review'}),null);
+});

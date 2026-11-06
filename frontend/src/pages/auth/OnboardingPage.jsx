@@ -1,3 +1,4 @@
+import ThemeLogo from '../../components/ThemeLogo';
 import { accountRequest, accountError, apiBase } from '../../services/accountApi';
 import { useAccountSession, onboardingDraft } from '../../context/AccountSessionContext';
 import { useCategoryCatalog } from '../../context/CategoryCatalogContext';
@@ -15,7 +16,6 @@ import { onboardingCopy, getOnboardingGoals } from '../../i18n/onboardingCopy';
 import { getInstructorGoalGuidance } from '../../data/instructorGoalGuidance';
 import Icon from '../../components/Icon';
 import Modal from '../../components/Modal';
-import logo from '../../assets/esham-logo.png';
 import '../../styles/onboarding.css';
 
 const steps = ['role', 'profile', 'interests', 'goals'];
@@ -101,7 +101,7 @@ export default function OnboardingPage() {
   const title = [t.title, profileSetupCopy[language].title, draft.role === "instructor" ? teachingSkillsCopy[language].title : interestsCopy[language].titles[draft.role], goalCopy.title][current];
   const intro = [t.intro, profileSetupCopy[language].intro, draft.role === "instructor" ? teachingSkillsCopy[language].intro : interestsCopy[language].intro, goalCopy.intro][current];
   return <div className="onboarding-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-    <header className="onboarding-header"><div className="container onboarding-header-inner"><Link to="/" aria-label={t.exit}><img src={logo} alt={language === 'ar' ? 'إسهام' : 'Esham'} /></Link><div className="onboarding-tools"><button type="button" onClick={toggleLanguage}>{language === 'ar' ? 'English' : 'العربية'}</button><button type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? t.light : t.dark}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={19} /></button><button type="button" onClick={() => setHelp(true)} aria-label={t.help} title={t.help}><Icon name="info" size={22} /></button><Link to="/" aria-label={t.exit}><Icon name="close" size={21} /></Link></div></div></header>
+    <header className="onboarding-header"><div className="container onboarding-header-inner"><Link to="/" aria-label={t.exit}><ThemeLogo alt={language === 'ar' ? 'إسهام' : 'Esham'} /></Link><div className="onboarding-tools"><button type="button" onClick={toggleLanguage}>{language === 'ar' ? 'English' : 'العربية'}</button><button type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? t.light : t.dark}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={19} /></button><button type="button" onClick={() => setHelp(true)} aria-label={t.help} title={t.help}><Icon name="info" size={22} /></button><Link to="/" aria-label={t.exit}><Icon name="close" size={21} /></Link></div></div></header>
     <main className="container onboarding-main">
       <nav aria-label={t.progress}><ol className="onboarding-stepper">{steps.map((id, index) => <li key={id} className={complete || index < current ? 'done' : index === current ? 'active' : ''} aria-current={index === current ? 'step' : undefined}><span className="onboarding-step-line" /><button type="button" disabled={!complete && index > current} onClick={() => move(id)}><span className="onboarding-step-number">{complete || index < current ? '✓' : index + 1}</span>{index === 2 && draft.role !== "learner" ? language === "ar" ? draft.role === "instructor" ? "مهاراتك" : "اهتماماتك وخبرتك" : draft.role === "instructor" ? "Your expertise" : "Interests & expertise" : t.steps[index]}</button></li>)}</ol></nav>
       {complete ? <SetupComplete draft={draft} photo={photo} onEdit={() => move("role")} /> : <form onSubmit={submit} noValidate>
@@ -126,7 +126,7 @@ export default function OnboardingPage() {
         {current === 3 && <fieldset className="onboarding-choice-grid goals"><legend className="sr-only">{title}</legend>{goalCopy.goals.map((goal, index) => <label key={index} className={draft.goal === index ? 'selected' : ''}><input type="radio" name="goal" checked={draft.goal === index} onChange={() => update({ goal: index })} /><span>{goal}</span></label>)}</fieldset>}
         {current === 3 && guidance && <aside className="onboarding-note" aria-live="polite"><p><strong>{guidance.title}</strong> — {guidance.description}</p></aside>}
       </form>}
-      
+
     </main>
 
     {help && <Modal title={t.helpTitle} onClose={() => setHelp(false)}><p>{t.helpText}</p><button className="button" onClick={() => setHelp(false)}>{t.close}</button></Modal>}

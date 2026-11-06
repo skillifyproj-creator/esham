@@ -1,3 +1,4 @@
+import ThemeLogo from '../ThemeLogo';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { accountRequest, accountError, apiBase } from '../../services/accountApi';
@@ -10,7 +11,6 @@ import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import NotificationBell from './NotificationBell';
 import PointsBadge from './PointsBadge';
 import Icon from '../Icon';
-import logo from '../../assets/esham-logo.png';
 import '../../styles/workspace-navigation.css';
 
 export default function WorkspaceNavigation({ role, name, links, activityLabel }) {
@@ -58,7 +58,7 @@ export default function WorkspaceNavigation({ role, name, links, activityLabel }
 
   return <header className="workspace-header" ref={header} dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <div className="workspace-header-inner container">
-      <Link className="workspace-brand" to={base} onClick={close}><img src={logo} alt={t('إسهام', 'Esham')}/></Link>
+      <Link className="workspace-brand" to={base} onClick={close}><ThemeLogo alt={t('إسهام', 'Esham')}/></Link>
       <nav className="workspace-primary" aria-label={t('التنقل الرئيسي', 'Main navigation')}>
         {links.slice(0, 2).map(renderLink)}
         <div className="workspace-menu-anchor">

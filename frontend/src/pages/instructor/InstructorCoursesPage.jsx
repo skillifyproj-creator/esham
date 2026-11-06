@@ -1,3 +1,4 @@
+import { reviewStatusLabel } from '../../services/courseReviewApi';
 import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { useEffect, useMemo, useState } from "react";
@@ -21,10 +22,10 @@ export default function InstructorCoursesPage() {
   useEffect(() => {
     const controller = new AbortController();
     courseRequest('/courses/mine', undefined, 'GET', controller.signal).then(items => setRemoteCourses(items.map(x => ({
-      id: x.courseId, title: { ar: x.titleAr || x.titleEn || 'مسودة بلا عنوان', en: x.titleEn || x.titleAr || 'Untitled draft' },
+      id: x.courseId, publishedVersionId: x.publishedVersionId, title: { ar: x.titleAr || x.titleEn || 'مسودة بلا عنوان', en: x.titleEn || x.titleAr || 'Untitled draft' },
       category: { ar: x.categoryNameAr || '', en: x.categoryNameEn || '' },
-      description: { ar: '', en: '' }, reviewStatus: { ar: x.reviewStatus || '', en: x.reviewStatus || '' },
-      courseStatus: x.reviewStatus || 'draft', level: { ar: x.level || '', en: x.level || '' },
+      description: { ar: '', en: '' }, reviewStatus: { ar: reviewStatusLabel(x.reviewStatus, 'ar'), en: reviewStatusLabel(x.reviewStatus, 'en') },
+      courseStatus: x.reviewStatus === 'approved' && x.publishedVersionId === x.draftVersionId ? 'published' : x.reviewStatus === 'changes_requested' ? 'rejected' : x.reviewStatus || 'draft', level: { ar: x.level || '', en: x.level || '' },
       updatedAt: x.updatedAt, learners: 0, progress: 0,
     })))).catch(error => { if (!controller.signal.aborted) setLoadError(error.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -480,7 +481,7 @@ function FilterButton({
 // COURSE CARD
 // =========================================================
 
-function CourseCard({ course, copy: c, language }) {
+export function CourseCard({ course, copy: c, language }) {
   const statusClass = getStatusClass(course.courseStatus);
 
   // ---------------------------------------------------------
@@ -505,7 +506,7 @@ function CourseCard({ course, copy: c, language }) {
             {c.reviewNeedsResponse}
           </strong>
 
-          <Link to={`/instructor/courses/${course.id}/review-report`}
+          <Link to={`/instructor/courses/${course.id}/review`}
             className="instructor-review-link">
             {course.category[language]}
           </Link>
@@ -525,13 +526,13 @@ function CourseCard({ course, copy: c, language }) {
             </strong>
 
             <p>
-              {course.reviewNote[language]}
+              {course.reviewNote?.[language] || (language === 'ar' ? 'افتح تقرير المراجعة للاطلاع على ملاحظات المراجع.' : 'Open the review report to read the reviewer’s feedback.')}
             </p>
 
           </div>
 
           <Link
-            to={`/instructor/courses/${course.id}/edit`}
+            to={`/instructor/courses/${course.id}/${course.courseStatus === 'draft' ? 'edit' : 'review'}`}
             className="instructor-review-submit"
           >
             <Icon
@@ -542,7 +543,9 @@ function CourseCard({ course, copy: c, language }) {
             {c.editAndResubmit}
           </Link>
 
-          <Link to={"/instructor/courses/"+course.id+"/review-report"} className="instructor-review-details">{c.reviewReportDetails}</Link>
+          <Link to={"/instructor/courses/"+course.id+"/review"} className="instructor-review-details">{c.reviewReportDetails}</Link>
+          <Link to={course.publishedVersionId ? `/courses/${course.id}` : `/instructor/courses/${course.id}/preview`} className="instructor-review-details">{c.viewCourse}</Link>
+
 
         </div>
 
@@ -695,13 +698,15 @@ function CourseCard({ course, copy: c, language }) {
         {/* Actions */}
 
         <div className="instructor-course-actions">
+          {course.courseStatus !== "published" && <Link to={course.publishedVersionId ? `/courses/${course.id}` : `/instructor/courses/${course.id}/preview`} className="instructor-course-button instructor-course-button-outline">{c.viewCourse}<Icon name="eye" size={14}/></Link>}
+
 
           {course.courseStatus === "published" && (
             <>
-              <Link to={instructorPublicCourseIds[course.id] ? `/courses/${instructorPublicCourseIds[course.id]}` : `/instructor/courses/${course.id}/preview`} className="instructor-course-button instructor-course-button-outline">
+              <Link to={course.publishedVersionId ? `/courses/${course.id}` : `/instructor/courses/${course.id}/preview`} className="instructor-course-button instructor-course-button-outline">
                 {c.viewCourse}<Icon name="eye" size={14} />
               </Link>
-              <Link to={`/instructor/courses/${course.id}/edit`} className="instructor-course-button instructor-course-button-outline">
+              <Link to={`/instructor/courses/${course.id}/${course.courseStatus === 'draft' ? 'edit' : 'review'}`} className="instructor-course-button instructor-course-button-outline">
                 {c.edit}<Icon name="edit" size={14} />
               </Link>
               <Link to={"/instructor/courses/" + course.id + "/performance"} className="instructor-course-button instructor-course-button-outline">
@@ -716,7 +721,7 @@ function CourseCard({ course, copy: c, language }) {
           {course.courseStatus === "draft" && (
             <>
               <Link
-                to={`/instructor/courses/${course.id}/edit`}
+                to={`/instructor/courses/${course.id}/${course.courseStatus === 'draft' ? 'edit' : 'review'}`}
                 className="instructor-course-button green"
               >
                 {c.edit}

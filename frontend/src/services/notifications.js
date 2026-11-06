@@ -103,3 +103,12 @@ export function notificationText(item, language) {
   return { title: (language === 'ar' ? item.titleAr || item.titleEn : item.titleEn || item.titleAr) || (language === 'ar' ? 'إشعار' : 'Notification'),
     body: (language === 'ar' ? item.messageAr || item.messageEn : item.messageEn || item.messageAr) || '' };
 }
+
+// Only the server-resolved revision workflow is a navigable notification target.
+export function notificationTarget(item) {
+  if (typeof item.targetUrl !== 'string') return null;
+  const id = '[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}';
+  const pattern = item.notificationType === 'course.published' ? `^/courses/${id}$`
+    : item.notificationType === 'course.changes_requested' ? `^/instructor/courses/${id}/review$` : null;
+  return pattern && new RegExp(pattern, 'i').test(item.targetUrl) ? item.targetUrl : null;
+}
