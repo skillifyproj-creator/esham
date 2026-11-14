@@ -22,7 +22,7 @@ import "../../styles/learner.css";
 import { getEnrollmentDetails } from "../../data/learnerHelpers";
 
 import { useLearner } from "../../context/LearnerContext";
-import { useLearnerTasks } from "../../context/LearnerTasksContext";
+import { useLearnerTasks } from '../../context/LearnerTasksContext';
 import { useLearnerWallet } from "../../hooks/useLearnerWallet";
 
 function LearningProgress({ value, label }) {
@@ -56,9 +56,7 @@ export default function LearnerDashboard() {
 
   const enrollments = learnerEnrollments
     .map(getEnrollmentDetails)
-    .filter(Boolean)
-    .filter(item => courses.some(course => String(course.id) === String(item.courseId)))
-    .map(item => ({ ...item, course: courses.find(course => String(course.id) === String(item.courseId)) }));
+    .filter(Boolean);
 
   const activeCourses = enrollments
     .filter((enrollment) => !enrollment.isComplete)
@@ -87,11 +85,7 @@ export default function LearnerDashboard() {
     .sort((a, b) => Number(preferredCategories.has(b.categoryId || b.category)) - Number(preferredCategories.has(a.categoryId || a.category)))
     .slice(0, 2);
 
-  const { tasks: allTasks } = useLearnerTasks();
-
-  const tasks = allTasks.filter((task) =>
-    ["notStarted", "inProgress"].includes(task.status),
-  ).filter(task => courses.some(course => String(course.id) === String(task.courseId)));
+  const { tasks } = useLearnerTasks();
 
   const stats = [
     {
@@ -104,7 +98,7 @@ export default function LearnerDashboard() {
     },
     {
       label: t.finishedLessons,
-      value: completedLessons,
+      value: enrollments.some(e => e.completedCount == null) ? '—' : completedLessons,
     },
   ];
 
@@ -159,16 +153,16 @@ export default function LearnerDashboard() {
                   </p>
                 )}
 
-                <LearningProgress
+                {latestCourse.progress != null && <LearningProgress
                   value={latestCourse.progress}
                   label={t.progress}
-                />
+                />}
 
                 <Link
                   className="button"
-                  to={`/learner/courses/${latestCourse.course.id}/learn`}
+                  to={`/learner/enrollments/${latestCourse.id}${latestCourse.learning ? '/learn' : ''}`}
                 >
-                  {t.continueLearning}
+                  {latestCourse.learning ? (language === 'ar' ? 'متابعة التعلم' : 'Continue learning') : (language === 'ar' ? 'تفاصيل التسجيل' : 'Enrollment details')}
                 </Link>
               </section>
             ) : (
@@ -196,7 +190,7 @@ export default function LearnerDashboard() {
                     >
                       <Link
                         className="learner-course-thumbnail"
-                        to={`/learner/courses/${enrollment.courseId}/learn`}
+                        to={`/learner/enrollments/${enrollment.id}`}
                         aria-label={enrollment.course.title[language]}
                       >
                         <img
@@ -209,7 +203,7 @@ export default function LearnerDashboard() {
                       <div className="learner-course-row-content">
                         <h3>
                           <Link
-                            to={`/learner/courses/${enrollment.courseId}/learn`}
+                            to={`/learner/enrollments/${enrollment.id}`}
                           >
                             {enrollment.course.title[language]}
                           </Link>
@@ -217,16 +211,16 @@ export default function LearnerDashboard() {
 
                         <p>{enrollment.course.instructor[language]}</p>
 
-                        <LearningProgress
+                        {enrollment.progress != null && <LearningProgress
                           value={enrollment.progress}
                           label={t.progress}
-                        />
+                        />}
 
                         <Link
                           className="button button-outline button-small"
-                          to={`/learner/courses/${enrollment.courseId}/learn`}
+                          to={`/learner/enrollments/${enrollment.id}`}
                         >
-                          {t.continueLearning}
+                          {language === 'ar' ? 'تفاصيل التسجيل' : 'Enrollment details'}
                         </Link>
                       </div>
                     </article>
@@ -245,25 +239,23 @@ export default function LearnerDashboard() {
 
               <div className="learner-task-list">
                 {tasks.map((task) => {
-                  const course = courses.find(
-                    (item) => item.id === task.courseId,
-                  );
+                  const course = learnerEnrollments.find(item=>item.id===task.enrollmentId)?.course;
 
                   return (
                     <article className="learner-task" key={task.id}>
                       <div>
                         <span className={`learner-task-status ${task.status}`}>
-                          {t[task.status]}
+                          {task.isApproved ? (language==='ar'?'معتمدة':'Approved') : (language==='ar'?'مهمة تطبيقية':'Practical task')}
                         </span>
 
-                        <h3>{task.title[language]}</h3>
+                        <h3>{language==='ar'?task.titleAr||task.titleEn:task.titleEn||task.titleAr}</h3>
 
-                        <p>{course.title[language]}</p>
+                        <p>{course?.title[language]}</p>
                       </div>
 
                       <Link
                         className="button button-outline button-small"
-                        to={`/learner/tasks?task=${task.id}`}
+                        to={`/learner/enrollments/${task.enrollmentId}/tasks/${task.id}`}
                       >
                         {t.taskDetails}
                       </Link>
@@ -298,7 +290,7 @@ export default function LearnerDashboard() {
               <span className="section-kicker">{t.pointsTitle}</span>
 
               <div className="learner-points-value">
-                <strong>{balance}</strong>
+                <strong>{balance ?? '—'}</strong>
                 <span>{t.points}</span>
               </div>
 

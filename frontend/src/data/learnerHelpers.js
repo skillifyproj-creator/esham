@@ -1,6 +1,14 @@
 import { courses } from "./courses";
 
 export function getEnrollmentDetails(enrollment) {
+  if (enrollment.source === 'backend') {
+    const learning = enrollment.learning, lessons = learning?.sections.flatMap(s => s.lessons);
+    const resume = lessons?.find(l => l.id === learning.resumeLessonId);
+    return { ...enrollment, progress: learning?.versionState.progressPercentage ?? null,
+      completedCount: lessons ? lessons.filter(l => l.isCompleted).length : null,
+      nextLesson: resume ? { ...resume, title: { ar: resume.titleAr || resume.titleEn, en: resume.titleEn || resume.titleAr } } : null,
+      isComplete: enrollment.status === 'completed' || Boolean(enrollment.completedAt) };
+  }
   const course = courses.find(
     (item) => item.id === enrollment.courseId,
   );

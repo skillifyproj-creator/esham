@@ -1,4 +1,5 @@
 import PublicCourseCurriculum from '../components/PublicCourseCurriculum';
+import EnrollmentAction from '../components/learner/EnrollmentAction';
 import ReportCourseButton from '../components/learner/ReportCourseButton';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -36,7 +37,7 @@ export default function CourseDetailsPage() {
     <div className="detail-layout"><div className="detail-main">
     <section className="detail-section"><h2>{t('عن الدورة', 'About this course')}</h2><div className="detail-panel"><p style={{whiteSpace:'pre-wrap'}}>{course.description[language]}</p></div></section>
     <PublicCourseCurriculum course={course}/>
-    </div><aside className="enrollment-card"><h2>{t('التسجيل في الدورة', 'Course enrollment')}</h2><p id="enrollment-unavailable">{t('التسجيل غير متاح حاليًا. لا يمكن خصم نقاط أو بدء التعلّم حتى تتوفر خدمة التسجيل.', 'Enrollment is currently unavailable. Points cannot be charged and learning cannot start until the enrollment service is available.')}</p><button type="button" className="button enroll-button" disabled aria-describedby="enrollment-unavailable">{t('التسجيل غير متاح حاليًا', 'Enrollment unavailable')}</button></aside></div>
+    </div><aside className="enrollment-card"><EnrollmentAction course={course} language={language}/></aside></div>
     <section className="section"><h2>{t('ما الذي ستتعلمه؟', 'What you will learn')}</h2><ul>{course.objectives.map((x, i) => <li key={i}>{x[language] || x.ar || x.en}</li>)}</ul></section>
     <section className="section"><h2>{t('دورات أخرى', 'More courses')}</h2><div className="catalog-grid">{related.map(x => <CourseCard key={x.id} course={x} compact />)}</div></section>
   </div></main>;

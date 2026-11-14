@@ -9,6 +9,9 @@ const LearnerCertificatesPage = lazy(() => import('./pages/learner/LearnerCertif
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import StorageNotice from './components/shared/StorageNotice';
 import { AccountSessionProvider } from './context/AccountSessionContext';
+import { FinancialProvider } from './context/FinancialContext';
+import { LearningProvider } from './context/LearningContext';
+const LearnerEnrollmentPage = lazy(() => import('./pages/learner/LearnerEnrollmentPage'));
 import { CategoryCatalogProvider } from './context/CategoryCatalogContext';
 import { refreshPublishedCourses } from './data/courses';
 import { refreshInstructorCourses } from './data/instructorDemo';
@@ -225,6 +228,10 @@ function RouteShell() {
           <Route index element={<LearnerDashboard />} />
 
           <Route path="courses" element={<LearnerCoursesPage />} />
+          <Route path="enrollments/:enrollmentId" element={<LearnerEnrollmentPage />} />
+          <Route path="enrollments/:enrollmentId/learn" element={<LearnerLessonPage />} />
+          <Route path="enrollments/:enrollmentId/tasks/:taskId" element={<LearnerTasksPage />} />
+          <Route path="enrollments/:enrollmentId/submissions/:submissionId" element={<LearnerTasksPage />} />
 
           <Route
             path="courses/:courseId/learn"
@@ -422,9 +429,9 @@ export default function App() {
   return (
     <PreferencesProvider><AccountSessionProvider><CategoryCatalogProvider><PublicCatalogProvider>
       <BrowserRouter>
-        <LearnerProvider>
+        <FinancialProvider><LearningProvider><LearnerProvider>
           <NotificationsProvider><RouteShell /></NotificationsProvider>
-        </LearnerProvider>
+        </LearnerProvider></LearningProvider></FinancialProvider>
       </BrowserRouter>
     </PublicCatalogProvider></CategoryCatalogProvider></AccountSessionProvider></PreferencesProvider>
   );

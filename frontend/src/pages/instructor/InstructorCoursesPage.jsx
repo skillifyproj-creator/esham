@@ -1,5 +1,4 @@
 import { reviewStatusLabel } from '../../services/courseReviewApi';
-import { instructorPublicCourseIds } from "../../data/instructorCourseLinks";
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
 import { useEffect, useMemo, useState } from "react";
 import { courseRequest } from '../../services/curriculumApi';
@@ -15,7 +14,7 @@ import "../../styles/instructor-courses.css";
 export default function InstructorCoursesPage() {
   const { language } = usePreferences();
   const c = instructorCopy[language];
-  const { transactions, earned } = useLearnerWallet();
+  const { teaching, earned, loading: walletLoading, error: walletError } = useLearnerWallet();
   const [remoteCourses, setRemoteCourses] = useState([]);
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -32,8 +31,8 @@ export default function InstructorCoursesPage() {
     return () => controller.abort();
   }, []);
   const courses = useMemo(() => remoteCourses.map(course => ({ ...course,
-    points: transactions.filter(item => item.type === 'teaching' && item.courseId === (instructorPublicCourseIds[course.id] || course.id)).reduce((sum, item) => sum + item.points, 0),
-  })), [remoteCourses, transactions]);
+    points: walletLoading || walletError ? '—' : teaching.find(item => item.courseId === course.id)?.points ?? 0,
+  })), [remoteCourses, teaching, walletLoading, walletError]);
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -135,7 +134,7 @@ export default function InstructorCoursesPage() {
     0,
   );
 
-  const totalPoints = earned;
+  const totalPoints = earned ?? '—';
 
   const averageRating =
     publishedCourses.length > 0
