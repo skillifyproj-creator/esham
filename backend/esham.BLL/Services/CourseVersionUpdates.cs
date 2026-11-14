@@ -152,6 +152,6 @@ public sealed class CourseVersionUpdates(AppDbContext db, INotificationWriter no
         var coverage = total == 0 ? 0 : (int)Math.Round(count * 100d / total);
         return ServiceResult<EnrollmentVersionState>.Ok(new(enrollment.Id, course.Id, enrollment.CourseVersionId, current.Id, current.VersionNumber, enrollment.Status,
             completed, enrollment.CompletedAt, enrollment.Certificate?.Id, enrollment.Certificate?.CourseVersionId,
-            total, completed ? 0 : total, count, completed ? 100 : coverage, coverage, completed || total > 0 && count == total, false, false, lessonStates, taskStates));
+            total, completed ? 0 : total, count, completed ? 100 : coverage, coverage, completed || total > 0 && count == total, true, true, lessonStates, taskStates));
     }
 }

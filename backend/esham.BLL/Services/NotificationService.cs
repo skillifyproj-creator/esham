@@ -41,6 +41,12 @@ public sealed class NotificationService(AppDbContext db, UserManager<Application
             .Select(x => new { x.Id, x.CourseVersion.CourseId }).ToDictionaryAsync(x => x.Id, x => x.CourseId, ct);
         items = items.Select(x => targets.TryGetValue(x.Id, out var courseId)
             ? x with { TargetUrl = x.NotificationType == "course.published" ? $"/courses/{courseId:D}" : $"/instructor/courses/{courseId:D}/review" } : x).ToList();
+        var submittedIds=items.Where(x=>x.NotificationType=="task.submitted").Select(x=>x.Id).ToArray();
+        var submitted=await db.TaskSubmissions.AsNoTracking().Where(x=>submittedIds.Contains(x.Id)&&x.SubmittedAt!=null&&x.Enrollment.Course.OwnerUserId==user.Id).Select(x=>x.Id).ToListAsync(ct);
+        var assessedIds=items.Where(x=>x.NotificationType=="task.assessed").Select(x=>x.Id).ToArray();
+        var assessed=await db.TaskSubmissionReviews.AsNoTracking().Where(x=>assessedIds.Contains(x.Id)&&x.TaskSubmission.Enrollment.LearnerUserId==user.Id)
+            .Select(x=>new{x.Id,x.TaskSubmission.EnrollmentId,x.TaskSubmissionId}).ToDictionaryAsync(x=>x.Id,ct);
+        items=items.Select(x=>submitted.Contains(x.Id)?x with {TargetUrl="/instructor/submissions"}:assessed.TryGetValue(x.Id,out var review)?x with {TargetUrl=$"/learner/enrollments/{review.EnrollmentId:D}/submissions/{review.TaskSubmissionId:D}"}:x).ToList();
         return ServiceResult<NotificationPage>.Ok(new(user.Id, items, query.Page, query.PageSize, total));
     }
 

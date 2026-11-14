@@ -62,7 +62,7 @@ public sealed class InstructorInsightsService(AppDbContext db)
         if(page<1||page>100000||status!=null&&!new[]{"awaitingReview","approved","rejected"}.Contains(status))return Fail(ServiceFailure.Validation,"Invalid submission filter.");
         // Draft answers are private. Never expose a learner's in-progress attempt.
         var q=db.TaskSubmissions.AsNoTracking().Where(x=>x.Enrollment.Course.OwnerUserId==a.Id&&x.SubmittedAt!=null&&x.CourseTask.CourseVersion.CourseId==x.Enrollment.CourseId&&x.CourseTask.CourseVersion.ReviewStatus=="approved"&&x.Status!="inProgress"&&(!id.HasValue||x.Id==id)&& (status==null||x.Status==status));
-        var rows=await q.OrderByDescending(x=>x.SubmittedAt).ThenBy(x=>x.Id).Skip((page-1)*50).Take(50).Select(x=>new{x.Id,x.Status,x.AttemptNumber,x.SubmittedAt,x.AnswerText,x.WorkUrl,x.CourseTaskId,CourseId=x.Enrollment.CourseId,x.CourseTask.TitleAr,x.CourseTask.TitleEn,LearnerName=x.Enrollment.LearnerUser.Name,LearnerNameEn=x.Enrollment.LearnerUser.NameEn,Reviews=x.Reviews.OrderByDescending(r=>r.ReviewedAt).Select(r=>new{r.Decision,r.Feedback,r.ReviewedAt}),Files=x.Attachments.Select(f=>new{f.Id,Name=f.MediaAsset.OriginalFileName})}).ToListAsync(ct);
+        var rows=await q.OrderByDescending(x=>x.SubmittedAt).ThenBy(x=>x.Id).Skip((page-1)*50).Take(50).Select(x=>new{x.Id,x.Status,x.AttemptNumber,x.SubmittedAt,x.AnswerText,x.WorkUrl,x.CourseTaskId,CourseId=x.Enrollment.CourseId,x.CourseTask.CourseVersionId,x.CourseTask.LogicalTaskId,x.IsOptionalAtCreation,x.CourseTask.Instructions,x.CourseTask.Requirements,x.CourseTask.TitleAr,x.CourseTask.TitleEn,LearnerName=x.Enrollment.LearnerUser.Name,LearnerNameEn=x.Enrollment.LearnerUser.NameEn,Reviews=x.Reviews.OrderByDescending(r=>r.ReviewedAt).Select(r=>new{r.Id,r.Decision,r.Feedback,r.ReviewedAt}),Files=x.Attachments.Select(f=>new{f.Id,Name=f.MediaAsset.OriginalFileName})}).ToListAsync(ct);
         if(id.HasValue&&rows.Count==0)return Fail(ServiceFailure.NotFound,"Submission not found.");
         return ServiceResult<object>.Ok(new{Items=rows,Total=await q.CountAsync(ct),Page=page});
     }
@@ -82,10 +82,13 @@ public sealed class InstructorInsightsService(AppDbContext db)
             if(cid==null)return Fail(ServiceFailure.NotFound,"Submission not found.");
             var course=await (db.Database.IsSqlServer()?db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={cid.Value}"):db.Courses).SingleAsync(x=>x.Id==cid,ct);
             if(course.OwnerUserId!=a.Id)return Fail(ServiceFailure.NotFound,"Submission not found.");
+            var fresh=await Actor(user,ct);if(fresh.Id!=a.Id)return Fail(fresh.Failure,"Instructor session changed.");
             var s=await db.TaskSubmissions.Include(x=>x.Enrollment).Include(x=>x.CourseTask).ThenInclude(x=>x.CourseVersion).SingleAsync(x=>x.Id==id,ct);
             if(s.Status!="awaitingReview"||s.SubmittedAt==null||await db.TaskSubmissionReviews.AnyAsync(x=>x.TaskSubmissionId==id,ct))return Fail(ServiceFailure.Conflict,"Only an unreviewed submitted attempt can be reviewed.");
             if(s.Enrollment.Status is not ("active" or "completed")||s.CourseTask.CourseVersion.CourseId!=course.Id||s.CourseTask.CourseVersion.ReviewStatus!="approved"||!await db.EnrollmentVersionAccess.AnyAsync(x=>x.EnrollmentId==s.EnrollmentId&&x.CourseId==course.Id&&x.CourseVersionId==s.CourseTask.CourseVersionId,ct)&&s.Enrollment.CourseVersionId!=s.CourseTask.CourseVersionId)return Fail(ServiceFailure.Conflict,"The task is outside the enrollment's approved version access.");
-            db.TaskSubmissionReviews.Add(new(){TaskSubmissionId=id,ReviewerUserId=a.Id,Decision=input.Decision,Feedback=input.Feedback?.Trim(),ReviewedAt=DateTimeOffset.UtcNow});
+            var review=new TaskSubmissionReview {TaskSubmissionId=id,ReviewerUserId=a.Id,Decision=input.Decision,Feedback=input.Feedback?.Trim(),ReviewedAt=DateTimeOffset.UtcNow};
+            db.TaskSubmissionReviews.Add(review);
+            await new NotificationWriter(db).StageAsync(new(review.Id,s.Enrollment.LearnerUserId,"task.assessed","تمت مراجعة المهمة","Task assessed","تمت مراجعة محاولتك. افتح التسليم لعرض القرار والملاحظات.","Your attempt has been assessed. Open the submission to see the decision and feedback."),ct);
             s.Status=input.Decision;await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);
             // Immutable evidence only: learner completion, points and certificates remain learner-service responsibilities.
             return ServiceResult<object>.Ok(new{Id=id,Status=s.Status});

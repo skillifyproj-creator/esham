@@ -119,7 +119,7 @@ public sealed class CourseVersionUpdateTests
         db.LessonProgressRecords.Add(new(){EnrollmentId=d.EnrollmentId,LessonId=lesson.Id,IsCompleted=false,LastPositionSeconds=30});
         await db.SaveChangesAsync();var state=await State(db,d);
         Assert.True(state.Tasks[0].IsApproved);Assert.True(state.Tasks[0].OptionalResubmissionAllowedByPolicy);
-        Assert.False(state.LearnerSubmissionApiAvailable);Assert.True(state.Lessons[0].IsCompleted);Assert.Equal(100,state.ProgressPercentage);
+        Assert.True(state.LearnerSubmissionApiAvailable);Assert.True(state.Lessons[0].IsCompleted);Assert.Equal(100,state.ProgressPercentage);
         Assert.Equal(2,await db.TaskSubmissions.CountAsync());Assert.Equal(2,await db.TaskSubmissionReviews.CountAsync());
         Assert.True((await db.TaskSubmissions.SingleAsync(x=>x.Id==optional.Id)).IsOptionalAtCreation);
         Assert.True((await db.LessonProgressRecords.SingleAsync(x=>x.LessonId==d.LessonId)).IsCompleted);

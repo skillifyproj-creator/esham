@@ -17,7 +17,7 @@ public sealed class InstructorInsightsTests
     {
         var cs=Environment.GetEnvironmentVariable("ESHAM_ACCOUNT_TEST_SQLSERVER");var parsed=new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(cs);
         if(parsed.DataSource!=@"(localdb)\MSSQLLocalDB"||!parsed.InitialCatalog.StartsWith("Esham_AccountTests_"))throw new InvalidOperationException("Isolated LocalDB required.");
-        using var p=AdminServices(o=>o.UseSqlServer(cs,x=>x.EnableRetryOnFailure()));using var scope=p.CreateScope();var s=scope.ServiceProvider;var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
+        using var p=AdminServices(o=>o.UseSqlServer(cs,x=>x.EnableRetryOnFailure()));using var scope=p.CreateScope();var s=scope.ServiceProvider;var actual=s.GetRequiredService<AppDbContext>();if(actual.Database.IsSqlServer())Assert.True(await SubmissionSqlServerTests.Gate(actual).IsEnabledAsync());var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
         var task=await db.CourseTasks.SingleAsync(x=>x.CourseVersionId==d.Version);var lesson=await db.Lessons.SingleAsync(x=>x.CourseSection.CourseVersionId==d.Version);
         var e=new Enrollment{LearnerUserId=d.Learner,CourseId=d.Course,CourseVersionId=d.Version};db.Enrollments.Add(e);
         db.CourseReviews.Add(new(){EnrollmentId=e.Id,CourseVersionId=d.Version,Rating=3,Comment="SQL review"});
@@ -35,7 +35,7 @@ public sealed class InstructorInsightsTests
     }
     [Fact] public async Task Empty_statistics_are_real_and_watch_time_is_unavailable()
     {
-        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
+        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var actual=s.GetRequiredService<AppDbContext>();if(actual.Database.IsSqlServer())Assert.True(await SubmissionSqlServerTests.Gate(actual).IsEnabledAsync());var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
         var data=Json(await service.Analytics(Principal(d.Owner),null));Assert.Equal(0,data.GetProperty("learners").GetProperty("enrolled").GetInt32());Assert.Equal(JsonValueKind.Null,data.GetProperty("stats").GetProperty("averageWatchHours").ValueKind);
         Assert.Equal(0,Json(await service.Reviews(Principal(d.Owner),null)).GetProperty("total").GetInt32());
         Assert.Equal(ServiceFailure.NotFound,(await service.Analytics(Principal(d.Owner),Guid.NewGuid())).Failure);
@@ -43,7 +43,7 @@ public sealed class InstructorInsightsTests
     }
     [Fact] public async Task Fresh_roles_and_ownership_prevent_access_to_other_instructor_data()
     {
-        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
+        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var actual=s.GetRequiredService<AppDbContext>();if(actual.Database.IsSqlServer())Assert.True(await SubmissionSqlServerTests.Gate(actual).IsEnabledAsync());var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
         Assert.Equal(ServiceFailure.Unauthenticated,(await service.Analytics(new(),null)).Failure);
         var forged=new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier,d.Learner),new Claim(ClaimTypes.Role,"Instructor")],"forged"));
         Assert.Equal(ServiceFailure.Forbidden,(await service.Analytics(forged,null)).Failure);
@@ -56,7 +56,7 @@ public sealed class InstructorInsightsTests
     }
     [Fact] public async Task Persisted_reviews_progress_and_enrollment_cohorts_feed_analytics()
     {
-        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
+        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var actual=s.GetRequiredService<AppDbContext>();if(actual.Database.IsSqlServer())Assert.True(await SubmissionSqlServerTests.Gate(actual).IsEnabledAsync());var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
         var e=new Enrollment{LearnerUserId=d.Learner,CourseId=d.Course,CourseVersionId=d.Version,LastOpenedAt=DateTimeOffset.UtcNow};db.Enrollments.Add(e);
         var lesson=await db.Lessons.SingleAsync();db.LessonProgressRecords.Add(new(){EnrollmentId=e.Id,LessonId=lesson.Id,IsCompleted=true});
         db.CourseReviews.Add(new(){EnrollmentId=e.Id,CourseVersionId=d.Version,Rating=4,Comment="Actual review"});await db.SaveChangesAsync();
@@ -66,7 +66,7 @@ public sealed class InstructorInsightsTests
     }
     [Fact] public async Task Attachments_require_owned_submitted_work_and_review_validates_version_access()
     {
-        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
+        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var actual=s.GetRequiredService<AppDbContext>();if(actual.Database.IsSqlServer())Assert.True(await SubmissionSqlServerTests.Gate(actual).IsEnabledAsync());var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
         var e=new Enrollment{LearnerUserId=d.Learner,CourseId=d.Course,CourseVersionId=d.Version};db.Enrollments.Add(e);var task=await db.CourseTasks.SingleAsync();
         var sub=new TaskSubmission{EnrollmentId=e.Id,CourseTaskId=task.Id,Status="awaitingReview",SubmittedAt=DateTimeOffset.UtcNow};db.TaskSubmissions.Add(sub);
         var media=new MediaAsset{OwnerUserId=d.Learner,StorageKey="isolated-submission",OriginalFileName="work.txt",MimeType="text/plain",MediaType="attachment"};db.MediaAssets.Add(media);
@@ -80,7 +80,7 @@ public sealed class InstructorInsightsTests
     }
     [Fact] public async Task Reviews_are_append_only_reject_drafts_replays_and_foreign_owners_without_awarding_points()
     {
-        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
+        using var p=AdminServices();using var scope=p.CreateScope();var s=scope.ServiceProvider;var actual=s.GetRequiredService<AppDbContext>();if(actual.Database.IsSqlServer())Assert.True(await SubmissionSqlServerTests.Gate(actual).IsEnabledAsync());var d=await PlatformModerationTests.Seed(s);var db=s.GetRequiredService<AppDbContext>();var service=new InstructorInsightsService(db);
         var e=new Enrollment{LearnerUserId=d.Learner,CourseId=d.Course,CourseVersionId=d.Version};db.Enrollments.Add(e);var task=await db.CourseTasks.SingleAsync();
         var submitted=new TaskSubmission{EnrollmentId=e.Id,CourseTaskId=task.Id,Status="awaitingReview",SubmittedAt=DateTimeOffset.UtcNow,AnswerText="Private work"};
         var draft=new TaskSubmission{EnrollmentId=e.Id,CourseTaskId=task.Id,AttemptNumber=2};db.TaskSubmissions.AddRange(submitted,draft);await db.SaveChangesAsync();

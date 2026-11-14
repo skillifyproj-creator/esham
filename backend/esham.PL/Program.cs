@@ -42,6 +42,19 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<CategoryAdminProvisioningService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
+builder.Services.Configure<EnrollmentPurchaseOptions>(builder.Configuration.GetSection("EnrollmentPurchases"));
+builder.Services.AddScoped<EnrollmentPurchaseGate>();
+builder.Services.AddScoped<IEnrollmentPurchaseGate>(services => services.GetRequiredService<EnrollmentPurchaseGate>());
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.Configure<LearningProgressOptions>(builder.Configuration.GetSection("LearningProgress"));
+builder.Services.AddScoped<ILearningProgressWriteGate, LearningProgressWriteGate>();
+builder.Services.AddScoped<LearnerLearningAccess>();
+builder.Services.AddScoped<ILearnerLearningService, LearnerLearningService>();
+builder.Services.AddScoped<ILessonProgressService, LessonProgressService>();
+builder.Services.Configure<SubmissionMutationOptions>(builder.Configuration.GetSection("SubmissionMutations"));
+builder.Services.AddScoped<ISubmissionMutationGate, SubmissionMutationGate>();
+builder.Services.AddScoped<ILearnerSubmissionService, LearnerSubmissionService>();
 builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
@@ -63,6 +76,8 @@ if (string.IsNullOrWhiteSpace(mediaRoot) && builder.Environment.IsDevelopment())
     mediaRoot = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "../storage/media"));
 builder.Services.AddSingleton<IMediaStorage>(_ => new esham.PL.Storage.LocalMediaStorage(
     mediaRoot ?? throw new InvalidOperationException("Configure Media:StorageRoot or a production IMediaStorage provider before using lesson media.")));
+builder.Services.AddScoped<ISubmissionAttachmentWriter>(s => new esham.PL.Storage.SubmissionAttachmentWriter(s.GetRequiredService<AppDbContext>(),
+    s.GetRequiredService<ISubmissionMutationGate>(), mediaRoot ?? ""));
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.ConfigureApplicationCookie(options =>
@@ -100,6 +115,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+if (args.Contains("--reconcile-submission-uploads", StringComparer.Ordinal)) {
+    using var reconciliation = app.Services.CreateScope();
+    var count = await reconciliation.ServiceProvider.GetRequiredService<ISubmissionAttachmentWriter>().ReconcilePendingAsync(CancellationToken.None);
+    Console.WriteLine($"Reconciled {count} eligible isolated submission upload journals.");
+    return;
+}
 if (await DevelopmentIdentityRoles.RunCommandAsync(app, args)) return;
 
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue("SeedData:Enabled", true))
@@ -150,6 +171,10 @@ app.MapPlatformModerationEndpoints();
 app.MapInstructorInsightsEndpoints();
 app.MapAdminIntegrationEndpoints();
 app.MapEnrollmentVersionEndpoints();
+app.MapEnrollmentEndpoints();
+app.MapWalletEndpoints();
+app.MapLearnerLearningEndpoints();
+app.MapLearnerSubmissionEndpoints();
 app.MapCurriculumEndpoints();
 app.MapCourseTaskEndpoints();
 app.MapLessonMediaEndpoints();
@@ -170,10 +195,12 @@ app.MapGet("/weatherforecast", () =>
 
 // Read-only development verification handshake: no server/database identity or secrets exposed.
 if (app.Environment.IsDevelopment())
-    app.MapGet("/development/test-isolation", () => {
-        var target = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
-        return Results.Ok(new { isolated = target.DataSource.Equals(@"(localdb)\MSSQLLocalDB", StringComparison.OrdinalIgnoreCase)
-            && target.InitialCatalog.StartsWith("Esham_AccountTests_", StringComparison.Ordinal) });
+    app.MapGet("/development/test-isolation", async (EnrollmentPurchaseGate gate, ILearningProgressWriteGate progress, ISubmissionMutationGate submissions, CancellationToken ct) => {
+        // Verify the actual connected identity before browser mutation guards allow requests.
+        var isolated = await gate.VerifyTargetAsync(ct);
+        var expectedMediaRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "../../artifacts/phase2-isolated/media"));
+        var mediaIsolated = isolated && !string.IsNullOrWhiteSpace(mediaRoot) && string.Equals(Path.GetFullPath(mediaRoot), expectedMediaRoot, StringComparison.OrdinalIgnoreCase);
+        return Results.Ok(new { isolated, purchasesEnabled = isolated && await gate.IsEnabledAsync(ct), progressWritesEnabled = isolated && await progress.IsEnabledAsync(ct), submissionMutationsEnabled = isolated && await submissions.IsEnabledAsync(ct), mediaIsolated });
     }).AllowAnonymous();
 
 app.Run();
