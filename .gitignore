@@ -72,3 +72,29 @@ ai/data/raw/
 # Future database-targeted execution/recovery reports remain private.
 /docs/migrations/db[0-9]*
 /docs/migrations/*-preflight.*
+
+# Machine-local settings, IDE state, databases and private verification fixtures.
+**/.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.ndf
+*.sdf
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.upload
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/appsettings.*.secrets.json
+**/browser-fixtures*.json
+**/current-fixture-path.txt
+**/database-identity.json
+**/persisted-invariants.json
+**/browser-results.json
+**/.phase3-journal/

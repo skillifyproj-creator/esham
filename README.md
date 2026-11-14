@@ -2,9 +2,9 @@
 
 Esham combines learner, instructor/hybrid, GeneralAdmin and CategoryAdmin workspaces. The implementation is React/Vite in `frontend/`, ASP.NET Core 9 / EF Core / Identity / SQL Server in `backend/`, and independent Node.js AI services in `ai/`.
 
-**Implementation and handoff status: November 6, 2026.** Server-backed course management, moderation/publication, administration and instructor reporting are implemented and tested. The complete learner enrollment/completion/reward workflow is **not finished**. Existing learner browser previews must not be treated as authoritative business records.
+**Implementation and handoff status: November 15, 2026.** Learner Phases 1–3 are implemented and verified for the approved isolated development scope: enrollment and atomic points, protected learning/progress, and submissions/assessment integration. Existing course management, moderation/publication, administration and instructor functionality are preserved. Course-completion reconciliation, learner course reviews and certificate issuance remain unfinished. Phase 4 has not started.
 
-The 20/20/20 points policy remains the intended rule. Existing server account finalization already grants the one-time welcome credit; enrollment debit and instructor enrollment reward still require Mais's atomic learner-side implementation. Do not grant points for lesson completion, submissions or reviews.
+The existing 20/20/20 policy is implemented: one-time welcome credit, atomic learner enrollment debit and instructor enrollment reward. Purchases, progress writes and new submission mutations default to disabled and are restricted to the approved isolated LocalDB target. Hosted enablement and private-media deployment require a separate decision. Lessons, submissions and reviews never award extra points.
 
 ## Current implementation and ownership
 
@@ -14,12 +14,12 @@ The 20/20/20 points policy remains the intended rule. Existing server account fi
 | Database | SQL Server domain model and three EF migrations; course update migration tested on restored test DB and applied/verified on shared DB with approval | No automatic migration/reseed on startup; new shared changes require coordinator approval |
 | Courses and media | Owned course drafts, curriculum, lessons, tasks, cover/media persistence, readiness and protected media reads | AI execution is a separate service; AI output is not publication authority |
 | Moderation/publication | Real submit, pending review, assigned CategoryAdmin approval/rejection/changes, content-based resubmission validation, approved-version publication and retained snapshots | GeneralAdmin has oversight; assigned CategoryAdmin decides publication under current policy |
-| Course-version updates | Stable logical lesson/task IDs, append-only enrollment/version access, publication integration and deduplicated notifications, read-only learner version state | Mais must integrate enrollment staging and learner writes; original Enrollment.CourseVersionId remains historical |
+| Course-version updates | Stable logical identities, append-only access receipts, atomic enrollment staging, publication-race protection and inherited achievements | Original Enrollment.CourseVersionId remains historical; no additional update charge or arbitrary historical playback |
 | Admin / CategoryAdmin | Existing 17 routes, real distinct-course statistics/reports/activity, categories, existing-member scope assignments, CategoryAdmin provisioning, users, announcements, reports/warnings/appeals; bilingual responsive UI and collapsible sidebars; no Footer | Category metadata and assignment saves are separate operations with explicit partial-success feedback; GeneralAdmin-only CategoryAdmin creation with atomic initial assignments; no existing-account promotion |
 | Instructor reporting | Real dashboard/performance, read-only persisted course ratings, own-course submissions/details/attachments and immutable review decisions | Populated data depends on learner writes; watch duration is unavailable, not inferred from resume position |
-| Public discovery/details | Persisted published catalog, trusted educational categories, cover images, safe published sections/lesson outline and aggregate ratings; freshness on navigation/focus | No protected video, attachment or task-instruction exposure; enrollment is explicitly unavailable until learner services exist |
+| Public discovery/details | Persisted published catalog, trusted categories, safe published outline and aggregate ratings; real enrollment integration | Private content uses authenticated enrollment-scoped routes; hosted purchases remain disabled |
 | Themes / layout | Existing Admin/CategoryAdmin refinement, RTL/LTR, responsive navigation, burgundy Dark Mode, original logo/logo2 switching | Chatbot appearance is excluded; theme preferences are UI storage, not business persistence |
-| Learner journeys | Existing UI, real public catalog, account/session and notification integration; version-state adapter and shared entities | Enrollment/payment, progress, learner attempt/rating writes, reconciliation and certificate issuance remain unfinished; several screens still use local/demo data |
+| Learner journeys | Real enrollment/wallet/history, protected player and progress, task drafts/uploads/finalization/history, instructor assessment and transaction-bound notifications | Reviews, full completion reconciliation and certificate issuance remain future work; unrelated preview screens are not authoritative |
 | AI, chatbot and video | Existing implementation and detailed documentation below are retained | Provider/network/hosting dependencies and the existing documented limits still apply |
 
 ### Fatima — completed backend and integration work
@@ -41,7 +41,7 @@ Details: [moderation/publishing](docs/course-moderation-publishing.md), [version
 - **Persisted owner notices:** Request Changes includes feedback and a review link; successful approval/publication produces one owner notice and a public-course link in the same transaction. Recipients and targets are resolved server-side; concurrent/repeated decisions cannot duplicate the event. Learner course-update notices remain independent. Historical missing notices are not backfilled automatically.
 - **Trusted categories:** public educational endpoints, onboarding/preferences, course category validation and published discovery share an active-category policy excluding four specifically audited fixture IDs. It does not guess from names or language, delete records, or change administrative assignments. GeneralAdmin management still sees all records; CategoryAdmin remains assigned-category scoped.
 - **Real public details:** `/courses/:courseId` uses persisted published title/description, cover, instructor, category, objectives, ordered sections and lesson titles/types. Rating summaries use existing persisted reviews. Tasks expose a count only because no public-task visibility contract exists. Video files, lesson bodies, private attachments and task instructions remain protected. Later drafts never replace the selected public version.
-- **Instructor View Course:** public published details are separate from editing and owner-only draft preview. Dashboard/Performance/Ratings/Submissions use real Instructor APIs. Some older My Courses summary/card metrics still use placeholder counts or local wallet previews; do not treat those as completed learner accounting.
+- **Instructor View Course:** public published details are separate from editing and owner-only draft preview. Dashboard/Performance/Ratings/Submissions use real Instructor APIs. Teaching-point metrics use the persisted reward ledger; assessment retains original task context and immutable feedback.
 - **Existing design:** Admin/CategoryAdmin retain their existing routes, warm light surfaces, collapsible RTL/LTR sidebar and no footer. Dark Mode uses the existing `frontend/src/styles/global.css` palette, including `--primary-00: #2C151A`, cream text and established green/purple accents. `frontend/src/components/ThemeLogo.jsx` switches `frontend/src/assets/esham-logo.png` / `frontend/src/assets/logo2.png`; original proportions are preserved. Chatbot styling/logo is excluded, and print/PDF behavior retains its existing asset policy.
 
 ### Architecture and persisted models
@@ -54,22 +54,23 @@ The current EF model includes Identity/ApplicationUser; Category/UserCategory/Ca
 
 The three migrations listed above are the existing source history; the approved course-update migration has already been applied to the coordinated shared installation. Hosted SQL connection settings belong in the PL project's existing User Secrets or deployment environment. Backup files, database exports and coordinator recovery/account reports are private operational material, not GitHub application source. Do not replay applied SQL or run migrations as a startup step.
 
-### Mais — remaining learner responsibilities
+### Mais — completed phases and remaining learner responsibilities
 
-1. Implement learner-owned Enrollment service/endpoints, eligibility and access; call `ICourseVersionUpdates.StageEnrollmentAsync` inside the enrollment transaction.
-2. Atomically debit the learner wallet and credit the instructor enrollment reward using the immutable PointTransaction ledger, stable operation keys, idempotency and concurrency/rollback protection. Reuse existing welcome-credit finalization rather than granting it again.
-3. Persist LessonProgress with enrollment/course/version ownership, completion evidence and safe resume-position validation.
-4. Implement learner TaskSubmission draft/upload/submit/revision-attempt APIs, submitted-work locking and IsOptionalAtCreation. Coordinate with existing immutable TaskSubmissionReview evidence; never overwrite an earlier approval.
-5. Implement eligible CourseReview writes and explicit version attribution. Instructor ratings remain read-only views of persisted reviews.
-6. Reconcile mandatory lesson/task completion using logical identity and version access. Preserve already completed courses, dates and historical achievements; new content is optional for completed learners.
-7. Issue certificates from server-verified completion with immutable attribution, unique verification IDs and idempotency; replace browser preview authority.
-8. Connect existing learner pages to these real APIs and replace their local/demo business records only after server behavior works.
+- Phase 1: [implementation/contracts](backend/PHASE1-ENROLLMENT-WALLET.md), [SQL/browser verification](backend/PHASE1-VERIFICATION.md).
+- Phase 2: [protected learning/progress](backend/PHASE2-PROTECTED-LEARNING.md), [verification](backend/PHASE2-VERIFICATION.md).
+- Phase 3: [tasks/submissions/assessment integration](backend/PHASE3-TASKS-SUBMISSIONS.md), [verification and acceptance checklist](backend/PHASE3-VERIFICATION.md).
+
+Remaining work, only after approval: authoritative course-completion reconciliation, eligible course-review writes and server-issued certificates. Preserve completed-course dates, historical achievements and immutable attribution. Replace the corresponding preview authority when those services are implemented.
+
+Shared runtime ports are 5206/5174; isolated verification uses 5216/5175. Never use the shared database for mutation tests, enable its learner write gates, replay migrations or copy synthetic fixtures into source control. Tests require explicit isolated opt-in and actual database identity checks. Verification documents contain historical test results, not permission to mutate a hosted target.
 
 Do not redesign shared entities, repin original enrollments, reset achievements, charge for course updates or duplicate Fatima's services. Follow the **course-first lock order** and detailed contracts in [the version handoff](docs/course-version-updates-handoff.md) and [instructor handoff](docs/instructor-backend-integration.md).
 
 ## تشغيل المشروع بنفسك من VS Code — PowerShell
 
-هذا الدليل هو المرجع الحالي للتشغيل المتكامل على **5173 للفرونت** و**5206 للباك**. الأقسام التاريخية الخاصة بالـAI على 5174 محفوظة أدناه؛ لا تخلط عناوين `localhost` و`127.0.0.1` أو منافذ الواجهة داخل الجلسة نفسها.
+هذا الدليل هو المرجع الحالي للتشغيل المتكامل على **5174 للفرونت** و**5206 للباك**. إعداد Vite الحالي يستخدم المنفذ 5174؛ لا تخلط عناوين `localhost` و`127.0.0.1` أو منافذ الواجهة داخل الجلسة نفسها.
+
+New Windows machine: see [secure local database setup](backend/LOCAL-DEVELOPMENT.md) for the required connection details, hidden-input User Secrets setup, startup-seeding safeguards and read-only verification.
 
 ### 1. افتح المجلد الصحيح
 
