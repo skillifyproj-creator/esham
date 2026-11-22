@@ -44,6 +44,28 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CourseAppeal> CourseAppeals => Set<CourseAppeal>();
     public DbSet<AdminActivityLog> AdminActivityLogs => Set<AdminActivityLog>();
 
+    private void ProtectCompletionHistory()
+    {
+        ChangeTracker.DetectChanges();
+        if(ChangeTracker.Entries<Certificate>().Any(x=>x.State==EntityState.Deleted))
+            throw new InvalidOperationException("Certificates are retained; use audited revocation.");
+        foreach(var entry in ChangeTracker.Entries<Certificate>().Where(x=>x.State==EntityState.Modified)) {
+            var status=entry.Property(x=>x.Status);
+            if(status.IsModified && status.CurrentValue!=status.OriginalValue && !(status.OriginalValue=="issued" && status.CurrentValue=="revoked"))
+                throw new InvalidOperationException("Certificate revocation is terminal.");
+        }
+        foreach(var entry in ChangeTracker.Entries<Enrollment>().Where(x=>x.State==EntityState.Modified)) {
+            var date=entry.Property(x=>x.CompletedAt);
+            if(date.OriginalValue!=null && date.CurrentValue!=date.OriginalValue)
+                throw new InvalidOperationException("The first completion timestamp is immutable.");
+            if(entry.Property(x=>x.Status).IsModified && (entry.Property(x=>x.Status).OriginalValue=="completed" || date.OriginalValue!=null) && entry.Entity.Status!="completed")
+                throw new InvalidOperationException("Completed enrollments cannot be reopened.");
+        }
+    }
+    public override int SaveChanges(bool acceptAllChangesOnSuccess) {ProtectCompletionHistory();return base.SaveChanges(acceptAllChangesOnSuccess);}
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,CancellationToken cancellationToken=default) {
+        ProtectCompletionHistory();return base.SaveChangesAsync(acceptAllChangesOnSuccess,cancellationToken);
+    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

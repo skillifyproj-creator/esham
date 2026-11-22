@@ -36,11 +36,11 @@ public sealed class AdminUserTests
         services.AddDbContext<AppDbContext>(options =>
         {
             if (configure is null) options.UseInMemoryDatabase(database).ReplaceService<IDbContextTransactionManager, TestTransactionManager>();
-            else configure(options);
+            else { configure(options); options.AddInterceptors(new IsolatedSqlMutationGuard()); }
         });
         services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
         services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
-        services.ConfigureApplicationCookie(options => { options.Cookie.Name = "Esham.Identity"; options.Events.OnValidatePrincipal = AccountCookieValidation.ValidateAsync; });
+        services.ConfigureApplicationCookie(options => { options.Cookie.Name = "Esham.Identity"; AccountCookieValidation.Configure(options); });
         services.AddScoped<AccountService>();
         services.AddScoped<INotificationWriter, NotificationWriter>();
         services.AddScoped<AdminUserService>();

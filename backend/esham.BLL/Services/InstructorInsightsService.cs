@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace esham.BLL.Services;
 
 public sealed record InstructorReviewInput(string Decision,string? Feedback);
-public sealed class InstructorInsightsService(AppDbContext db)
+public sealed class InstructorInsightsService(AppDbContext db, EnrollmentCompletionService? completion = null)
 {
     private readonly ModerationAccess access=new(db);
     private static ServiceResult<object> Fail(ServiceFailure f,string m)=>ServiceResult<object>.Fail(f,m);
@@ -75,12 +75,19 @@ public sealed class InstructorInsightsService(AppDbContext db)
     public async Task<ServiceResult<object>> Review(ClaimsPrincipal user,Guid id,InstructorReviewInput input,CancellationToken ct=default)
     {
         if(input.Decision is not ("approved" or "rejected")||input.Feedback?.Length>2000||input.Decision=="rejected"&&string.IsNullOrWhiteSpace(input.Feedback))return Fail(ServiceFailure.Validation,"Choose approved/rejected; revision requests require feedback of at most 2000 characters.");
+        // Discovery is outside the serializable transaction: no user/evidence read locks precede the course lock.
+        var a=await Actor(user,ct);if(a.Id==null)return Fail(a.Failure,"Instructor membership required.");
+        var target=await db.TaskSubmissions.AsNoTracking().Where(x=>x.Id==id&&x.Enrollment.Course.OwnerUserId==a.Id)
+            .Select(x=>new{x.Enrollment.CourseId,x.EnrollmentId,x.Enrollment.LearnerUserId}).SingleOrDefaultAsync(ct);
+        if(target==null)return Fail(ServiceFailure.NotFound,"Submission not found.");
         try{return await db.Database.CreateExecutionStrategy().ExecuteAsync(async()=>{
             db.ChangeTracker.Clear();await using var tx=await db.Database.BeginTransactionAsync(IsolationLevel.Serializable,ct);
-            var a=await Actor(user,ct);if(a.Id==null)return Fail(a.Failure,"Instructor membership required.");
-            var cid=await db.TaskSubmissions.Where(x=>x.Id==id&&x.Enrollment.Course.OwnerUserId==a.Id).Select(x=>(Guid?)x.Enrollment.CourseId).SingleOrDefaultAsync(ct);
-            if(cid==null)return Fail(ServiceFailure.NotFound,"Submission not found.");
-            var course=await (db.Database.IsSqlServer()?db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={cid.Value}"):db.Courses).SingleAsync(x=>x.Id==cid,ct);
+            var course=await (db.Database.IsSqlServer()?db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={target.CourseId}"):db.Courses).SingleAsync(x=>x.Id==target.CourseId,ct);
+            if(db.Database.IsSqlServer()) {
+                foreach(var uid in new[]{a.Id,target.LearnerUserId}.Distinct().OrderBy(x=>x,StringComparer.Ordinal))
+                    await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={uid}").SingleAsync(ct);
+                await db.Enrollments.FromSqlInterpolated($"SELECT * FROM [Enrollments] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={target.EnrollmentId}").SingleAsync(ct);
+            }
             if(course.OwnerUserId!=a.Id)return Fail(ServiceFailure.NotFound,"Submission not found.");
             var fresh=await Actor(user,ct);if(fresh.Id!=a.Id)return Fail(fresh.Failure,"Instructor session changed.");
             var s=await db.TaskSubmissions.Include(x=>x.Enrollment).Include(x=>x.CourseTask).ThenInclude(x=>x.CourseVersion).SingleAsync(x=>x.Id==id,ct);
@@ -89,8 +96,9 @@ public sealed class InstructorInsightsService(AppDbContext db)
             var review=new TaskSubmissionReview {TaskSubmissionId=id,ReviewerUserId=a.Id,Decision=input.Decision,Feedback=input.Feedback?.Trim(),ReviewedAt=DateTimeOffset.UtcNow};
             db.TaskSubmissionReviews.Add(review);
             await new NotificationWriter(db).StageAsync(new(review.Id,s.Enrollment.LearnerUserId,"task.assessed","تمت مراجعة المهمة","Task assessed","تمت مراجعة محاولتك. افتح التسليم لعرض القرار والملاحظات.","Your attempt has been assessed. Open the submission to see the decision and feedback."),ct);
-            s.Status=input.Decision;await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);
-            // Immutable evidence only: learner completion, points and certificates remain learner-service responsibilities.
+            s.Status=input.Decision;await db.SaveChangesAsync(ct);
+            if(input.Decision=="approved" && completion!=null)await completion.StageAsync(s.EnrollmentId,ct);
+            await tx.CommitAsync(ct);
             return ServiceResult<object>.Ok(new{Id=id,Status=s.Status});
         });}finally{db.ChangeTracker.Clear();}
     }

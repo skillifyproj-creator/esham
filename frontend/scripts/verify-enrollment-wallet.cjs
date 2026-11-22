@@ -113,14 +113,19 @@ async function run() {
     await page.route(api + '/me/wallet', async route => {
       if (trapped) return route.continue();
       trapped = true; const response = await route.fetch(); const data = await response.json();
-      // route.fetch already processed the response's Set-Cookie. Delay its real body,
-      // but do not apply that old cookie a second time after the synthetic login switch.
-      const responseHeaders = { ...response.headers() }; delete responseHeaders['set-cookie'];
-      assert.equal(data.accountId, f.learner.id); ready(); await hold; await route.fulfill({ response, headers: responseHeaders }); finished();
+      assert.ok(!response.headers()['set-cookie'], 'Passive wallet reads must not renew cookies');
+      assert.equal(data.accountId, f.learner.id); ready(); await hold;
+      try {await route.fulfill({ response });} finally {finished();}
     });
     await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await captured;
     assert.equal((await learner.request.post(api + '/auth/logout', { headers })).status(), 204);
     await login(learner, f.otherLearner); await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForFunction(id => JSON.parse(localStorage.getItem('esham-account-profile-v1') || '{}').id === id, f.otherLearner.id);
+    // A real logout can correctly navigate to Login during the gap. The API login helper
+    // does not perform the UI's post-login navigation; preserve the mounted financial store.
+    if (new URL(page.url()).pathname === '/login') await page.evaluate(() => {
+      history.pushState({}, '', '/learner/points'); window.dispatchEvent(new PopStateEvent('popstate'));
+    });
     await page.waitForFunction(() => document.querySelector('.wallet-balance strong')?.textContent === '20');
     release(); await fulfilled;
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
@@ -140,7 +145,7 @@ async function run() {
     await page.goto(frontend + '/courses/' + f.staleCourseId);
     await page.getByRole('button', { name: 'Enroll for 20 points', exact: true }).waitFor({ state: 'visible' });
     const log = execFileSync('dotnet', ['test', path.join(root, 'backend/esham.Tests/esham.Tests.csproj'), '--no-build',
-      '--filter', 'FullyQualifiedName~Advance_only_the_synthetic_browser_publication', '--logger', 'console;verbosity=normal'],
+      ...(process.env.ESHAM_TEST_OUTPUT_PATH?['-p:OutputPath='+process.env.ESHAM_TEST_OUTPUT_PATH]:[]), '--filter', 'FullyQualifiedName~Advance_only_the_synthetic_browser_publication', '--logger', 'console;verbosity=normal'],
       { cwd: root, env: { ...process.env, ESHAM_PHASE1_SETUP: 'publish' }, timeout: 60000, stdio: 'pipe' });
     fs.writeFileSync(path.join(artifacts, 'browser-publication.log'), log);
     await page.getByRole('button', { name: 'Enroll for 20 points', exact: true }).click();

@@ -1,30 +1,41 @@
-import ThemeLogo from '../../components/ThemeLogo';
-import { useState } from 'react';
-import { createCertificatePdf, downloadBlob } from '../../services/certificatePdf';
-import useAccountName from '../../hooks/useAccountName';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { useLearner } from '../../context/LearnerContext';
-import { useLearnerTasks } from '../../context/LearnerTasksContext';
+import ThemeLogo from '../../components/ThemeLogo';
+import { useAccountSession } from '../../context/AccountSessionContext';
 import { usePreferences } from '../../context/PreferencesContext';
-import useAccountProfile, { readAccountProfile } from '../../hooks/useAccountProfile';
-import { getEnrollmentDetails } from '../../data/learnerHelpers';
-import { canPreviewCertificate } from '../../data/certificates';
+import { loadCertificates, loadCertificate, certificatePdfData, certificateStatusLabel, formatCertificateDate } from '../../services/certificatesApi';
+import { createCertificatePdf, downloadBlob } from '../../services/certificatePdf';
 import logo from '../../assets/esham-logo.png';
 import '../../styles/certificates.css';
 export default function LearnerCertificatesPage(){
- const [pdfBusy,setPdfBusy]=useState(false),[pdfError,setPdfError]=useState('');
- const accountName=useAccountName(); const {courseId}=useParams(),{enrollments}=useLearner(),{tasks}=useLearnerTasks(),{language}=usePreferences(),profile=useAccountProfile();
- const [certificateLanguage,setCertificateLanguage]=useState(language);
- const [englishName,setEnglishName]=useState(profile.nameEn || (/^[a-z]/i.test(profile.name||'') ? profile.name : ''));
- const ct=(a,e)=>certificateLanguage==='ar'?a:e;
- const certificateName=certificateLanguage==='en' ? englishName.trim() : profile.name || accountName;
- const t=(a,e)=>language==='ar'?a:e;const details=enrollments.map(getEnrollmentDetails).filter(Boolean),eligible=details.filter(item=>canPreviewCertificate(item,tasks));const selected=courseId?eligible.find(item=>String(item.courseId)===courseId):null;
- async function downloadPdf(){
-  if(!selected || pdfBusy) return; setPdfBusy(true); setPdfError('');
-  if(certificateLanguage==='en' && englishName.trim().length<2){setPdfError(t('أدخل اسمك بالإنجليزية كما تريد أن يظهر على الشهادة.','Enter your English name as it should appear on the certificate.'));setPdfBusy(false);return;}
-  try{const blob=await createCertificatePdf({name:certificateName || ct('اسم المتعلّم','Learner name'),course:selected.course.title[certificateLanguage],instructor:selected.course.instructor[certificateLanguage],language:certificateLanguage,logo});downloadBlob(blob,`esham-certificate-${selected.courseId}-${certificateLanguage}.pdf`);if(certificateLanguage==='en'){try{localStorage.setItem('esham-account-profile-v1',JSON.stringify({...readAccountProfile(),nameEn:englishName.trim()}));window.dispatchEvent(new Event('esham-profile-updated'));}catch{/* Download remains available without saving the English spelling. */}}}catch{setPdfError(t('تعذّر تجهيز PDF. حاول مجددًا.','Unable to generate the PDF. Please retry.'));}finally{setPdfBusy(false);}
+ const account=useAccountSession(),{language}=usePreferences(),{certificateId,courseId}=useParams();
+ const id=account.status==='authenticated'?account.session.profile.id:null;
+ const [state,setState]=useState(null),[page,setPage]=useState(1),[revision,reload]=useState(0),[pdfLanguage,setPdfLanguage]=useState(language);
+ const current=useRef(null),busy=useRef(false),epoch=useRef(0);current.current=`${id}:${certificateId||courseId||''}:${page}`;
+ const t=(a,e)=>language==='ar'?a:e,ct=(a,e)=>pdfLanguage==='ar'?a:e;
+ useEffect(()=>{const controller=new AbortController(),key=current.current;setState(null);busy.current=false;
+  if(id)(certificateId?loadCertificate(id,certificateId,controller.signal):loadCertificates(id,page,controller.signal))
+   .then(data=>{if(!controller.signal.aborted&&current.current===key)setState({key,data});})
+   .catch(error=>{if(!controller.signal.aborted&&current.current===key)setState({key,error});});
+  return()=>{controller.abort();epoch.current++;};
+ },[id,certificateId,courseId,page,revision]);
+ const visible=state?.key===current.current?state:null,c=certificateId?visible?.data:null;
+ async function download(){if(busy.current||!c||c.status!=='issued')return;busy.current=true;const key=current.current, token=epoch.current;setState(s=>({...s,busy:true,pdfError:false}));
+  try {const fresh=await loadCertificate(id,c.id);if(current.current!==key||epoch.current!==token)return;
+   if(fresh.status!=='issued'){setState(s=>({...s,data:fresh}));return;}
+   const blob=await createCertificatePdf(certificatePdfData(fresh,pdfLanguage,logo));
+   const confirmed=await loadCertificate(id,c.id);if(current.current!==key||epoch.current!==token)return;
+   if(confirmed.status!=='issued'){setState(s=>({...s,data:confirmed}));return;}
+   downloadBlob(blob,`esham-certificate-${c.id}-${pdfLanguage}.pdf`);
+  }catch{if(current.current===key&&epoch.current===token)setState(s=>({...s,pdfError:true}));}finally{if(current.current===key&&epoch.current===token){busy.current=false;setState(s=>({...s,busy:false}));}}
  }
- return <main className="learner-dashboard certificate-page"><div className="container"><div className="certificate-tools"><h1>{t('شهاداتي','My certificates')}</h1><p>{t('شهادة إكمال بتصميم رسمي وخط واضح، مهيأة للطباعة على صفحة A4 واحدة بالعرض.','A formal completion certificate with clear typography, formatted for one landscape A4 page.')}</p><Link to="/learner/courses">{t('العودة إلى دوراتي','Back to my courses')}</Link></div>
- {selected ? <><div className="certificate-tools account-actions"><label>{t('لغة الشهادة','Certificate language')}<select aria-label={t('لغة الشهادة','Certificate language')} value={certificateLanguage} disabled={pdfBusy} onChange={event=>{setCertificateLanguage(event.target.value);setPdfError('');}}><option value="ar">العربية</option><option value="en">English</option></select></label>{certificateLanguage==='en'&&<label>{t('اسمك بالإنجليزية','Your English name')}<input dir="ltr" aria-label={t('اسمك بالإنجليزية','Your English name')} value={englishName} maxLength={160} onChange={event=>{setEnglishName(event.target.value);setPdfError('');}} placeholder="Full name in English"/></label>}<button className="button" disabled={pdfBusy} onClick={downloadPdf}>{pdfBusy?t('تجهيز PDF…','Generating PDF…'):t('تحميل الشهادة PDF','Download certificate PDF')}</button><button className="button button-outline" onClick={()=>window.print()}>{t('طباعة','Print')}</button>{pdfError&&<p role="alert">{pdfError}</p>}<Link className="button button-outline" to="/learner/courses/certificates">{t('كل الشهادات','All certificates')}</Link></div><article className="esham-certificate" dir={certificateLanguage==='ar'?'rtl':'ltr'} aria-label={ct('معاينة شهادة إكمال','Completion certificate preview')}><span className="certificate-watermark">{ct('معاينة','PREVIEW')}</span><ThemeLogo  alt={ct('منصة إسهام','Esham platform')}/><p className="certificate-eyebrow">{ct('منصة إسهام للتعلّم ومشاركة المعرفة','Esham · Learning & sharing knowledge')}</p><h2>{ct('شهادة إكمال دورة','Certificate of completion')}</h2><p>{ct('تُقدَّم هذه الشهادة إلى','Presented to')}</p><h3>{certificateName || ct('اسم المتعلّم','Learner name')}</h3><p>{ct('لإتمام متطلبات الدورة التدريبية','For completing the requirements of')}</p><h4>{selected.course.title[certificateLanguage]}</h4><div className="certificate-footer"><div><span className="certificate-signature" lang={certificateLanguage}>{selected.course.instructor[certificateLanguage]}</span><span>{ct('مدرّب الدورة','Course instructor')}</span></div><div><strong>{ct('صادرة عن منصة إسهام','Issued by Esham')}</strong><span>{ct('تاريخ الإصدار: بانتظار الاعتماد','Issue date: awaiting approval')}</span><span>{ct('الاعتماد ورقم التحقق: بانتظار الربط','Approval & verification ID: not connected')}</span></div></div></article></> : courseId ? <section className="learner-panel"><h2>{t('الشهادة غير متاحة','Certificate unavailable')}</h2><p>{t('يلزم إكمال الدروس واعتماد جميع المهام المطلوبة.','Complete the lessons and obtain approval for all required tasks.')}</p><Link to="/learner/courses/certificates">{t('عرض شهاداتي','View my certificates')}</Link></section> : <section className="learner-panel"><h2>{t('الدورات المستوفية للشروط','Eligible courses')}</h2>{eligible.length?eligible.map(item=><div className="certificate-list-item" key={item.courseId}><div><h3>{item.course.title[language]}</h3><p>{item.course.instructor[language]}</p></div><Link className="button button-outline" to={`/learner/courses/certificates/${item.courseId}`}>{t('معاينة الشهادة','Preview certificate')}</Link></div>):<p>{t('لم تستوفِ دورة شروط الشهادة بعد. ستظهر هنا بعد الإكمال واعتماد المهام.','No course qualifies yet. Certificates appear after completion and task approval.')}</p>}</section>}
+ if(!id && account.status!=="loading")return <main className="container section"><h1>{t('شهاداتي','My certificates')}</h1><p>{t('سجل الدخول لعرض شهاداتك.','Sign in to view your certificates.')}</p><Link to="/login">{t('تسجيل الدخول','Sign in')}</Link></main>;
+ return <main className="learner-dashboard certificate-page"><div className="container"><div className="certificate-tools"><h1>{t('شهاداتي','My certificates')}</h1><p>{t('شهادات الإكمال الصادرة والمسجلة في المنصة.','Completion certificates issued and recorded by the platform.')}</p><Link to="/learner/courses">{t('العودة إلى دوراتي','Back to My Courses')}</Link></div>
+ {!visible?<p role="status">{t('جارٍ تحميل الشهادات…','Loading certificates…')}</p>:visible.error?<p role="alert">{t('تعذر تحميل الشهادات.','Unable to load certificates.')} <button onClick={()=>reload(x=>x+1)}>{t('إعادة المحاولة','Retry')}</button></p>:c?<>
+ <div className="certificate-tools account-actions"><label>{t('لغة الشهادة','Certificate language')}<select aria-label="Certificate language" value={pdfLanguage} disabled={visible.busy} onChange={e=>setPdfLanguage(e.target.value)}><option value="ar">العربية</option><option value="en">English</option></select></label>
+ <button className="button" disabled={c.status!=='issued'||visible.busy} onClick={download}>{visible.busy?t('جارٍ تجهيز PDF…','Generating PDF…'):t('تحميل الشهادة PDF','Download certificate PDF')}</button><Link to="/learner/certificates">{t('كل الشهادات','All certificates')}</Link>{visible.pdfError&&<p role="alert">{t('تعذر تجهيز الشهادة. حاول مجددًا.','Unable to prepare the certificate. Retry.')}</p>}</div>
+ <article className="esham-certificate" dir={pdfLanguage==='ar'?'rtl':'ltr'}><ThemeLogo alt="Esham"/><p className="certificate-eyebrow">ESHAM</p><h2>{ct('شهادة إكمال دورة','Certificate of completion')}</h2><p>{ct('تُقدم إلى','Presented to')}</p><h3>{c.learnerNameSnapshot}</h3><p>{ct('لإتمام متطلبات الدورة','For completing the requirements of')}</p><h4>{pdfLanguage==='ar'?c.courseTitleSnapshotAr||c.courseTitleSnapshotEn:c.courseTitleSnapshotEn||c.courseTitleSnapshotAr}</h4><p>{c.instructorNameSnapshot}</p><p>{formatCertificateDate(c.issuedAt,pdfLanguage)}</p><p dir="ltr">{c.verificationCode}</p><strong>{certificateStatusLabel(c.status,pdfLanguage)}</strong><Link to={`/certificates/verify/${c.verificationCode}`}>{ct('التحقق من الشهادة','Verify certificate')}</Link></article></>:
+ <><div className="certificate-list">{visible.data.items.map(item=><article className="learner-panel" key={item.id}><h2>{language==='ar'?item.courseTitleSnapshotAr||item.courseTitleSnapshotEn:item.courseTitleSnapshotEn||item.courseTitleSnapshotAr}</h2><p>{certificateStatusLabel(item.status,language)}</p><Link className="button" to={`/learner/certificates/record/${item.id}`}>{t('عرض الشهادة','View certificate')}</Link></article>)}</div>{!visible.data.items.length&&<p>{t('لا توجد شهادات صادرة بعد.','No certificates have been issued yet.')}</p>}
+ <button disabled={page===1} onClick={()=>setPage(x=>x-1)}>{t('السابق','Previous')}</button><span> {page} </span><button disabled={page*20>=visible.data.total} onClick={()=>setPage(x=>x+1)}>{t('التالي','Next')}</button></>}
  </div></main>;
 }

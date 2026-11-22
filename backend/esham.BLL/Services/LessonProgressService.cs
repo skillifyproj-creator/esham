@@ -8,7 +8,7 @@ using esham.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 namespace esham.BLL.Services;
 
-public sealed class LessonProgressService(AppDbContext db, LearnerLearningAccess access, ILearningProgressWriteGate gate, ICourseVersionUpdates versions) : ILessonProgressService
+public sealed class LessonProgressService(AppDbContext db, LearnerLearningAccess access, ILearningProgressWriteGate gate, ICourseVersionUpdates versions, EnrollmentCompletionService? completion = null) : ILessonProgressService
 {
     public Task<ServiceResult<ProgressState>> WriteAsync(ClaimsPrincipal actor, Guid enrollmentId, Guid lessonId, ProgressWrite request, bool open = false, CancellationToken ct = default)
         => Mutate(actor, enrollmentId, lessonId, request.ExpectedCourseVersionId, request, open, ct);
@@ -27,8 +27,9 @@ public sealed class LessonProgressService(AppDbContext db, LearnerLearningAccess
                 await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
                 if (db.Database.IsSqlServer())
                 {
-                    await db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {initialAccess.Enrollment.CourseId}").SingleAsync(ct);
-                    await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {initialAccess.Enrollment.LearnerUserId}").SingleAsync(ct);
+                    var lockedCourse=await db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {initialAccess.Enrollment.CourseId}").SingleAsync(ct);
+                    foreach(var uid in new[]{initialAccess.Enrollment.LearnerUserId,lockedCourse.OwnerUserId}.Distinct().OrderBy(x=>x,StringComparer.Ordinal))
+                        await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {uid}").SingleAsync(ct);
                     await db.Enrollments.FromSqlInterpolated($"SELECT * FROM [Enrollments] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {enrollmentId}").SingleAsync(ct);
                 }
                 var resolved = await access.ResolveAsync(actor, enrollmentId, ct: ct);
@@ -56,8 +57,11 @@ public sealed class LessonProgressService(AppDbContext db, LearnerLearningAccess
                         return ServiceResult<ProgressState>.Fail(ServiceFailure.Validation, "Invalid position or video duration.", "invalid_position");
                 }
                 // Completion alone is safely replayable: its only transition is monotonic.
-                if (request == null && p?.IsCompleted == true)
+                if (request == null && p?.IsCompleted == true) {
+                    if (completion != null) await completion.StageAsync(enrollmentId, ct);
+                    await tx.CommitAsync(ct);
                     return ServiceResult<ProgressState>.Ok(Current());
+                }
                 var now = DateTimeOffset.UtcNow;
                 // SQL datetimeoffset(7) retains ticks. Force advancement even for equal clocks/values.
                 if (p != null && now <= p.UpdatedAt) now = p.UpdatedAt.AddTicks(1);
@@ -69,6 +73,7 @@ public sealed class LessonProgressService(AppDbContext db, LearnerLearningAccess
                 var enrollment = await db.Enrollments.SingleAsync(x => x.Id == enrollmentId, ct);
                 enrollment.LastOpenedAt = now;
                 await db.SaveChangesAsync(ct);
+                if (request == null && completion != null) await completion.StageAsync(enrollmentId, ct);
                 var state = Current();
                 await tx.CommitAsync(ct);
                 return ServiceResult<ProgressState>.Ok(state);

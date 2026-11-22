@@ -26,7 +26,7 @@ public sealed class PlatformModerationSqlTests
         async Task<ServiceFailure> Warn(){await gate.Task;using var scope=provider.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();return (await Safety(db).WarnAsync(d.Course,Principal(d.Reviewer),Warning(d,"same incident"))).Failure;}
         var work=new[]{Warn(),Warn()};gate.SetResult();var results=await Task.WhenAll(work);Assert.Single(results,x=>x==ServiceFailure.None);Assert.Single(results,x=>x==ServiceFailure.Conflict);
         using var verify=provider.CreateScope();var check=verify.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(1,await check.CourseWarnings.CountAsync(x=>x.CourseId==d.Course));Assert.Equal(1,await check.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner));
+        Assert.Equal(1,await check.CourseWarnings.CountAsync(x=>x.CourseId==d.Course));Assert.Equal(1,await check.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner&&x.NotificationType=="course.warning"));Assert.Equal(1,await check.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner&&x.NotificationType=="course.published"));
         Assert.Single((await Safety(check).ListCasesAsync(Principal(d.Reviewer))).Value!,x=>x.CourseId==d.Course);
         Assert.Contains((await new AdminActivityService(check).ListAsync(Principal(d.General))).Value!,x=>x.CourseId==d.Course&&x.Action=="course.warning.issued");
     }
@@ -35,7 +35,7 @@ public sealed class PlatformModerationSqlTests
         var fail=new FailSaved();using var provider=Isolated(fail);using var scope=provider.CreateScope();var s=scope.ServiceProvider;var d=await Seed(s);var db=s.GetRequiredService<AppDbContext>();
         await Safety(db).WarnAsync(d.Course,Principal(d.Reviewer),Warning(d,"first"));fail.Armed=true;
         await Assert.ThrowsAsync<InvalidOperationException>(()=>Safety(db).WarnAsync(d.Course,Principal(d.Reviewer),Warning(d,"second")));
-        Assert.Empty(db.ChangeTracker.Entries());Assert.Equal(1,await db.CourseWarnings.CountAsync(x=>x.CourseId==d.Course));Assert.Equal(1,await db.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner));
+        Assert.Empty(db.ChangeTracker.Entries());Assert.Equal(1,await db.CourseWarnings.CountAsync(x=>x.CourseId==d.Course));Assert.Equal(1,await db.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner&&x.NotificationType=="course.warning"));Assert.Equal(1,await db.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner&&x.NotificationType=="course.published"));
         Assert.False((await db.Courses.AsNoTracking().SingleAsync(x=>x.Id==d.Course)).EnrollmentPaused);
         Assert.Equal(1,await db.AdminActivityLogs.CountAsync(x=>x.CourseId==d.Course&&x.Action=="course.warning.issued"));
     }
@@ -46,7 +46,7 @@ public sealed class PlatformModerationSqlTests
         var gate=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         async Task<ServiceFailure> Decide(string outcome){await gate.Task;using var scope=provider.CreateScope();return (await Safety(scope.ServiceProvider.GetRequiredService<AppDbContext>()).DecideAppealAsync(d.Course,appeal,Principal(d.General),new(outcome,"The submitted evidence has been independently reviewed."))).Failure;}
         var work=new[]{Decide("accepted"),Decide("rejected")};gate.SetResult();var results=await Task.WhenAll(work);Assert.Single(results,x=>x==ServiceFailure.None);Assert.Single(results,x=>x==ServiceFailure.Conflict);
-        using var verify=provider.CreateScope();var db2=verify.ServiceProvider.GetRequiredService<AppDbContext>();Assert.Equal(2,await db2.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner));Assert.Equal(1,await db2.AdminActivityLogs.CountAsync(x=>x.TargetId==appeal.ToString()&&x.Action!="course.appeal.submitted"));
+        using var verify=provider.CreateScope();var db2=verify.ServiceProvider.GetRequiredService<AppDbContext>();Assert.Equal(3,await db2.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner));Assert.Equal(1,await db2.Notifications.CountAsync(x=>x.RecipientUserId==d.Owner&&x.NotificationType=="course.appeal.decided"));Assert.Equal(1,await db2.AdminActivityLogs.CountAsync(x=>x.TargetId==appeal.ToString()&&x.Action!="course.appeal.submitted"));
     }
     [AccountSqlServerFact] public async Task Announcements_serialize_stale_versions_and_atomic_audit_and_audience_queries_translate()
     {

@@ -91,8 +91,9 @@ public sealed class LearnerSubmissionService(AppDbContext db, LearnerLearningAcc
             return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () => {
                 db.ChangeTracker.Clear(); await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
                 if (db.Database.IsSqlServer()) {
-                    await db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={initial.Enrollment.CourseId}").SingleAsync(ct);
-                    await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={initial.Enrollment.LearnerUserId}").SingleAsync(ct);
+                    var lockedCourse=await db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={initial.Enrollment.CourseId}").SingleAsync(ct);
+                    foreach(var uid in new[]{initial.Enrollment.LearnerUserId,lockedCourse.OwnerUserId}.Distinct().OrderBy(x=>x,StringComparer.Ordinal))
+                        await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={uid}").SingleAsync(ct);
                     await db.Enrollments.FromSqlInterpolated($"SELECT * FROM [Enrollments] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={enrollmentId}").SingleAsync(ct);
                 }
                 var check = await access.ResolveAsync(actor, enrollmentId, ct: ct);
@@ -107,6 +108,9 @@ public sealed class LearnerSubmissionService(AppDbContext db, LearnerLearningAcc
         => Transaction(actor, enrollmentId, async a => {
             if (request.RequestId == Guid.Empty) return Fail<SubmissionDetail>(ServiceFailure.Validation, "A request GUID is required.");
             var id = Identity("draft", a.Enrollment.LearnerUserId, request.RequestId);
+            // Reserve the existing primary-key range before checking an absent request ID.
+            // Serializable S-S lookups followed by INSERT otherwise form conversion deadlocks.
+            if(db.Database.IsSqlServer())await db.TaskSubmissions.FromSqlInterpolated($"SELECT * FROM [TaskSubmissions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id}").AsNoTracking().ToListAsync(ct);
             var existing = await Attempts.SingleOrDefaultAsync(x => x.Id == id, ct);
             if (existing != null) return existing.EnrollmentId == enrollmentId && existing.CourseTaskId == taskId && existing.CourseTask.CourseVersionId == request.ExpectedCourseVersionId
                 ? ServiceResult<SubmissionDetail>.Ok(Map(existing, a)) : Fail<SubmissionDetail>(ServiceFailure.Conflict, "Request identity already belongs to another task.", "request_conflict");

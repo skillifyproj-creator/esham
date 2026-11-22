@@ -6,6 +6,8 @@ using esham.BLL.Interfaces;
 using esham.BLL.Services;
 using esham.PL.Endpoints;
 using esham.PL.Development;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,17 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.Configure<CourseCompletionOptions>(builder.Configuration.GetSection("CourseCompletion"));
+builder.Services.AddScoped<ICompletionMutationGate, CompletionMutationGate>();
+builder.Services.AddScoped<EnrollmentCompletionService>();
+builder.Services.AddScoped<CertificateService>();
+builder.Services.AddHostedService<esham.PL.Services.CompletionRecoveryService>();
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("certificate-verification", c => RateLimitPartition.GetFixedWindowLimiter(
+        c.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions {
+            PermitLimit=20, Window=TimeSpan.FromMinutes(1), QueueLimit=0, AutoReplenishment=true }));
+});
 builder.Services.AddScoped<IUserCategoryService, UserCategoryService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<CategoryAdminProvisioningService>();
@@ -83,7 +96,7 @@ builder.Services.AddProblemDetails();
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "Esham.Identity";
-    options.Events.OnValidatePrincipal = AccountCookieValidation.ValidateAsync;
+    AccountCookieValidation.Configure(options);
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
@@ -154,6 +167,7 @@ app.UseCors("Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 var summaries = new[]
 {
@@ -174,6 +188,7 @@ app.MapEnrollmentVersionEndpoints();
 app.MapEnrollmentEndpoints();
 app.MapWalletEndpoints();
 app.MapLearnerLearningEndpoints();
+app.MapCompletionEndpoints();
 app.MapLearnerSubmissionEndpoints();
 app.MapCurriculumEndpoints();
 app.MapCourseTaskEndpoints();
@@ -195,12 +210,12 @@ app.MapGet("/weatherforecast", () =>
 
 // Read-only development verification handshake: no server/database identity or secrets exposed.
 if (app.Environment.IsDevelopment())
-    app.MapGet("/development/test-isolation", async (EnrollmentPurchaseGate gate, ILearningProgressWriteGate progress, ISubmissionMutationGate submissions, CancellationToken ct) => {
+    app.MapGet("/development/test-isolation", async (EnrollmentPurchaseGate gate, ILearningProgressWriteGate progress, ISubmissionMutationGate submissions, ICompletionMutationGate completion, CancellationToken ct) => {
         // Verify the actual connected identity before browser mutation guards allow requests.
         var isolated = await gate.VerifyTargetAsync(ct);
         var expectedMediaRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "../../artifacts/phase2-isolated/media"));
         var mediaIsolated = isolated && !string.IsNullOrWhiteSpace(mediaRoot) && string.Equals(Path.GetFullPath(mediaRoot), expectedMediaRoot, StringComparison.OrdinalIgnoreCase);
-        return Results.Ok(new { isolated, purchasesEnabled = isolated && await gate.IsEnabledAsync(ct), progressWritesEnabled = isolated && await progress.IsEnabledAsync(ct), submissionMutationsEnabled = isolated && await submissions.IsEnabledAsync(ct), mediaIsolated });
+        return Results.Ok(new { isolated, purchasesEnabled = isolated && await gate.IsEnabledAsync(ct), progressWritesEnabled = isolated && await progress.IsEnabledAsync(ct), submissionMutationsEnabled = isolated && await submissions.IsEnabledAsync(ct), completionMutationsEnabled = isolated && await completion.IsEnabledAsync(ct), mediaIsolated });
     }).AllowAnonymous();
 
 app.Run();

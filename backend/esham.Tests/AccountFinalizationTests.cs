@@ -32,7 +32,7 @@ public sealed class AccountFinalizationTests
         {
             if (configure is null)
                 options.UseInMemoryDatabase(database).ReplaceService<IDbContextTransactionManager, TestTransactionManager>();
-            else configure(options);
+            else { configure(options); options.AddInterceptors(new IsolatedSqlMutationGuard()); }
         });
         services.AddIdentity<ApplicationUser, IdentityRole>(options => options.User.RequireUniqueEmail = true)
             .AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();

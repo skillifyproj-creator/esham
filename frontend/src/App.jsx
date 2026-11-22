@@ -5,6 +5,7 @@ const PlatformHelpPage = lazy(() => import('./pages/shared/PlatformHelpPage'));
 const InstructorReviewReportPage = lazy(() => import('./pages/instructor/CourseReviewPage'));
 const InstructorCertificatesPage = lazy(() => import('./pages/instructor/InstructorCertificatesPage'));
 const ModerationQueuePage = lazy(() => import('./pages/shared/ModerationQueuePage'));
+const CertificateVerificationPage = lazy(() => import('./pages/CertificateVerificationPage'));
 const LearnerCertificatesPage = lazy(() => import('./pages/learner/LearnerCertificatesPage'));
 import PageErrorBoundary from './components/shared/PageErrorBoundary';
 import StorageNotice from './components/shared/StorageNotice';
@@ -175,7 +176,7 @@ function RouteShell() {
       {!isHome && !isInstructor && !isLearner && !isAdmin && !isCategoryAdmin && !isAuth && !isAssistantPage && <Header />}
 
       <PageErrorBoundary><Suspense fallback={<main className="section container" role="status">{language === "ar" ? "جاري تحميل الصفحة…" : "Loading page…"}</main>}>
-      <Routes>
+      <Routes><Route path="/certificates/verify/:code" element={<CertificateVerificationPage/>}/>
         <Route path="/admin" element={<SuperAdminRoutes />}>
           <Route element={<SuperAdminLayout />}>
             <Route index element={<Dashboard />} />
@@ -240,7 +241,7 @@ function RouteShell() {
 
           <Route path="tasks" element={<LearnerTasksPage />} />
 
-          <Route path="courses/certificates" element={<LearnerCertificatesPage/>}/><Route path="courses/certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="certificates" element={<LearnerCertificatesPage/>}/><Route path="certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="progress" element={<LearnerProgressPage />} />
+          <Route path="certificates/record/:certificateId" element={<LearnerCertificatesPage/>}/><Route path="courses/certificates" element={<LearnerCertificatesPage/>}/><Route path="courses/certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="certificates" element={<LearnerCertificatesPage/>}/><Route path="certificates/:courseId" element={<LearnerCertificatesPage/>}/><Route path="progress" element={<LearnerProgressPage />} />
           <Route path="points" element={<LearnerPointsPage />} />
           <Route path="reviews" element={<LearnerReviewsPage />} />
           <Route

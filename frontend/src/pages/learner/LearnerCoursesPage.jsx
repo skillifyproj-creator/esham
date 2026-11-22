@@ -26,7 +26,7 @@ export default function LearnerCoursesPage() {
         const course = courses.find(c=>c.id===e.courseId), url = '/learner/enrollments/'+e.id;
         return <article className="enrolled-course-card" key={e.id}>
           <Link className="enrolled-course-image" to={url}>{course?.image ? <img src={course.image} alt="" loading="lazy"/> : <Icon name="book" size={48}/>}</Link>
-          <div className="enrolled-course-content"><span className={'enrolled-course-status'+(complete(e)?' completed':'')}>{complete(e)?t('مكتملة','Completed'):t('مسجّل','Enrolled')}</span>
+          <div className="enrolled-course-content">{complete(e)&&<Link className="button button-outline" to="/learner/certificates">{t('الشهادات','Certificates')}</Link>}<span className={'enrolled-course-status'+(complete(e)?' completed':'')}>{complete(e)?t('مكتملة','Completed'):t('مسجّل','Enrolled')}</span>
             <p className="enrolled-course-instructor">{language==='ar'?e.instructorName:e.instructorNameEn||e.instructorName}</p>
             <h2><Link to={url}>{language==='ar'?e.titleAr||e.titleEn:e.titleEn||e.titleAr}</Link></h2>
             <p>{t('تاريخ التسجيل:','Enrolled:')} {new Intl.DateTimeFormat(language,{dateStyle:'medium'}).format(new Date(e.enrolledAt))}</p>

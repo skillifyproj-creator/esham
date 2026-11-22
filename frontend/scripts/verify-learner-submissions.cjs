@@ -1,7 +1,7 @@
 require('./require-isolated-test-target.cjs')();
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
-const api='http://localhost:5216',frontend='http://localhost:5175',root=path.resolve(__dirname,'../../artifacts/phase3-isolated');
+const api='http://localhost:5216',frontend='http://localhost:5175',root=process.env.ESHAM_PHASE3_ARTIFACTS?path.resolve(process.env.ESHAM_PHASE3_ARTIFACTS):path.resolve(__dirname,'../../artifacts/phase3-isolated');
 const f=JSON.parse(fs.readFileSync(fs.readFileSync(path.join(root,'current-fixture-path.txt'),'utf8'),'utf8'));
 const headers={Origin:frontend,'X-Requested-With':'XMLHttpRequest','X-Esham-Account-Id':f.learner.id};
 const base=`/me/enrollments/${f.enrollmentId}`,taskUrl=`${frontend}/learner/enrollments/${f.enrollmentId}/tasks/${f.taskId}`;
@@ -82,7 +82,7 @@ async function read(context,url){const r=await context.request.get(api+url);asse
  });
  await check('delayed previous-account attempt cannot restore private form or files',async()=>{
   let ready,release;const captured=new Promise(r=>ready=r),hold=new Promise(r=>release=r);const endpoint=api+base+`/submissions/${attempt.id}`;
-  await page.route(endpoint,async route=>{const response=await route.fetch();ready();await hold;const h={...response.headers()};delete h['set-cookie'];await route.fulfill({response,headers:h});});
+  await page.route(endpoint,async route=>{const response=await route.fetch();ready();await hold;const h={...response.headers()};await route.fulfill({response,headers:h});});
   await page.goto(frontend+`/learner/enrollments/${f.enrollmentId}/submissions/${attempt.id}`);await captured;await login(learner,f.otherLearner);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await page.waitForFunction(id=>JSON.parse(localStorage.getItem('esham-account-profile-v1')||'{}').id===id,f.otherLearner.id);release();await page.waitForTimeout(250);
   assert.equal(await page.locator('.task-editor').count(),0);assert.equal((await learner.request.get(endpoint)).status(),404);await page.unroute(endpoint);

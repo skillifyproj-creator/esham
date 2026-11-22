@@ -111,6 +111,7 @@ export function notificationTarget(item) {
   const pattern = item.notificationType === 'course.published' ? `^/courses/${id}$`
     : item.notificationType === 'course.changes_requested' ? `^/instructor/courses/${id}/review$`
     : item.notificationType === 'task.submitted' ? '^/instructor/submissions$'
-    : item.notificationType === 'task.assessed' ? `^/learner/enrollments/${id}/submissions/${id}$` : null;
+    : item.notificationType === 'task.assessed' ? `^/learner/enrollments/${id}/submissions/${id}$`
+    : item.notificationType === 'certificate.issued' ? `^/learner/certificates/record/${id}$` : null;
   return pattern && new RegExp(pattern, 'i').test(item.targetUrl) ? item.targetUrl : null;
 }

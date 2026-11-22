@@ -47,6 +47,9 @@ public sealed class NotificationService(AppDbContext db, UserManager<Application
         var assessed=await db.TaskSubmissionReviews.AsNoTracking().Where(x=>assessedIds.Contains(x.Id)&&x.TaskSubmission.Enrollment.LearnerUserId==user.Id)
             .Select(x=>new{x.Id,x.TaskSubmission.EnrollmentId,x.TaskSubmissionId}).ToDictionaryAsync(x=>x.Id,ct);
         items=items.Select(x=>submitted.Contains(x.Id)?x with {TargetUrl="/instructor/submissions"}:assessed.TryGetValue(x.Id,out var review)?x with {TargetUrl=$"/learner/enrollments/{review.EnrollmentId:D}/submissions/{review.TaskSubmissionId:D}"}:x).ToList();
+        var certificateIds=items.Where(x=>x.NotificationType=="certificate.issued").Select(x=>x.Id).ToArray();
+        var certificates=await db.Certificates.AsNoTracking().Where(x=>certificateIds.Contains(x.Id)&&x.Enrollment.LearnerUserId==user.Id).Select(x=>x.Id).ToListAsync(ct);
+        items=items.Select(x=>certificates.Contains(x.Id)?x with {TargetUrl=$"/learner/certificates/record/{x.Id:D}"}:x).ToList();
         return ServiceResult<NotificationPage>.Ok(new(user.Id, items, query.Page, query.PageSize, total));
     }
 

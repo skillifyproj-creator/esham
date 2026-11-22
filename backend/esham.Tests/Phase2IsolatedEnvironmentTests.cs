@@ -22,14 +22,16 @@ public sealed class Phase2IsolatedEnvironmentTests
         var value = Environment.GetEnvironmentVariable("ESHAM_PHASE2_ARTIFACTS") ?? throw new InvalidOperationException("Isolated artifact root required.");
         var root = Path.GetFullPath(value);
         if (!root.EndsWith(Path.Combine("artifacts", "phase2-isolated"), StringComparison.OrdinalIgnoreCase)
-            && !root.EndsWith(Path.Combine("artifacts","phase3-isolated","phase2-regression"),StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Separate Phase2 directory required.");
+            && !root.EndsWith(Path.Combine("artifacts","phase3-isolated","phase2-regression"),StringComparison.OrdinalIgnoreCase)
+            && !root.EndsWith(Path.Combine("artifacts","phase4-isolated","phase2-regression"),StringComparison.OrdinalIgnoreCase)
+            && !root.EndsWith(Path.Combine("artifacts","phase4-hardening","phase2-regression"),StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Separate Phase2 directory required.");
         Directory.CreateDirectory(root); return root;
     }
     private static string MediaRoot()
     {
         var configured = Environment.GetEnvironmentVariable("ESHAM_PHASE2_MEDIA_ROOT") ?? throw new InvalidOperationException("Separate media root required.");
         var artifacts=DirectoryRoot();
-        var root = artifacts.EndsWith(Path.Combine("phase3-isolated","phase2-regression"),StringComparison.OrdinalIgnoreCase)
+        var root = artifacts.EndsWith(Path.Combine("phase3-isolated","phase2-regression"),StringComparison.OrdinalIgnoreCase) || artifacts.EndsWith(Path.Combine("phase4-isolated","phase2-regression"),StringComparison.OrdinalIgnoreCase) || artifacts.EndsWith(Path.Combine("phase4-hardening","phase2-regression"),StringComparison.OrdinalIgnoreCase)
             ? Path.GetFullPath(Path.Combine(artifacts,"../../phase2-isolated/media")) : Path.Combine(artifacts,"media");
         if (!string.Equals(Path.GetFullPath(configured), root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Refusing non-isolated media root.");
         Directory.CreateDirectory(root); return root;

@@ -79,7 +79,7 @@ async function read(context, url) { const response = await context.request.get(a
     let release, captured; const hold = new Promise(r => { release = r; }), received = new Promise(r => { captured = r; });
     await page.route(api + lesson(f.articleLessonId), async route => {
       const response = await route.fetch(); captured(); await hold;
-      const safeHeaders = { ...response.headers() }; delete safeHeaders['set-cookie']; await route.fulfill({ response, headers: safeHeaders });
+      const safeHeaders = { ...response.headers() }; await route.fulfill({ response, headers: safeHeaders });
     });
     await page.goto(learningUrl + '?lesson=' + f.articleLessonId); await received;
     await login(learner, f.otherLearner); await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await page.waitForTimeout(500); release();
@@ -89,7 +89,8 @@ async function read(context, url) { const response = await context.request.get(a
   });
   await check('expired session removes private content and blocks progress', async () => {
     await login(learner, f.learner); await page.goto(learningUrl); await page.getByRole('button', { name: 'Lesson completed', exact: true }).waitFor();
-    await learner.clearCookies(); await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    // Let authenticated responses finish before simulating expiry; Identity may renew cookies on those responses.
+    await page.waitForLoadState('networkidle'); await learner.clearCookies(); await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await page.waitForFunction(() => !document.querySelector('.lesson-reading') && !document.querySelector('video'));
     assert.equal(await page.locator('.lesson-reading').count(), 0); assert.equal(await page.locator('video').count(), 0);
     assert.equal((await learner.request.put(api + lesson(f.videoLessonId) + '/completion', { headers, data: { expectedCourseVersionId: f.versionId } })).status(), 401);

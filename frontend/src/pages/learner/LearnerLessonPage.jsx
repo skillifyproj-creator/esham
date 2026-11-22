@@ -1,3 +1,4 @@
+import CompletionPanel from '../../components/CompletionPanel';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import { useAccountSession } from '../../context/AccountSessionContext';
@@ -59,6 +60,7 @@ export default function LearnerLessonPage() {
         setState(previous => ({ ...previous, course: { ...previous.course, sections: previous.course.sections.map(s => ({ ...s,
           lessons: s.lessons.map(l => l.id === captured.selected ? { ...l, isCompleted: true } : l) })) } }));
         window.dispatchEvent(new Event('esham-learning-updated'));
+        if (kind === 'completion') window.dispatchEvent(new Event('esham-financial-updated'));
       }
     }).catch(e => { if (g === generation.current) fail(e); }).finally(() => { if (g === generation.current) setSaving(false); });
     return queue.current;
@@ -93,9 +95,9 @@ export default function LearnerLessonPage() {
       {current.contentType === 'video' && <section className="lesson-media">{current.videoUrl ? <video key={`${identity}:${current.courseVersionId}:${current.lessonId}`} ref={video} controls crossOrigin="use-credentials" preload="metadata" src={protectedMediaUrl(current.videoUrl, id, current.lessonId)} onLoadedMetadata={e => { const p = current.progress.resumePositionSeconds; if (p != null && Number.isFinite(e.currentTarget.duration)) e.currentTarget.currentTime = Math.min(p, e.currentTarget.duration); }} onTimeUpdate={timeUpdate} onPause={flushPosition} onSeeked={e => { timeUpdate(e); flushPosition(); }} onEnded={flushPosition} onError={() => setError({ code: 'media_missing' })} /> : <div className="lesson-video-placeholder">{t('الفيديو غير متاح.', 'Video unavailable.')}</div>}</section>}
       <section className="learner-panel lesson-description"><div className="lesson-meta"><span>{t('الدرس', 'Lesson')} {index + 1} / {lessons.length}</span><span>{current.progress.isCompleted ? t('مكتمل', 'Completed') : t('قيد التعلم', 'In progress')}</span></div><h2>{title(current)}</h2><div className="lesson-reading" style={{ whiteSpace: 'pre-wrap' }}>{language === 'ar' ? current.descriptionAr || current.descriptionEn : current.descriptionEn || current.descriptionAr}</div>
       {!!current.attachments.length && <section><h3>{t('موارد الدرس', 'Lesson resources')}</h3><ul>{current.attachments.map(a => <li key={a.id}><a href={protectedMediaUrl(a.contentUrl, id, current.lessonId)}>{a.displayName}</a></li>)}</ul></section>}
-      <p role="status">{saving ? t('جارٍ الحفظ…', 'Saving…') : t('إكمال الدرس تأكيد منك، ولا يُكمل الدورة تلقائيًا.', 'Marking a lesson complete is your acknowledgement and does not automatically complete the course.')}</p>
+      <p role="status">{saving ? t('جارٍ الحفظ…', 'Saving…') : t('يتطلب إكمال الدورة إتمام جميع الدروس واعتماد المهام المطلوبة.', 'Course completion requires all persisted lessons and approved required tasks.')}</p>
       {visible.versionState.tasks.map(task=><p key={task.taskId}><Link to={`/learner/enrollments/${id}/tasks/${task.taskId}`}>{language==='ar'?task.titleAr||task.titleEn:task.titleEn||task.titleAr}</Link> · {task.isApproved?t('معتمدة','Approved'):t('مهمة تطبيقية','Practical task')}</p>)}
       <button className="button" disabled={saving || !!error || !visible.progressWritesEnabled || current.progress.isCompleted} onClick={async () => { await flushPosition(); enqueue('completion'); }}>{current.progress.isCompleted ? t('الدرس مكتمل', 'Lesson completed') : t('تحديد الدرس كمكتمل', 'Mark lesson complete')}</button>
       <nav className="account-actions"><button className="button button-outline" disabled={index <= 0} onClick={() => select(lessons[index - 1].id)}>{t('السابق', 'Previous')}</button><button className="button button-outline" disabled={index < 0 || index >= lessons.length - 1} onClick={() => select(lessons[index + 1].id)}>{t('التالي', 'Next')}</button></nav></section>
-    </>}</div></div></div></main>;
+    </>}<CompletionPanel enrollmentId={id}/></div></div></div></main>;
 }

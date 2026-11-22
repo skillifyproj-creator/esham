@@ -1,3 +1,4 @@
+import CompletionPanel from '../../components/CompletionPanel';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAccountSession } from '../../context/AccountSessionContext';
@@ -27,7 +28,7 @@ export default function LearnerEnrollmentPage() {
   if (state.error) return <main className="container section"><p role="alert">{financialMessage(state.error, language)}</p><button className="button" onClick={() => reload(x => x + 1)}>{t('إعادة المحاولة', 'Retry')}</button></main>;
   const e = state.enrollment;
   return <main className="learner-dashboard"><div className="container"><header className="learner-page-header"><h1>{language === 'ar' ? e.titleAr || e.titleEn : e.titleEn || e.titleAr}</h1><Link to="/learner/courses">{t('دوراتي', 'My Courses')}</Link></header>
-    <section className="learner-panel"><h2>{t('تفاصيل التسجيل', 'Enrollment details')}</h2><p>{t('المدرّب:', 'Instructor:')} {language === 'ar' ? e.instructorName : e.instructorNameEn || e.instructorName}</p>
+    <CompletionPanel enrollmentId={enrollmentId}/><section className="learner-panel"><h2>{t('تفاصيل التسجيل', 'Enrollment details')}</h2><p>{t('المدرّب:', 'Instructor:')} {language === 'ar' ? e.instructorName : e.instructorNameEn || e.instructorName}</p>
       <p>{t('تاريخ التسجيل:', 'Enrolled:')} {new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(new Date(e.enrolledAt))}</p>
       <p>{t('الحالة:', 'Status:')} {e.status === 'active' ? t('نشط', 'Active') : e.status === 'completed' ? t('مكتمل', 'Completed') : e.status}</p>
       {state.version && <p>{t('التقدم المحفوظ:', 'Saved progress:')} {state.version.progressPercentage}%</p>}

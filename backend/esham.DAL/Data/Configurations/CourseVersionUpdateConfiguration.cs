@@ -43,6 +43,8 @@ internal static class CourseVersionUpdateConfiguration
         foreach (var property in access.Metadata.GetProperties()) property.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
         model.Entity<Certificate>().HasOne<CourseVersion>().WithMany().HasForeignKey(x => x.CourseVersionId).OnDelete(DeleteBehavior.NoAction);
         model.Entity<Certificate>().Property(x => x.CourseVersionId).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+        foreach(var name in new[]{nameof(Certificate.VerificationCode),nameof(Certificate.LearnerNameSnapshot),nameof(Certificate.InstructorNameSnapshot),nameof(Certificate.CourseTitleSnapshotAr),nameof(Certificate.CourseTitleSnapshotEn),nameof(Certificate.IssuedAt)})
+            model.Entity<Certificate>().Property(name).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
         model.Entity<CourseReview>().HasOne<CourseVersion>().WithMany().HasForeignKey(x => x.CourseVersionId).OnDelete(DeleteBehavior.NoAction);
         model.Entity<CourseReview>().Property(x => x.CourseVersionId).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
     }

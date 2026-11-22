@@ -12,7 +12,7 @@ public sealed class Phase3SetupFactAttribute(string action):FactAttribute {
 public sealed class Phase3IsolatedEnvironmentTests
 {
     private static string Root(){var path=Path.GetFullPath(Environment.GetEnvironmentVariable("ESHAM_PHASE3_ARTIFACTS")??throw new InvalidOperationException("Phase3 artifacts required."));
-        if(!path.EndsWith(Path.Combine("artifacts","phase3-isolated"),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Dedicated Phase3 artifacts required.");Directory.CreateDirectory(path);return path;}
+        if(!path.EndsWith(Path.Combine("artifacts","phase3-isolated"),StringComparison.OrdinalIgnoreCase) && !path.EndsWith(Path.Combine("artifacts","phase4-isolated","phase3-regression"),StringComparison.OrdinalIgnoreCase) && !path.EndsWith(Path.Combine("artifacts","phase4-hardening","phase3-regression"),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Dedicated Phase3 artifacts required.");Directory.CreateDirectory(path);return path;}
     [Phase3SetupFact("fixtures")] public async Task Fresh_synthetic_submission_browser_fixture(){
         using var p=await SubmissionSqlServerTests.Provider();var f=await SubmissionSqlServerTests.Setup(p);using var scope=p.CreateScope();var s=scope.ServiceProvider;var db=s.GetRequiredService<AppDbContext>();
         Assert.True(await SubmissionSqlServerTests.Gate(db).IsEnabledAsync());
