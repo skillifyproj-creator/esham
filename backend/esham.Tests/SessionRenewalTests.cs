@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,14 +24,16 @@ namespace esham.Tests;
 
 public sealed class SessionRenewalTests
 {
-    private sealed record User(string Id,string Email);
-    private static async Task<(WebApplication App,Uri Address,User A,User B)> Server(TaskCompletionSource entered,TaskCompletionSource release){
+    internal sealed record User(string Id,string Email);
+    internal static async Task<(WebApplication App,Uri Address,User A,User B)> Server(TaskCompletionSource entered,TaskCompletionSource release){
         var b=WebApplication.CreateBuilder();b.WebHost.UseUrls("http://127.0.0.1:0");b.Logging.ClearProviders();b.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
-        var database=Guid.NewGuid().ToString();b.Services.AddDbContext<AppDbContext>(o=>o.UseInMemoryDatabase(database));
+        var database=Guid.NewGuid().ToString();b.Services.AddDbContext<AppDbContext>(o=>o.UseInMemoryDatabase(database).ReplaceService<Microsoft.EntityFrameworkCore.Storage.IDbContextTransactionManager,TestTransactionManager>());
         b.Services.AddIdentity<ApplicationUser,IdentityRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();b.Services.AddAuthorization();b.Services.AddScoped<IAccountService,AccountService>();b.Services.AddScoped<INotificationWriter,NotificationWriter>();
         b.Services.Configure<SecurityStampValidatorOptions>(o=>o.ValidationInterval=TimeSpan.Zero);
+        b.Services.AddScoped<IPhase5MutationGate>(s=>new Phase5Tests.MemoryGate(s.GetRequiredService<AppDbContext>()));b.Services.AddScoped<AccountSecurityService>();b.Services.AddSingleton<PrivateRecoveryCapture>();b.Services.Configure<Phase5Options>(o=>o.PrivateRecoveryCaptureEnabled=true);
+        b.Services.AddRateLimiter(o=>o.AddFixedWindowLimiter("account-security",x=>{x.PermitLimit=100;x.Window=TimeSpan.FromMinutes(15);x.QueueLimit=0;}));
         b.Services.ConfigureApplicationCookie(o=>{o.Cookie.Name="Esham.Identity";AccountCookieValidation.Configure(o);o.Events.OnRedirectToLogin=c=>{c.Response.StatusCode=401;return Task.CompletedTask;};});
-        var app=b.Build();app.UseAuthentication();app.UseAuthorization();app.MapAccountEndpoints();
+        var app=b.Build();app.UseAuthentication();app.UseAuthorization();app.UseRateLimiter();app.MapAccountEndpoints();app.MapAccountSecurityEndpoints();
         app.MapGet("/delayed",async(HttpContext c)=>{entered.TrySetResult();await release.Task.WaitAsync(TimeSpan.FromSeconds(15));return Results.Ok(new{id=c.User.FindFirstValue(ClaimTypes.NameIdentifier)});}).RequireAuthorization();
         app.MapGet("/current-roles",(HttpContext c)=>Results.Ok(new{instructor=c.User.IsInRole("Instructor")})).RequireAuthorization();
         User a,bb;using(var scope=app.Services.CreateScope()){var s=scope.ServiceProvider;var roles=s.GetRequiredService<RoleManager<IdentityRole>>();await roles.CreateAsync(new("Learner"));await roles.CreateAsync(new("Instructor"));var users=s.GetRequiredService<UserManager<ApplicationUser>>();
@@ -39,7 +42,7 @@ public sealed class SessionRenewalTests
         }
         await app.StartAsync();return(app,new(app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()),a,bb);
     }
-    private static async Task Login(HttpClient c,User u){Assert.Equal(HttpStatusCode.OK,(await c.PostAsJsonAsync("/auth/login",new{email=u.Email,password=AccountFinalizationTests.Password})).StatusCode);}
+    internal static async Task Login(HttpClient c,User u){Assert.Equal(HttpStatusCode.OK,(await c.PostAsJsonAsync("/auth/login",new{email=u.Email,password=AccountFinalizationTests.Password})).StatusCode);}
     [Theory][InlineData(false)][InlineData(true)]
     public async Task Delayed_passive_response_cannot_restore_logged_out_or_previous_account_cookie(bool switchAccount){
         var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var server=await Server(entered,release);await using var app=server.App;

@@ -39,6 +39,20 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.Configure<Phase5Options>(builder.Configuration.GetSection("Phase5"));
+builder.Services.AddScoped<IPhase5MutationGate, Phase5MutationGate>();
+builder.Services.AddScoped<LearnerReviewService>();
+builder.Services.AddScoped<AccountSecurityService>();
+builder.Services.AddSingleton<PrivateRecoveryCapture>(services=>{
+    // Optional file capture is confined to a private, non-served isolated test directory.
+    var configured=builder.Configuration["Phase5:PrivateRecoveryCaptureDirectory"];
+    if(string.IsNullOrWhiteSpace(configured))return new();
+    var expected=Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath,"../../artifacts/phase5-isolated/recovery"));
+    if(!builder.Environment.IsDevelopment()||Path.GetFullPath(configured)!=expected)throw new InvalidOperationException("Recovery capture requires the dedicated isolated development directory.");
+    return new(expected);
+});
+builder.Services.AddScoped<AnnouncementDeliveryService>();
+builder.Services.AddHostedService<esham.PL.Services.AnnouncementDeliveryRecoveryService>();
 builder.Services.Configure<CourseCompletionOptions>(builder.Configuration.GetSection("CourseCompletion"));
 builder.Services.AddScoped<ICompletionMutationGate, CompletionMutationGate>();
 builder.Services.AddScoped<EnrollmentCompletionService>();
@@ -46,6 +60,9 @@ builder.Services.AddScoped<CertificateService>();
 builder.Services.AddHostedService<esham.PL.Services.CompletionRecoveryService>();
 builder.Services.AddRateLimiter(options => {
     options.RejectionStatusCode = 429;
+    options.AddPolicy("account-security", c => RateLimitPartition.GetFixedWindowLimiter(
+        c.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions {
+            PermitLimit=10, Window=TimeSpan.FromMinutes(15), QueueLimit=0, AutoReplenishment=true }));
     options.AddPolicy("certificate-verification", c => RateLimitPartition.GetFixedWindowLimiter(
         c.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions {
             PermitLimit=20, Window=TimeSpan.FromMinutes(1), QueueLimit=0, AutoReplenishment=true }));
@@ -189,6 +206,9 @@ app.MapEnrollmentEndpoints();
 app.MapWalletEndpoints();
 app.MapLearnerLearningEndpoints();
 app.MapCompletionEndpoints();
+app.MapLearnerReviewEndpoints();
+app.MapAccountSecurityEndpoints();
+app.MapAnnouncementFeedEndpoints();
 app.MapLearnerSubmissionEndpoints();
 app.MapCurriculumEndpoints();
 app.MapCourseTaskEndpoints();
@@ -210,12 +230,12 @@ app.MapGet("/weatherforecast", () =>
 
 // Read-only development verification handshake: no server/database identity or secrets exposed.
 if (app.Environment.IsDevelopment())
-    app.MapGet("/development/test-isolation", async (EnrollmentPurchaseGate gate, ILearningProgressWriteGate progress, ISubmissionMutationGate submissions, ICompletionMutationGate completion, CancellationToken ct) => {
+    app.MapGet("/development/test-isolation", async (EnrollmentPurchaseGate gate, ILearningProgressWriteGate progress, ISubmissionMutationGate submissions, ICompletionMutationGate completion, IPhase5MutationGate phase5, CancellationToken ct) => {
         // Verify the actual connected identity before browser mutation guards allow requests.
         var isolated = await gate.VerifyTargetAsync(ct);
         var expectedMediaRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "../../artifacts/phase2-isolated/media"));
         var mediaIsolated = isolated && !string.IsNullOrWhiteSpace(mediaRoot) && string.Equals(Path.GetFullPath(mediaRoot), expectedMediaRoot, StringComparison.OrdinalIgnoreCase);
-        return Results.Ok(new { isolated, purchasesEnabled = isolated && await gate.IsEnabledAsync(ct), progressWritesEnabled = isolated && await progress.IsEnabledAsync(ct), submissionMutationsEnabled = isolated && await submissions.IsEnabledAsync(ct), completionMutationsEnabled = isolated && await completion.IsEnabledAsync(ct), mediaIsolated });
+        return Results.Ok(new { isolated, purchasesEnabled = isolated && await gate.IsEnabledAsync(ct), progressWritesEnabled = isolated && await progress.IsEnabledAsync(ct), submissionMutationsEnabled = isolated && await submissions.IsEnabledAsync(ct), completionMutationsEnabled = isolated && await completion.IsEnabledAsync(ct), phase5ReviewsEnabled=isolated&&await phase5.IsEnabledAsync(Phase5Capability.Reviews,ct),phase5AccountSecurityEnabled=isolated&&await phase5.IsEnabledAsync(Phase5Capability.AccountSecurity,ct),phase5AnnouncementDeliveryEnabled=isolated&&await phase5.IsEnabledAsync(Phase5Capability.AnnouncementDelivery,ct),mediaIsolated });
     }).AllowAnonymous();
 
 app.Run();

@@ -3,7 +3,18 @@ export const apiBase = (import.meta.env?.VITE_API_BASE_URL || '').replace(/\/$/,
 export class AccountApiError extends Error {
   constructor(code, status = 0) { super(code); this.code = code; this.status = status; }
 }
-export async function accountRequest(path, body, { method = 'POST', base = apiBase, fetcher = fetch, timeout = 15000, headers = {} } = {}) {
+let interactiveQueue=Promise.resolve();
+export function accountRequest(path,body,options={}) {
+  const method=options.method||'POST';
+  // Bind profile intent to the caller's verified session, never another tab's cache.
+  if((path==='/me'||path==='/me/role')&&method==='PATCH'&&!options.headers?.['X-Esham-Account-Id'])
+    return Promise.reject(new AccountApiError('unauthorized',401));
+  const interactive=method!=='GET'&&['/auth/login','/auth/logout','/auth/register','/me','/me/role','/me/password','/me/sessions/revoke-all','/auth/reset-password'].includes(path);
+  const run=()=>performAccountRequest(path,body,options);
+  if(!interactive)return run();
+  const request=interactiveQueue.then(run,run);interactiveQueue=request.catch(()=>{});return request;
+}
+async function performAccountRequest(path, body, { method = 'POST', base = apiBase, fetcher = fetch, timeout = 15000, headers = {} } = {}) {
   if (!base) throw new AccountApiError('unconfigured');
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
   try {

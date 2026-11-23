@@ -112,6 +112,9 @@ export function notificationTarget(item) {
     : item.notificationType === 'course.changes_requested' ? `^/instructor/courses/${id}/review$`
     : item.notificationType === 'task.submitted' ? '^/instructor/submissions$'
     : item.notificationType === 'task.assessed' ? `^/learner/enrollments/${id}/submissions/${id}$`
-    : item.notificationType === 'certificate.issued' ? `^/learner/certificates/record/${id}$` : null;
+    : item.notificationType === 'certificate.issued' ? `^/learner/certificates/record/${id}$`
+    : item.notificationType === 'announcement.published' ? '^/announcements$'
+    : item.notificationType === 'review.created' ? '^/instructor/feedback$'
+    : item.notificationType === 'review.replied' ? '^/learner/reviews$' : null;
   return pattern && new RegExp(pattern, 'i').test(item.targetUrl) ? item.targetUrl : null;
 }

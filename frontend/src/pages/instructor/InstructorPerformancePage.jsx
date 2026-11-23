@@ -13,11 +13,12 @@ const periodValues = ["7d", "30d", "3m", "all"];
 export default function InstructorPerformancePage() {
 
   const [period, setPeriod] = useState("30d");
+  const [sectionPage,setSectionPage]=useState(1);
   const { courseId } = useParams();
   const { language } = usePreferences();
   const t = instructorCopy[language].performancePage;
 
-  const { data, loading, error } = useInstructorInsights('performance', { courseId, period });
+  const { data, loading, error } = useInstructorInsights('performance', { courseId, period,sectionPage });
   const latest = useInstructorInsights('reviews', { courseId });
   const course = data?.course;
   const courseTitle = localizedInstructorText(course, language);
@@ -36,6 +37,7 @@ export default function InstructorPerformancePage() {
   if (loading || error) return <main className="container instructor-detail-page"><h1>{courseId ? t.titleCourse : t.titleGeneral}</h1><p role={error ? 'alert' : 'status'}>{error || (language === 'ar' ? 'جارٍ التحميل…' : 'Loading…')}</p></main>;
   return (<div className="instructor-performance-page instructor-detail-page">
       <div className="container">
+        {data?.learners?.ambiguousHistorical>0&&<p role="status">{language==='ar'?'إكمالات تاريخية تحتاج إلى مراجعة: ':'Historical completions requiring review: '}{data.learners.ambiguousHistorical}</p>}
         {loading && <p role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}
         {(error || latest.error) && <p role="alert">{error || latest.error}</p>}
         {/* Header */}
@@ -178,6 +180,7 @@ export default function InstructorPerformancePage() {
                 </div>
               ))}
               {!sections.length && <p>{t.noSections}</p>}
+              <div className="account-actions"><button disabled={sectionPage<=1||loading} onClick={()=>setSectionPage(p=>p-1)}>{language==='ar'?'السابق':'Previous'}</button><span>{sectionPage}</span><button disabled={loading||sectionPage*50>=(data?.sectionsTotalCount||0)} onClick={()=>setSectionPage(p=>p+1)}>{language==='ar'?'التالي':'Next'}</button></div>
             </div>
           </article>
         </section>

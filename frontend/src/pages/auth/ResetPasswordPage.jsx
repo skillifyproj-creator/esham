@@ -1,6 +1,6 @@
 import AuthAlert from '../../components/AuthAlert';
 import { accountRequest, accountError, AccountApiError } from '../../services/accountApi';
-import { useRef, useState } from 'react';
+import { useEffect,useRef, useState } from 'react';
 import { usePreferences } from '../../context/PreferencesContext';
 import { recoveryCopy } from '../../i18n/recoveryCopy';
 import Icon from '../../components/Icon';
@@ -17,6 +17,9 @@ export default function ResetPasswordPage() {
   const [errors, setErrors] = useState({});
   const [ready, setReady] = useState(false);
   const inputs = useRef({});
+  const recoveryToken=useRef(typeof window==='undefined'?null:new URLSearchParams(window.location.search).get('token'));
+  useEffect(()=>{const url=new URL(window.location.href);url.searchParams.delete('token');window.history.replaceState(null,'',url.pathname+url.search+url.hash);
+    const meta=document.createElement('meta');meta.name='referrer';meta.content='no-referrer';document.head.appendChild(meta);return()=>meta.remove();},[]);
   const requirements = passwordRequirements(values.password);
   const strength = passwordStrength(values.password);
   function change(event) {
@@ -36,7 +39,7 @@ export default function ResetPasswordPage() {
     inputs.current[Object.keys(next)[0]]?.focus();
     if (Object.keys(next).length || busy) return;
     setBusy(true); setRequestError('');
-    try { const token = new URLSearchParams(window.location.search).get('token'); if (!token) throw new AccountApiError('token'); await accountRequest('/auth/reset-password', { token, password: values.password }); setValues({ password: '', confirm: '' }); setReady(true); }
+    try { const token = recoveryToken.current; if (!token) throw new AccountApiError('token'); await accountRequest('/auth/reset-password', { token, password: values.password }); recoveryToken.current=null;setValues({ password: '', confirm: '' }); setReady(true); }
     catch (error) { setRequestError(accountError(error, language)); } finally { setBusy(false); }
   }
   return <RecoveryLayout title={t.resetTitle} intro={t.resetIntro}>

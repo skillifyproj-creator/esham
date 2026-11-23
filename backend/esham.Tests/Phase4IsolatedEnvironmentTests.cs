@@ -12,7 +12,7 @@ public sealed class Phase4SetupFactAttribute(string action):FactAttribute {
 }
 public sealed class Phase4IsolatedEnvironmentTests
 {
-    internal static string Root(){var root=Path.GetFullPath(Environment.GetEnvironmentVariable("ESHAM_PHASE4_ARTIFACTS")??throw new InvalidOperationException("Private fixture directory required."));if(!root.EndsWith(Path.Combine("artifacts","phase4-isolated"),StringComparison.OrdinalIgnoreCase)&&!root.EndsWith(Path.Combine("artifacts","phase4-hardening","browser"),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Dedicated Phase4 directory required.");Directory.CreateDirectory(root);return root;}
+    internal static string Root(){var root=Path.GetFullPath(Environment.GetEnvironmentVariable("ESHAM_PHASE4_ARTIFACTS")??throw new InvalidOperationException("Private fixture directory required."));if(!root.EndsWith(Path.Combine("artifacts","phase4-isolated"),StringComparison.OrdinalIgnoreCase)&&!root.EndsWith(Path.Combine("artifacts","phase4-hardening","browser"),StringComparison.OrdinalIgnoreCase)&&!root.EndsWith(Path.Combine("artifacts","phase5-isolated","phase4-regression"),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Dedicated Phase4 directory required.");Directory.CreateDirectory(root);return root;}
     private static async Task<string> Financial(AppDbContext db,Guid e)=>JsonSerializer.Serialize(new {
         enrollment=await db.Enrollments.Where(x=>x.Id==e).Select(x=>new{x.Id,x.CourseId,x.CourseVersionId,x.LearnerUserId,x.EnrolledAt}).SingleAsync(),
         wallets=await db.Wallets.Where(x=>db.Enrollments.Any(y=>y.Id==e&&(y.LearnerUserId==x.UserId||y.Course.OwnerUserId==x.UserId))).OrderBy(x=>x.UserId).Select(x=>new{x.UserId,x.Balance,x.UpdatedAt}).ToListAsync(),

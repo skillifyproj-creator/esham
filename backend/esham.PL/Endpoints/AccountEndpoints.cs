@@ -97,6 +97,7 @@ public static class AccountEndpoints
             return Results.NoContent();
         })
         .RequireAuthorization()
+        .AddEndpointFilter<AdminMutationFilter>().AddEndpointFilter<EnrollmentAccountFilter>()
         .WithName("UpdateCurrentProfile");
 
         endpoints.MapPatch("/me/role", async (UpdateRoleRequest request,
@@ -104,7 +105,7 @@ public static class AccountEndpoints
         {
             var result = await accountService.UpdateCurrentRoleAsync(context.User, request.Role);
             return result.Failure == AccountFailure.None ? Results.NoContent() : ToError(result);
-        }).RequireAuthorization().WithName("UpdateCurrentAccountRole");
+        }).RequireAuthorization().AddEndpointFilter<AdminMutationFilter>().AddEndpointFilter<EnrollmentAccountFilter>().WithName("UpdateCurrentAccountRole");
 
         return endpoints;
     }

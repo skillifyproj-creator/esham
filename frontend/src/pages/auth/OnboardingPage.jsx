@@ -52,6 +52,8 @@ export default function OnboardingPage() {
   const { step = 'role' } = useParams();
   const navigate = useNavigate();
   const sessionState = useAccountSession();
+  const activeAccount = useRef(null);
+  activeAccount.current = sessionState.session?.profile?.id;
   const catalog = useCategoryCatalog();
   const [draft, setDraft] = useState(loadDraft);
   const [error, setError] = useState('');
@@ -78,10 +80,14 @@ export default function OnboardingPage() {
     const invalid = current === 0 && !draft.role ? 'roleError' : current === 1 && draft.name.trim().length < 2 ? 'nameError' : current === 1 && !validUsername(draft.username) ? 'usernameError' : current === 2 && skillRequirement ? skillRequirement : current === 3 && draft.goal === null ? 'goalError' : '';
     if (invalid) { setError(invalid); requestAnimationFrame(() => errorRef.current?.focus()); return; }
     if (current === 3) {
+      const accountId = activeAccount.current;
       try {
         if(busy)return;setBusy(true);
-        await accountRequest('/me', profileRequest(draft, { includeCategories: true }), { method:'PATCH' });
+        if (!accountId || draft.id !== accountId) throw { code: 'unauthorized' };
+        await accountRequest('/me', profileRequest(draft, { includeCategories: true }), { method:'PATCH', headers:{'X-Esham-Account-Id':accountId} });
+        if (activeAccount.current !== accountId) return;
         const verified = await sessionState.refresh();
+        if (activeAccount.current !== accountId || verified.profile?.id !== accountId) return;
         if (verified.onboardingRequired) throw { code: 'response' };
         const completedProfile = onboardingDraft(verified);
         try { sessionStorage.setItem(storageKey, JSON.stringify(completedProfile)); } catch { /* Saved on the server. */ }

@@ -41,17 +41,25 @@ public sealed class AnnouncementService(AppDbContext db)
         if(input.ExpectedVersion!=Version(a!))return Fail<AnnouncementDto>(ServiceFailure.Conflict,"Announcement changed. Reload before retrying.");
         if(a!.Status=="archived")return Fail<AnnouncementDto>(ServiceFailure.Conflict,"Archived announcements are retained and cannot be republished.");
         if(a.Status==input.Status)return ServiceResult<AnnouncementDto>.Ok(Map(a));
-        var old=a.Status;a.Status=input.Status;if(input.Status=="published")a.PublishedAt=DateTimeOffset.UtcNow;
+        var old=a.Status;a.Status=input.Status;if(input.Status=="published"){
+            var now=DateTimeOffset.UtcNow;
+            // Delivery generation must remain distinct even if the host clock repeats or moves backwards.
+            a.PublishedAt=a.PublishedAt.HasValue&&now<=a.PublishedAt.Value?a.PublishedAt.Value.AddTicks(1):now;
+        }
         Log(actor,a,"announcement."+input.Status,old,a.Status);await Task.CompletedTask;return ServiceResult<AnnouncementDto>.Ok(Map(a));
     },ct);
     private void Log(PlatformActor actor,Announcement a,string action,string? previous,string next)=>db.AdminActivityLogs.Add(new(){ActorUserId=actor.Id,Action=action,TargetType="Announcement",TargetId=a.Id.ToString(),TargetName=a.TitleEn??a.TitleAr,PreviousState=previous,NewState=next});
     private async Task<ServiceResult<AnnouncementDto>> Change(ClaimsPrincipal principal,Guid? id,Func<PlatformActor,Announcement?,Task<ServiceResult<AnnouncementDto>>> action,CancellationToken ct)
     {
+        // Discovery must not retain user/role read locks before the announcement lock.
+        var discovered=await access.ReadAsync(principal,ct);
+        if(discovered==null||!discovered.General)return Fail<AnnouncementDto>(discovered==null?ServiceFailure.Unauthenticated:ServiceFailure.Forbidden,"GeneralAdmin membership is required.");
         try{return await db.Database.CreateExecutionStrategy().ExecuteAsync(async()=>
         {
             db.ChangeTracker.Clear();await using var tx=await db.Database.BeginTransactionAsync(IsolationLevel.Serializable,ct);
-            var actor=await access.ReadAsync(principal,ct);if(actor==null||!actor.General)return Fail<AnnouncementDto>(actor==null?ServiceFailure.Unauthenticated:ServiceFailure.Forbidden,"GeneralAdmin membership is required.");
             Announcement? a=null;if(id!=null){a=await (db.Database.IsSqlServer()?db.Announcements.FromSqlInterpolated($"SELECT * FROM [Announcements] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id.Value}"):db.Announcements.AsQueryable()).SingleOrDefaultAsync(x=>x.Id==id,ct);if(a==null)return Fail<AnnouncementDto>(ServiceFailure.NotFound,"Announcement not found.");}
+            if(db.Database.IsSqlServer())await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={discovered.Id}").SingleOrDefaultAsync(ct);
+            var actor=await access.ReadAsync(principal,ct);if(actor==null||!actor.General)return Fail<AnnouncementDto>(actor==null?ServiceFailure.Unauthenticated:ServiceFailure.Forbidden,"GeneralAdmin membership is required.");
             var result=await action(actor,a);if(result.Failure!=ServiceFailure.None)return result;await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return result;
         });}finally{db.ChangeTracker.Clear();}
     }

@@ -36,6 +36,7 @@ export default function InstructorDashboard() {
   return (
     <section className="instructor-dashboard">
       <div className="instructor-container">
+        {data?.learners?.ambiguousHistorical>0&&<p role="status">{language==='ar'?'إكمالات تاريخية تحتاج إلى مراجعة: ':'Historical completions requiring review: '}{data.learners.ambiguousHistorical}</p>}
 
         
         {/* Welcome */}

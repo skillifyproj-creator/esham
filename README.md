@@ -2,7 +2,7 @@
 
 Esham combines learner, instructor/hybrid, GeneralAdmin and CategoryAdmin workspaces. The implementation is React/Vite in `frontend/`, ASP.NET Core 9 / EF Core / Identity / SQL Server in `backend/`, and independent Node.js AI services in `ai/`.
 
-**Implementation and handoff status: November 22, 2026.** Learner Phases 1–3 are implemented and verified for the approved isolated development scope. Phase 4 adds authoritative completion, immutable certificate issuance, public verification, guarded revocation and authenticated browser PDFs; see [implementation](backend/PHASE4-COMPLETION-CERTIFICATES.md) and [verification](backend/PHASE4-VERIFICATION.md). The focused hardening pass covers consistent completion reads, mixed SQL workloads, passive-cookie session races and durable recovery. Phase 4 awaits owner review. Learner course reviews remain future work. Hosted learner mutation enablement remains a separate, unapproved decision.
+**Implementation and handoff status: November 22, 2026.** Learner Phases 1–4 are accepted and committed for the approved isolated development scope. Phase 5 implements persisted learner reviews/replies/moderation, account password/reset/session security, selected announcement delivery and instructor metrics; see [implementation](backend/PHASE5-REVIEWS-ACCOUNTS-ANNOUNCEMENTS-METRICS.md) and [verification](backend/PHASE5-VERIFICATION.md). Phase 5 remains uncommitted for owner review. Hosted mutation enablement and real recovery-email delivery remain separate, unapproved decisions.
 
 The existing 20/20/20 policy is implemented: one-time welcome credit, atomic learner enrollment debit and instructor enrollment reward. Purchases, progress writes and new submission mutations default to disabled and are restricted to the approved isolated LocalDB target. Hosted enablement and private-media deployment require a separate decision. Lessons, submissions and reviews never award extra points.
 
@@ -10,16 +10,16 @@ The existing 20/20/20 policy is implemented: one-time welcome credit, atomic lea
 
 | Area | Implemented / tested | Remaining or limited |
 | --- | --- | --- |
-| Identity / account setup | Real cookie sessions, server roles, profile/category setup, account finalization, welcome wallet credit and idempotency tests | Forgot/reset-password frontend lacks backend recovery endpoints; unsupported account actions must not report success |
+| Identity / account setup | Real cookie sessions/roles, atomic profile/category setup, welcome wallet, gated password change/reset/all-session revocation | Recovery is private isolated capture only; hard deletion, device sessions and email changes remain deferred |
 | Database | SQL Server domain model and three EF migrations; course update migration tested on restored test DB and applied/verified on shared DB with approval | No automatic migration/reseed on startup; new shared changes require coordinator approval |
 | Courses and media | Owned course drafts, curriculum, lessons, tasks, cover/media persistence, readiness and protected media reads | AI execution is a separate service; AI output is not publication authority |
 | Moderation/publication | Real submit, pending review, assigned CategoryAdmin approval/rejection/changes, content-based resubmission validation, approved-version publication and retained snapshots | GeneralAdmin has oversight; assigned CategoryAdmin decides publication under current policy |
 | Course-version updates | Stable logical identities, append-only access receipts, atomic enrollment staging, publication-race protection and inherited achievements | Original Enrollment.CourseVersionId remains historical; no additional update charge or arbitrary historical playback |
 | Admin / CategoryAdmin | Existing 17 routes, real distinct-course statistics/reports/activity, categories, existing-member scope assignments, CategoryAdmin provisioning, users, announcements, reports/warnings/appeals; bilingual responsive UI and collapsible sidebars; no Footer | Category metadata and assignment saves are separate operations with explicit partial-success feedback; GeneralAdmin-only CategoryAdmin creation with atomic initial assignments; no existing-account promotion |
-| Instructor reporting | Real dashboard/performance, read-only persisted course ratings, own-course submissions/details/attachments and immutable review decisions | Populated data depends on learner writes; watch duration is unavailable, not inferred from resume position |
+| Instructor reporting | Owner-filtered grouped SQL metrics, ledger teaching points, server-filtered ratings/replies, course metrics and immutable assessments | Watch duration and unsupported draft-progress/growth values remain unavailable; metrics are captured projections |
 | Public discovery/details | Persisted published catalog, trusted categories, safe published outline and aggregate ratings; real enrollment integration | Private content uses authenticated enrollment-scoped routes; hosted purchases remain disabled |
 | Themes / layout | Existing Admin/CategoryAdmin refinement, RTL/LTR, responsive navigation, burgundy Dark Mode, original logo/logo2 switching | Chatbot appearance is excluded; theme preferences are UI storage, not business persistence |
-| Learner journeys | Real enrollment/wallet/history, protected player/progress, submissions/assessment, and Phase 4 completion/certificates with isolated verification | Learner review writes remain future work; hosted mutation enablement is prohibited pending a separate decision |
+| Learner journeys | Real enrollment/wallet/history, protected progress, submissions/assessment, completion/certificates and gated persisted reviews/replies | Hosted mutation enablement remains prohibited pending a separate decision |
 | AI, chatbot and video | Existing implementation and detailed documentation below are retained | Provider/network/hosting dependencies and the existing documented limits still apply |
 
 ### Fatima — completed backend and integration work
@@ -60,7 +60,7 @@ The three migrations listed above are the existing source history; the approved 
 - Phase 2: [protected learning/progress](backend/PHASE2-PROTECTED-LEARNING.md), [verification](backend/PHASE2-VERIFICATION.md).
 - Phase 3: [tasks/submissions/assessment integration](backend/PHASE3-TASKS-SUBMISSIONS.md), [verification and acceptance checklist](backend/PHASE3-VERIFICATION.md).
 
-Phase 4 completion/certificates are implemented for isolated review; see the reports above. Remaining learner course-review work requires separate approval. Preserve completed-course dates, historical achievements, immutable attribution and disabled hosted mutation gates.
+Phase 4 completion/certificates are accepted; [implementation](backend/PHASE4-COMPLETION-CERTIFICATES.md) and [verification](backend/PHASE4-VERIFICATION.md) retain the historical evidence. Phase 5 reports above describe the current uncommitted review/account/announcement/metric implementation. Preserve completed-course dates, historical achievements, immutable attribution and default-disabled hosted mutation gates. Phase 6 has not started.
 
 Shared runtime ports are 5206/5174; isolated verification uses 5216/5175. Never use the shared database for mutation tests, enable its learner write gates, replay migrations or copy synthetic fixtures into source control. Tests require explicit isolated opt-in and actual database identity checks. Verification documents contain historical test results, not permission to mutate a hosted target.
 

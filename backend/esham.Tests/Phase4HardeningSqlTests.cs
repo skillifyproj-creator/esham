@@ -25,7 +25,7 @@ public sealed class Phase4HardeningSqlTests
                 if(File.Exists(Path.Combine(directory.FullName,"backend/esham.Tests/esham.Tests.csproj"))&&Directory.Exists(Path.Combine(directory.FullName,"frontend")))return directory.FullName;
         throw new InvalidOperationException("Repository root required for isolated recovery artifacts.");
     }
-    internal static string Artifacts(){var p=Path.Combine(RepositoryRoot(),"artifacts","phase4-hardening");Directory.CreateDirectory(p);return p;}
+    internal static string Artifacts(){var repo=RepositoryRoot();var selected=Environment.GetEnvironmentVariable("ESHAM_PHASE4_HARDENING_ARTIFACTS");var p=selected==null?Path.Combine(repo,"artifacts","phase4-hardening"):Path.GetFullPath(selected);if(selected!=null&&!p.Equals(Path.Combine(repo,"artifacts","phase5-results","phase4-hardening"),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Dedicated Phase5 regression directory required.");Directory.CreateDirectory(p);return p;}
     [Phase1SqlFact]public async Task Concurrent_GET_and_completion_return_consistent_before_or_after_projection(){
         var barrier=new HoldEnrollmentRead();using var p=await CompletionSqlServerTests.Provider(barrier);var f=await LessonProgressSqlServerTests.Fixture(p);
         using(var scope=p.CreateScope())await CompletionTests.Earn(scope.ServiceProvider.GetRequiredService<AppDbContext>(),f);
@@ -114,7 +114,8 @@ public sealed class Phase4HardeningSqlTests
         var c=new Course{OwnerUserId=owner};var v=new CourseVersion{CourseId=c.Id,CategoryId=category,VersionNumber=1,TitleEn="Synthetic mixed course",ReviewStatus="approved",ApprovedAt=DateTimeOffset.UtcNow};var section=new CourseSection{CourseVersionId=v.Id};var lesson=new Lesson{CourseSectionId=section.Id,ContentType="article",TitleEn="Mixed lesson"};var task=new CourseTask{CourseVersionId=v.Id,TitleEn="Mixed work"};db.AddRange(c,v,section,lesson,task);await db.SaveChangesAsync();c.PublishedVersionId=v.Id;c.DraftVersionId=v.Id;await db.SaveChangesAsync();return new(c.Id,v.Id,lesson.Id,task.Id);
     }
     [Phase1SqlTheory][InlineData(1)][InlineData(2)][InlineData(3)]
-    public async Task Mixed_shared_participants_purchase_progress_submit_approve_and_reconcile(int wave){
+    public Task Mixed_shared_participants_purchase_progress_submit_approve_and_reconcile(int wave)=>RunMixed(wave);
+    internal async Task RunMixed(int wave,bool phase5=false){
         var started=DateTimeOffset.UtcNow;
         var diagnostics=new Diagnostics();using var p=await CompletionSqlServerTests.Provider(diagnostics);var f=await LessonProgressSqlServerTests.Fixture(p);Graph a,b,c;Guid eb;
         using(var scope=p.CreateScope()){var s=scope.ServiceProvider;var db=s.GetRequiredService<AppDbContext>();Http(s,f.Purchase.Owner);Assert.Equal(AccountFailure.None,(await s.GetRequiredService<AccountService>().UpdateCurrentProfileAsync(Principal(f.Purchase.Owner),Profile("both","mixed_"+Guid.NewGuid().ToString("N")[..12]))).Failure);
@@ -134,8 +135,20 @@ public sealed class Phase4HardeningSqlTests
         async Task<Guid> Purchase(){using var sc=p.CreateScope();var sp=sc.ServiceProvider;var r=await EnrollmentTests.Service(sp,PurchaseGate(sp.GetRequiredService<AppDbContext>())).PurchaseAsync(Principal(f.Purchase.Learner),request);Assert.Equal(ServiceFailure.None,r.Failure);return r.Value!.Enrollment.Id;}
         try {
             var purchases=Enumerable.Range(0,4).Select(_=>Purchase()).ToArray();
-            await Task.WhenAll(Workflow(a,f.Enrollment,f.Purchase.Learner,f.Purchase.Owner,f.Lesson,f.Article),Workflow(b,eb,f.Purchase.Owner,f.Purchase.Learner,b.Lesson),Poll(a,f.Enrollment,f.Purchase.Learner),Poll(b,eb,f.Purchase.Owner),Task.WhenAll(purchases));
+            async Task Phase5(){
+                if(!phase5)return;
+                using var scope=p.CreateScope();var s=scope.ServiceProvider;var db=s.GetRequiredService<AppDbContext>();
+                var announcement=new Announcement{AuthorUserId=f.Purchase.Owner,Audience="all",Status="published",PublishedAt=DateTimeOffset.UtcNow,TitleEn="Mixed isolated announcement",ContentEn="Synthetic mixed workload"};db.Add(announcement);await db.SaveChangesAsync();
+                async Task Review(){using var sc=p.CreateScope();var svc=Phase5Tests.Reviews(sc.ServiceProvider);var r=await svc.WriteAsync(Principal(f.Purchase.Learner),f.Enrollment,Phase5Tests.Write(f.Purchase.Version));Assert.Equal(ServiceFailure.None,r.Failure);Assert.Equal(ServiceFailure.None,(await svc.ReplyAsync(Principal(f.Purchase.Owner),f.Enrollment,new(Guid.NewGuid(),r.Value!.Review!.Version,"Mixed instructor reply"))).Failure);}
+                async Task Deliver(){using var sc=p.CreateScope();Assert.Equal(2,await Phase5SqlTests.Delivery(sc.ServiceProvider,announcement.Id,[f.Purchase.Learner,f.Purchase.Owner]).RecoverAsync());}
+                async Task Security(){using var sc=p.CreateScope();var ticket=await Phase5Tests.Ticket(sc.ServiceProvider,f.Purchase.Owner);Assert.Equal(ServiceFailure.None,(await Phase5Tests.Security(sc.ServiceProvider,new()).RevokeAsync(ticket,new(AccountFinalizationTests.Password))).Failure);}
+                await Task.WhenAll(Review(),Deliver(),Security());
+            }
+            var mixed=Task.WhenAll(Workflow(a,f.Enrollment,f.Purchase.Learner,f.Purchase.Owner,f.Lesson,f.Article),Workflow(b,eb,f.Purchase.Owner,f.Purchase.Learner,b.Lesson),Poll(a,f.Enrollment,f.Purchase.Learner),Poll(b,eb,f.Purchase.Owner),Task.WhenAll(purchases),Phase5());
+            async Task Observe(){if(!phase5)return;while(!mixed.IsCompleted){await Task.WhenAny(mixed,Task.Delay(1000));if(mixed.IsCompleted)break;using var sc=p.CreateScope();var d=sc.ServiceProvider.GetRequiredService<AppDbContext>();await d.Database.OpenConnectionAsync();IsolatedSqlMutationGuard.Verify(d.Database.GetDbConnection());using var command=d.Database.GetDbConnection().CreateCommand();command.CommandTimeout=3;command.CommandText="SELECT session_id,blocking_session_id,wait_type,wait_resource FROM sys.dm_exec_requests WHERE database_id=DB_ID() AND blocking_session_id>0";using var reader=await command.ExecuteReaderAsync();var waits=new List<object>();while(await reader.ReadAsync())waits.Add(new{Session=reader.GetInt16(0),BlockedBy=reader.GetInt16(1),Wait=reader.IsDBNull(2)?null:reader.GetString(2),Resource=reader.GetString(3)});await File.AppendAllTextAsync(Path.Combine(Phase5SqlTests.Artifacts(),$"mixed-{wave}-blocking.jsonl"),JsonSerializer.Serialize(new{at=DateTimeOffset.UtcNow,waits})+Environment.NewLine);}}
+            await Task.WhenAll(mixed,Observe());
             var ec=purchases[0].Result;Assert.All(purchases,x=>Assert.Equal(ec,x.Result));await Task.WhenAll(Workflow(c,ec,f.Purchase.Learner,f.Purchase.Owner,c.Lesson),Poll(c,ec,f.Purchase.Learner));
+            Assert.Empty(diagnostics.Failures);
             using var verify=p.CreateScope();var db=verify.ServiceProvider.GetRequiredService<AppDbContext>();var ids=new[]{f.Enrollment,eb,ec};Assert.Equal(3,await db.Certificates.CountAsync(x=>ids.Contains(x.EnrollmentId)));Assert.Equal(6,await db.PointTransactions.CountAsync(x=>x.EnrollmentId!=null&&ids.Contains(x.EnrollmentId.Value)));Assert.Equal(0,(await db.Wallets.SingleAsync(x=>x.UserId==f.Purchase.Learner)).Balance);Assert.Equal(40,(await db.Wallets.SingleAsync(x=>x.UserId==f.Purchase.Owner)).Balance);
         } finally {
             var record=JsonSerializer.Serialize(new{wave,started,finished=DateTimeOffset.UtcNow,sqlErrors=diagnostics.Failures.ToArray()});

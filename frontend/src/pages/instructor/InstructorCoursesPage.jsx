@@ -1,5 +1,7 @@
 import { reviewStatusLabel } from '../../services/courseReviewApi';
 import { useLearnerWallet } from '../../hooks/useLearnerWallet';
+import useInstructorCourseMetrics from '../../hooks/useInstructorCourseMetrics';
+import { useAccountSession } from '../../context/AccountSessionContext';
 import { useEffect, useMemo, useState } from "react";
 import { courseRequest } from '../../services/curriculumApi';
 import { Link } from "react-router";
@@ -13,6 +15,9 @@ import "../../styles/instructor-courses.css";
 
 export default function InstructorCoursesPage() {
   const { language } = usePreferences();
+  const session=useAccountSession(),account=session.status==='authenticated'?session.session.profile.id:null;
+  const metrics=useInstructorCourseMetrics();
+  const [courseAccount,setCourseAccount]=useState(null);
   const c = instructorCopy[language];
   const { teaching, earned, loading: walletLoading, error: walletError } = useLearnerWallet();
   const [remoteCourses, setRemoteCourses] = useState([]);
@@ -20,19 +25,21 @@ export default function InstructorCoursesPage() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const controller = new AbortController();
-    courseRequest('/courses/mine', undefined, 'GET', controller.signal).then(items => setRemoteCourses(items.map(x => ({
+    setRemoteCourses([]);setCourseAccount(account);setLoading(true);setLoadError('');
+    courseRequest('/courses/mine', undefined, 'GET', controller.signal).then(items => { if(controller.signal.aborted)return;setRemoteCourses(items.map(x => ({
       id: x.courseId, publishedVersionId: x.publishedVersionId, title: { ar: x.titleAr || x.titleEn || 'مسودة بلا عنوان', en: x.titleEn || x.titleAr || 'Untitled draft' },
       category: { ar: x.categoryNameAr || '', en: x.categoryNameEn || '' },
       description: { ar: '', en: '' }, reviewStatus: { ar: reviewStatusLabel(x.reviewStatus, 'ar'), en: reviewStatusLabel(x.reviewStatus, 'en') },
       courseStatus: x.reviewStatus === 'approved' && x.publishedVersionId === x.draftVersionId ? 'published' : x.reviewStatus === 'changes_requested' ? 'rejected' : x.reviewStatus || 'draft', level: { ar: x.level || '', en: x.level || '' },
-      updatedAt: x.updatedAt, learners: 0, progress: 0,
-    })))).catch(error => { if (!controller.signal.aborted) setLoadError(error.message); })
+      updatedAt: x.updatedAt, learners: null, progress: null,
+    })));}).catch(error => { if (!controller.signal.aborted) setLoadError(error.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, []);
-  const courses = useMemo(() => remoteCourses.map(course => ({ ...course,
+  }, [account]);
+  const courses = useMemo(() => (courseAccount===account?remoteCourses:[]).map(course => ({ ...course,
+    learners: metrics.items?.find(x=>x.id===course.id)?.enrolled??'—',progress:'—',
     points: walletLoading || walletError ? '—' : teaching.find(item => item.courseId === course.id)?.points ?? 0,
-  })), [remoteCourses, teaching, walletLoading, walletError]);
+  })), [remoteCourses, teaching, walletLoading, walletError,metrics,courseAccount,account]);
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");

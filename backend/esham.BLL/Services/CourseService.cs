@@ -154,7 +154,10 @@ public sealed class CourseService(AppDbContext db) : ICourseService
     {
         var values = await PublicQuery().OrderByDescending(x => x.PublishedVersion!.ApprovedAt).ThenBy(x => x.Id).Select(PublicProjection).ToListAsync(ct);
         static string? Preview(string? value) => value?.Length > 300 ? value[..300] : value;
-        return values.Select(x => x with { DescriptionAr = Preview(x.DescriptionAr), DescriptionEn = Preview(x.DescriptionEn) }).ToList();
+        var ratings = await db.CourseReviews.AsNoTracking().Where(x => PublicQuery().Any(c=>c.Id==x.Enrollment.CourseId))
+            .GroupBy(x=>x.Enrollment.CourseId).Select(g=>new{Id=g.Key,Count=g.Count(),Average=g.Average(x=>(double)x.Rating)}).ToDictionaryAsync(x=>x.Id,ct);
+        return values.Select(x => x with { DescriptionAr = Preview(x.DescriptionAr), DescriptionEn = Preview(x.DescriptionEn),
+            RatingCount=ratings.TryGetValue(x.CourseId,out var r)?r.Count:0, AverageRating=ratings.TryGetValue(x.CourseId,out var avg)?avg.Average:null }).ToList();
     }
     public async Task<ServiceResult<PublicCourseResponseDto>> GetPublicAsync(Guid id, CancellationToken ct = default)
     {

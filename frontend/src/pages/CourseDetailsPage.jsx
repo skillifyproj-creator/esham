@@ -1,4 +1,5 @@
 import PublicCourseCurriculum from '../components/PublicCourseCurriculum';
+import PublicCourseReviews from '../components/PublicCourseReviews';
 import EnrollmentAction from '../components/learner/EnrollmentAction';
 import ReportCourseButton from '../components/learner/ReportCourseButton';
 import { useEffect, useState } from 'react';
@@ -37,6 +38,7 @@ export default function CourseDetailsPage() {
     <div className="detail-layout"><div className="detail-main">
     <section className="detail-section"><h2>{t('عن الدورة', 'About this course')}</h2><div className="detail-panel"><p style={{whiteSpace:'pre-wrap'}}>{course.description[language]}</p></div></section>
     <PublicCourseCurriculum course={course}/>
+    <PublicCourseReviews courseId={course.id} language={language}/>
     </div><aside className="enrollment-card"><EnrollmentAction course={course} language={language}/></aside></div>
     <section className="section"><h2>{t('ما الذي ستتعلمه؟', 'What you will learn')}</h2><ul>{course.objectives.map((x, i) => <li key={i}>{x[language] || x.ar || x.en}</li>)}</ul></section>
     <section className="section"><h2>{t('دورات أخرى', 'More courses')}</h2><div className="catalog-grid">{related.map(x => <CourseCard key={x.id} course={x} compact />)}</div></section>

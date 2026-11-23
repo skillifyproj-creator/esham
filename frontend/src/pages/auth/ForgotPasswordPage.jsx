@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     if (!valid) input.current?.focus();
     if (!valid || busy) return;
     setBusy(true); setRequestError('');
-    try { await accountRequest('/auth/forgot-password', { email: email.trim() }); setReady(true); }
+    try { const result=await accountRequest('/auth/forgot-password', { email: email.trim() }); setReady(result?.deliveryMode==='isolated_capture'?'capture':true); }
     catch (error) { setRequestError(accountError(error, language)); } finally { setBusy(false); }
   }
   return <RecoveryLayout title={t.forgotTitle} intro={t.forgotIntro}>
@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
       <div className="auth-field"><label htmlFor="recovery-email">{t.email}</label><div className={`auth-input-wrap${error ? ' has-error' : ''}`}><input ref={input} id="recovery-email" name="email" type="email" dir="ltr" autoComplete="email" placeholder="name@example.com" value={email} onChange={event => { setEmail(event.target.value); setError(false); setReady(false); }} required aria-invalid={error} aria-describedby={error ? 'recovery-email-error' : undefined} /></div>{error && <p className="auth-error" id="recovery-email-error">{t.emailError}</p>}</div>
       {requestError && <AuthAlert>{requestError}</AuthAlert>}
       <button className="auth-submit" type="submit" disabled={busy} aria-busy={busy}>{t.forgotSubmit}<span aria-hidden="true">{language === 'ar' ? '←' : '→'}</span></button>
-      {ready && <div className="recovery-request-status"><p className="auth-status" role="status">{t.forgotReady}</p></div>}
+      {ready && <div className="recovery-request-status"><p className="auth-status" role="status">{ready==='capture'?(language==='ar'?'وضع الاختبار المعزول: تُحفظ الاستعادة في الالتقاط الخاص ولا تُرسل رسالة بريد إلكتروني.':'Isolated testing: recovery is captured privately. No email is sent.'):t.forgotReady}</p></div>}
     </form>
   </RecoveryLayout>;
 }

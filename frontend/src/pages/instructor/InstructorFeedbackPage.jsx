@@ -1,6 +1,8 @@
+import { reviewCsvCell } from '../../services/learnerReviewsApi';
+import ReviewReplyForm from '../../components/instructor/ReviewReplyForm';
 import useInstructorInsights from '../../hooks/useInstructorInsights';
 import { localizedInstructorText } from '../../services/instructorInsights';
-import { useMemo, useState } from "react";
+import { useEffect,useMemo, useState } from "react";
 import { useParams } from "react-router";
 import Icon from "../../components/Icon";
 
@@ -12,7 +14,10 @@ export default function InstructorFeedbackPage() {
   const { language } = usePreferences();
   const { courseId } = useParams();
   const [page, setPage] = useState(1);
-  const { data, loading, error } = useInstructorInsights('reviews', { courseId, page });
+  const [revision,refresh]=useState(0);
+  const [courseFilter,setCourseFilter]=useState('all'),[ratingFilter,setRatingFilter]=useState('all'),[responseFilter,setResponseFilter]=useState('all');
+  const { data, loading, error } = useInstructorInsights('reviews', { courseId:courseId||(courseFilter==='all'?undefined:courseFilter), page, rating:ratingFilter==='all'?undefined:ratingFilter, replyStatus:responseFilter, revision });
+  useEffect(()=>setPage(1),[courseFilter,ratingFilter,responseFilter,courseId]);
   const analytics = useInstructorInsights('performance', { courseId });
   const c = instructorCopy[language].feedbackPage;
   const selectedCourse = analytics.data?.course;
@@ -21,9 +26,7 @@ export default function InstructorFeedbackPage() {
     date: review.createdAt.slice(0, 10), courseLabel: localizedInstructorText(review, language), courseName: localizedInstructorText(review, language)
   }));
   const replies = Object.fromEntries(localizedReviews.map(review => [review.id, review.instructorReply || '']));
-  const [courseFilter, setCourseFilter] = useState("all");
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [responseFilter, setResponseFilter] = useState("all");
+
   const courses = useMemo(
     () => Array.from(new Map(localizedReviews.map((review) => [
       review.courseId,
@@ -55,15 +58,13 @@ export default function InstructorFeedbackPage() {
   ).length;
 
   const ratingDistribution = [5, 4, 3, 2, 1].map((rating) => {
-    const count = localizedReviews.filter(
-      (review) => review.rating === rating,
-    ).length;
+    const count = data?.summary?.distribution?.[String(rating)] ?? 0;
 
     return {
       rating,
       count,
-      width: localizedReviews.length
-        ? (count / localizedReviews.length) * 100
+      width: data?.total
+        ? (count / data.total) * 100
         : 0,
     };
   });
@@ -85,13 +86,11 @@ export default function InstructorFeedbackPage() {
         review.comment,
         review.date,
         replies[review.id] === (review.instructorReply || "")
-          ? (c.reviewContent?.[review.id]?.reply || replies[review.id] || "")
+          ? (replies[review.id] || "")
           : replies[review.id] || "",
       ]),
     ];
-    const csv = rows
-      .map((row) => row.map((value) => `"${String(/^[=+\-@\t\r]/.test(String(value)) ? "'" + value : value).replaceAll('"', '""')}"`).join(","))
-      .join("\n");
+    const csv = rows.map(row=>row.map(reviewCsvCell).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
@@ -102,7 +101,7 @@ export default function InstructorFeedbackPage() {
 
   if (loading || error || analytics.error) return <main className="container instructor-detail-page"><h1>{c.title}</h1><p role={error || analytics.error ? 'alert' : 'status'}>{error || analytics.error || (language === 'ar' ? 'جارٍ التحميل…' : 'Loading…')}</p></main>;
   return (<main className="instructor-feedback-page instructor-detail-page">
-      <div className="container">{loading && <p role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}{(error || analytics.error) && <p role="alert">{error || analytics.error}</p>}<p>{language === 'ar' ? 'عرض التقييمات المحفوظة فقط. الملخص والفلاتر والتصدير للصفحة الحالية.' : 'Read-only saved reviews. Summary, filters and export apply to the current page.'}</p><div className="account-actions"><button disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}>{language === 'ar' ? 'السابق' : 'Previous'}</button><span>{page}</span><button disabled={loading || page * 50 >= (data?.total || 0)} onClick={() => setPage(p => p + 1)}>{language === 'ar' ? 'التالي' : 'Next'}</button></div>
+      <div className="container">{loading && <p role="status">{language === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}{(error || analytics.error) && <p role="alert">{error || analytics.error}</p>}<p>{language === 'ar' ? 'عرض التقييمات المحفوظة فقط. الملخص والفلاتر والتصدير للصفحة الحالية.' : 'Saved reviews with server-filtered summaries. Export includes the current page.'}</p><div className="account-actions"><button disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}>{language === 'ar' ? 'السابق' : 'Previous'}</button><span>{page}</span><button disabled={loading || page * 50 >= (data?.total || 0)} onClick={() => setPage(p => p + 1)}>{language === 'ar' ? 'التالي' : 'Next'}</button></div>
         <header className="instructor-feedback-heading">
           <div>
             <h1>{courseId ? c.courseTitle : c.title}</h1>
@@ -123,14 +122,14 @@ export default function InstructorFeedbackPage() {
             <span className="instructor-feedback-stat-icon">#</span>
             <div>
               <span>{c.totalReviews}</span>
-              <strong>{localizedReviews.length}</strong>
+              <strong>{data?.total ?? 0}</strong>
             </div>
           </article>
           <article className="instructor-feedback-stat">
             <span className="instructor-feedback-stat-icon gold">★</span>
             <div>
               <span>{c.averageRating}</span>
-              <strong>{averageRating}</strong>
+              <strong>{data?.summary?.average?.toFixed(1) ?? averageRating}</strong>
               <small>{c.ratingBasis.replace("{count}", localizedReviews.length)}</small>
             </div>
           </article>
@@ -140,7 +139,7 @@ export default function InstructorFeedbackPage() {
             </span>
             <div>
               <span>{c.repliedReviews}</span>
-              <strong>{repliedCount}</strong>
+              <strong>{data?.summary?.replied ?? repliedCount}</strong>
               <small>{localizedReviews.length}</small>
             </div>
           </article>
@@ -227,9 +226,7 @@ export default function InstructorFeedbackPage() {
             filteredReviews.map((review) => {
               const sourceReply = review.instructorReply || "";
               const storedReply = replies[review.id] || "";
-              const reply = storedReply === sourceReply
-                ? (c.reviewContent?.[review.id]?.reply || sourceReply)
-                : storedReply;
+              const reply = storedReply;
 
 
               return (
@@ -256,7 +253,7 @@ export default function InstructorFeedbackPage() {
 
                   <p className="instructor-feedback-comment">{review.comment}</p>
 
-                  {reply && <div className="instructor-feedback-existing-reply"><strong>{c.replyStatus}</strong><p>{reply}</p></div>}
+                  {reply && <div className="instructor-feedback-existing-reply"><strong>{c.replyStatus}</strong><p>{reply}</p></div>}<ReviewReplyForm review={review} language={language} onSaved={()=>refresh(x=>x+1)}/>
 
                 </article>
               );

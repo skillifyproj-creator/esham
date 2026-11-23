@@ -28,12 +28,20 @@ export function onboardingDraft(session, previous = {}) {
 export function AccountSessionProvider({ children }) {
   const [state, setState] = useState({ status: apiBase ? 'loading' : 'unconfigured', session: null, error: null });
   const generation = useRef(0);
-  const invalidate = useCallback(() => { generation.current++; setState({ status: 'anonymous', session: null, error: null }); }, []);
+  const identity = useRef({ accountId: null, generation: 0 });
+  const getSessionIdentity = useCallback(() => ({ ...identity.current }), []);
+  const invalidate = useCallback(() => {
+    generation.current++;
+    identity.current = { accountId: null, generation: identity.current.generation + 1 };
+    setState({ status: 'anonymous', session: null, error: null });
+  }, []);
   const refresh = useCallback(async () => {
     const current = ++generation.current;
     try {
       const session = await loadServerSession();
-      if (current !== generation.current) return session;
+      if (current !== generation.current) throw Object.assign(new Error('account_changed'), { code: 'unauthorized' });
+      if (identity.current.accountId !== session.profile.id)
+        identity.current = { accountId: session.profile.id, generation: identity.current.generation + 1 };
       let previous = {};
       try { previous = JSON.parse(sessionStorage.getItem('esham-onboarding-draft-v1') || '{}'); } catch { /* No cached draft. */ }
       try {
@@ -45,6 +53,8 @@ export function AccountSessionProvider({ children }) {
       return session;
     } catch (error) {
       if (current === generation.current) {
+        if (error.status === 401)
+          identity.current = { accountId: null, generation: identity.current.generation + 1 };
         setState(previous => error.status === 401
           ? { status: 'anonymous', session: null, error }
           : previous.session ? { ...previous, error } : { status: 'error', session: null, error });
@@ -61,5 +71,5 @@ export function AccountSessionProvider({ children }) {
     window.addEventListener('focus', focus);
     return () => { generation.current++; window.removeEventListener('focus', focus); };
   }, [refresh]);
-  return <Context.Provider value={{ ...state, refresh, invalidate }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ ...state, sessionGeneration: identity.current.generation, getSessionIdentity, refresh, invalidate }}>{children}</Context.Provider>;
 }

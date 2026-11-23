@@ -50,6 +50,12 @@ public sealed class NotificationService(AppDbContext db, UserManager<Application
         var certificateIds=items.Where(x=>x.NotificationType=="certificate.issued").Select(x=>x.Id).ToArray();
         var certificates=await db.Certificates.AsNoTracking().Where(x=>certificateIds.Contains(x.Id)&&x.Enrollment.LearnerUserId==user.Id).Select(x=>x.Id).ToListAsync(ct);
         items=items.Select(x=>certificates.Contains(x.Id)?x with {TargetUrl=$"/learner/certificates/record/{x.Id:D}"}:x).ToList();
+        var reviewNoticeIds=items.Where(x=>x.NotificationType is "review.created" or "review.replied").Select(x=>x.Id).ToArray();
+        var reviewTargets=await db.AdminActivityLogs.AsNoTracking().Where(x=>reviewNoticeIds.Contains(x.Id)&&x.TargetType=="LearnerReview"&&x.CourseId!=null)
+            .Select(x=>new{x.Id,x.ActorUserId,Owner=x.Course!.OwnerUserId}).ToListAsync(ct);
+        items=items.Select(x=>x.NotificationType=="announcement.published"?x with{TargetUrl="/announcements"}:
+            x.NotificationType=="review.created"&&reviewTargets.Any(t=>t.Id==x.Id&&t.Owner==user.Id)?x with{TargetUrl="/instructor/feedback"}:
+            x.NotificationType=="review.replied"?x with{TargetUrl="/learner/reviews"}:x).ToList();
         return ServiceResult<NotificationPage>.Ok(new(user.Id, items, query.Page, query.PageSize, total));
     }
 

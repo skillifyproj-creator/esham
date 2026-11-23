@@ -16,45 +16,37 @@ public sealed class InstructorInsightsService(AppDbContext db, EnrollmentComplet
         var a=await access.ReadAsync(user,ct);
         return a==null?(null,ServiceFailure.Unauthenticated):!a.Instructor?(null,ServiceFailure.Forbidden):(a.Id,ServiceFailure.None);
     }
-    public async Task<ServiceResult<object>> Analytics(ClaimsPrincipal user,Guid? courseId,string period="all",CancellationToken ct=default)
+    public async Task<ServiceResult<object>> Analytics(ClaimsPrincipal user,Guid? courseId,string period="all",CancellationToken ct=default,int sectionPage=1)
     {
         var a=await Actor(user,ct);if(a.Id==null)return Fail(a.Failure,"Instructor membership required.");
         if(!new[]{"all","7d","30d","3m"}.Contains(period))return Fail(ServiceFailure.Validation,"Invalid period.");
-        var courses=await db.Courses.AsNoTracking().Include(x=>x.PublishedVersion).Include(x=>x.DraftVersion).Where(x=>x.OwnerUserId==a.Id&&(!courseId.HasValue||x.Id==courseId)).ToListAsync(ct);
-        if(courseId.HasValue&&courses.Count==0)return Fail(ServiceFailure.NotFound,"Course not found.");
-        var ids=courses.Select(x=>x.Id).ToArray();var now=DateTimeOffset.UtcNow;
-        var since=period=="all"?DateTimeOffset.MinValue:now.AddDays(period=="7d"?-7:period=="30d"?-30:-90);
-        // Learner metrics form an enrollment cohort; rating/ledger metrics use their own event time.
-        var enrollments=await db.Enrollments.AsNoTracking().Where(x=>ids.Contains(x.CourseId)&&x.EnrolledAt>=since).ToListAsync(ct);
-        var eids=enrollments.Select(x=>x.Id).ToArray();
-        var progress=await db.LessonProgressRecords.AsNoTracking().Where(x=>eids.Contains(x.EnrollmentId)&&x.Lesson.CourseSection.CourseVersion.CourseId==x.Enrollment.CourseId&&x.Lesson.CourseSection.CourseVersion.ReviewStatus=="approved").Select(x=>new{x.EnrollmentId,x.IsCompleted,x.Lesson.LogicalLessonId}).ToListAsync(ct);
-        var reviewRows=await db.CourseReviews.AsNoTracking().Where(x=>ids.Contains(x.Enrollment.CourseId)&&x.CreatedAt>=since).Select(x=>new{x.Rating,x.CreatedAt}).ToListAsync(ct);
-        var completed=enrollments.Count(x=>x.Status=="completed"||x.CompletedAt!=null);
-        var submittedEnrollmentIds=await db.TaskSubmissions.AsNoTracking().Where(x=>eids.Contains(x.EnrollmentId)&&x.SubmittedAt!=null&&x.CourseTask.CourseVersion.CourseId==x.Enrollment.CourseId).Select(x=>x.EnrollmentId).Distinct().ToListAsync(ct);
-        var started=enrollments.Count(x=>x.Status=="completed"||x.CompletedAt!=null||progress.Any(p=>p.EnrollmentId==x.Id)||x.LastOpenedAt!=null||submittedEnrollmentIds.Contains(x.Id));
-        var average=reviewRows.Count==0?0:Math.Round(reviewRows.Average(x=>x.Rating),1);
-        var points=await db.PointTransactions.AsNoTracking().Where(x=>x.UserId==a.Id&&x.TransactionType=="teaching"&&x.CreatedAt>=since&&x.EnrollmentId!=null&&ids.Contains(x.Enrollment!.CourseId)).SumAsync(x=>(int?)x.Amount,ct)??0;
-        var currentVersionIds=courses.Select(x=>x.PublishedVersionId).OfType<Guid>().ToArray();
-        var lessons=await db.Lessons.AsNoTracking().Where(x=>currentVersionIds.Contains(x.CourseSection.CourseVersionId)).Select(x=>new{x.LogicalLessonId,x.CourseSectionId,x.CourseSection.TitleAr,x.CourseSection.TitleEn,x.CourseSection.CourseVersion.CourseId}).ToListAsync(ct);
-        var sections=lessons.GroupBy(x=>x.CourseSectionId).Select(g=>new{Id=g.Key,g.First().TitleAr,g.First().TitleEn,CompletionRate=SectionRate(g.Select(x=>x.LogicalLessonId).Distinct().ToArray(),g.First().CourseId)}).ToArray();
-        double SectionRate(Guid[] logical,Guid cid){var cohort=enrollments.Where(x=>x.CourseId==cid).ToArray();if(cohort.Length==0||logical.Length==0)return 0;return Math.Round(100.0*cohort.Sum(e=>progress.Where(p=>p.EnrollmentId==e.Id&&p.IsCompleted&&logical.Contains(p.LogicalLessonId)).Select(p=>p.LogicalLessonId).Distinct().Count())/(cohort.Length*logical.Length),1);}
-        var performance=Enumerable.Range(0,6).Select(i=>{var start=new DateTimeOffset(now.Year,now.Month,1,0,0,0,TimeSpan.Zero).AddMonths(i-5);return new{Id=start.ToString("yyyy-MM"),Label=new{Ar=start.ToString("yyyy-MM"),En=start.ToString("yyyy-MM")},Learners=enrollments.Count(e=>e.EnrolledAt>=start&&e.EnrolledAt<start.AddMonths(1)),Completions=enrollments.Count(e=>e.CompletedAt>=start&&e.CompletedAt<start.AddMonths(1))};}).ToArray();
-        return ServiceResult<object>.Ok(new{Course=courses.Where(x=>x.Id==courseId).Select(x=>new{Id=x.Id,TitleAr=(x.PublishedVersion??x.DraftVersion)?.TitleAr,TitleEn=(x.PublishedVersion??x.DraftVersion)?.TitleEn,Status=(x.DraftVersion??x.PublishedVersion)?.ReviewStatus}).FirstOrDefault(),
-            Learners=new{Enrolled=enrollments.Count,Started=started,Completed=completed,InProgress=Math.Max(0,started-completed)},Ratings=new{Average=average,Total=reviewRows.Count,Distribution=Enumerable.Range(1,5).ToDictionary(x=>x.ToString(),x=>reviewRows.Count(r=>r.Rating==x))},Sections=sections,EarnedPoints=points,Performance=performance,
-            Stats=new{Learners=enrollments.Select(x=>x.LearnerUserId).Distinct().Count(),LearnerGrowthPercent=(double?)null,Rating=average,RatingCount=reviewRows.Count,WeeklyJoinRate=enrollments.Count(x=>x.EnrolledAt>=now.AddDays(-7)),AverageWatchHours=(double?)null,OverallCompletionRate=enrollments.Count==0?0:Math.Round(100.0*completed/enrollments.Count,1)},
-            TaskStats=new{
-                AwaitingReview=await db.TaskSubmissions.CountAsync(x=>ids.Contains(x.Enrollment.CourseId)&&x.CourseTask.CourseVersion.CourseId==x.Enrollment.CourseId&&x.Status=="awaitingReview"&&x.SubmittedAt>=since,ct),
-                ApprovedAttempts=await db.TaskSubmissions.CountAsync(x=>ids.Contains(x.Enrollment.CourseId)&&x.CourseTask.CourseVersion.CourseId==x.Enrollment.CourseId&&x.Status=="approved"&&x.SubmittedAt>=since,ct)},
-            SubmissionCount=await db.TaskSubmissions.CountAsync(x=>ids.Contains(x.Enrollment.CourseId)&&x.SubmittedAt>=since,ct),Period=period});
+        if(!FinancialAccess.ValidPage(sectionPage,50))return Fail(ServiceFailure.Validation,"Invalid section page.");
+        if(courseId.HasValue&&!await db.Courses.AnyAsync(x=>x.Id==courseId&&x.OwnerUserId==a.Id,ct))return Fail(ServiceFailure.NotFound,"Course not found.");
+        return ServiceResult<object>.Ok(await new InstructorMetricsProjection(db).ReadAsync(a.Id,courseId,period,ct,sectionPage));
     }
-    public async Task<ServiceResult<object>> Reviews(ClaimsPrincipal user,Guid? courseId,int page=1,CancellationToken ct=default)
+    public async Task<ServiceResult<object>> Reviews(ClaimsPrincipal user,Guid? courseId,int page=1,CancellationToken ct=default,int? rating=null,string? replyStatus=null)
     {
         var a=await Actor(user,ct);if(a.Id==null)return Fail(a.Failure,"Instructor membership required.");
         if(page<1||page>100000)return Fail(ServiceFailure.Validation,"Invalid page.");
+        if(rating.HasValue&&(rating<1||rating>5)||replyStatus is not (null or "all" or "replied" or "unanswered"))return Fail(ServiceFailure.Validation,"Invalid review filter.");
         if(courseId.HasValue&&!await db.Courses.AnyAsync(x=>x.Id==courseId&&x.OwnerUserId==a.Id,ct))return Fail(ServiceFailure.NotFound,"Course not found.");
         var q=db.CourseReviews.AsNoTracking().Where(x=>x.Enrollment.Course.OwnerUserId==a.Id&&(!courseId.HasValue||x.Enrollment.CourseId==courseId));
-        var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenBy(x=>x.Id).Skip((page-1)*50).Take(50).Select(x=>new{x.Id,CourseId=x.Enrollment.CourseId,x.CourseVersionId,x.Rating,x.Comment,x.InstructorReply,x.CreatedAt,LearnerName=x.Enrollment.LearnerUser.Name,LearnerNameEn=x.Enrollment.LearnerUser.NameEn,TitleAr=(x.Enrollment.Course.PublishedVersion??x.Enrollment.CourseVersion).TitleAr,TitleEn=(x.Enrollment.Course.PublishedVersion??x.Enrollment.CourseVersion).TitleEn}).ToListAsync(ct);
-        return ServiceResult<object>.Ok(new{Items=rows,Total=await q.CountAsync(ct),Page=page});
+        if(rating.HasValue)q=q.Where(x=>x.Rating==rating);
+        if(replyStatus=="replied")q=q.Where(x=>x.InstructorReply!=null&&x.InstructorReply!="");
+        if(replyStatus=="unanswered")q=q.Where(x=>x.InstructorReply==null||x.InstructorReply=="");
+        var values=await q.OrderByDescending(x=>x.CreatedAt).ThenBy(x=>x.Id).Skip((page-1)*50).Take(50).Include(x=>x.Enrollment).ThenInclude(x=>x.LearnerUser).Include(x=>x.Enrollment).ThenInclude(x=>x.Course).ThenInclude(x=>x.PublishedVersion).Include(x=>x.Enrollment).ThenInclude(x=>x.CourseVersion).ToListAsync(ct);
+        var rows=values.Select(x=>new{x.Id,CourseId=x.Enrollment.CourseId,x.CourseVersionId,x.Rating,x.Comment,x.InstructorReply,x.CreatedAt,x.UpdatedAt,x.RepliedAt,Version=LearnerReviewService.Version(x),LearnerName=x.Enrollment.LearnerUser.Name,LearnerNameEn=x.Enrollment.LearnerUser.NameEn,TitleAr=(x.Enrollment.Course.PublishedVersion??x.Enrollment.CourseVersion).TitleAr,TitleEn=(x.Enrollment.Course.PublishedVersion??x.Enrollment.CourseVersion).TitleEn});
+        var distribution=await q.GroupBy(x=>x.Rating).Select(g=>new{Rating=g.Key,Count=g.Count()}).ToListAsync(ct);
+        return ServiceResult<object>.Ok(new{AccountId=a.Id,Items=rows,Total=await q.CountAsync(ct),Page=page,Summary=new{Average=await q.AverageAsync(x=>(double?)x.Rating,ct)??0,Replied=await q.CountAsync(x=>x.InstructorReply!=null&&x.InstructorReply!="",ct),Distribution=Enumerable.Range(1,5).ToDictionary(x=>x.ToString(),x=>distribution.Where(r=>r.Rating==x).Sum(r=>r.Count))}});
+    }
+    public async Task<ServiceResult<object>> CourseMetrics(ClaimsPrincipal user,int page=1,int pageSize=20,CancellationToken ct=default){
+        var a=await Actor(user,ct);if(a.Id==null)return Fail(a.Failure,"Instructor membership required.");
+        if(!FinancialAccess.ValidPage(page,pageSize))return Fail(ServiceFailure.Validation,"Invalid page.");
+        var q=db.Courses.AsNoTracking().Where(x=>x.OwnerUserId==a.Id);
+        var items=await q.OrderBy(x=>x.Id).Skip((page-1)*pageSize).Take(pageSize).Select(x=>new{x.Id,Enrolled=db.Enrollments.Count(e=>e.CourseId==x.Id),Completed=db.Enrollments.Count(e=>e.CourseId==x.Id&&(e.Status=="completed"||e.CompletedAt!=null)),
+            EarnedPoints=db.PointTransactions.Where(t=>t.UserId==a.Id&&t.TransactionType=="teaching"&&t.Enrollment!=null&&t.Enrollment.CourseId==x.Id).Sum(t=>(long?)t.Amount)??0,
+            AwaitingReview=db.TaskSubmissions.Count(s=>s.Enrollment.CourseId==x.Id&&s.SubmittedAt!=null&&s.Status=="awaitingReview"&&s.CourseTask.CourseVersion.CourseId==x.Id&&s.CourseTask.CourseVersion.ReviewStatus=="approved")}).ToListAsync(ct);
+        return ServiceResult<object>.Ok(new{AccountId=a.Id,Items=items,Page=page,PageSize=pageSize,TotalCount=await q.CountAsync(ct)});
     }
     public async Task<ServiceResult<object>> Submissions(ClaimsPrincipal user,string? status,Guid? id=null,int page=1,CancellationToken ct=default)
     {

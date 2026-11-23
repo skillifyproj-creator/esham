@@ -8,8 +8,9 @@ public static class InstructorInsightsEndpoints
     {
         var g=endpoints.MapGroup("/api/instructor").RequireAuthorization().WithTags("Instructor insights");
         g.MapGet("/dashboard",async(HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Analytics(c.User,null,"all",ct)).ToHttp());
-        g.MapGet("/performance",async(Guid? courseId,string? period,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Analytics(c.User,courseId,period??"all",ct)).ToHttp());
-        g.MapGet("/reviews",async(Guid? courseId,int? page,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Reviews(c.User,courseId,page??1,ct)).ToHttp());
+        g.MapGet("/performance",async(Guid? courseId,string? period,int? sectionPage,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Analytics(c.User,courseId,period??"all",ct,sectionPage??1)).ToHttp());
+        g.MapGet("/reviews",async(Guid? courseId,int? page,int? rating,string? replyStatus,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Reviews(c.User,courseId,page??1,ct,rating,replyStatus)).ToHttp());
+        g.MapGet("/course-metrics",async(int? page,int? pageSize,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.CourseMetrics(c.User,page??1,pageSize??20,ct)).ToHttp());
         g.MapGet("/submissions",async(string? status,int? page,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Submissions(c.User,status,null,page??1,ct)).ToHttp());
         g.MapGet("/submissions/{id:guid}",async(Guid id,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Submissions(c.User,null,id,1,ct)).ToHttp());
         g.MapPost("/submissions/{id:guid}/review",async(Guid id,InstructorReviewInput input,HttpContext c,InstructorInsightsService s,CancellationToken ct)=>(await s.Review(c.User,id,input,ct)).ToHttp()).AddEndpointFilter<AdminMutationFilter>();

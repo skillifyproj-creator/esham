@@ -1,3 +1,5 @@
+import LearnerReviewModerationPage from './pages/admin/LearnerReviewModerationPage';
+import AnnouncementsFeedPage from './pages/shared/AnnouncementsFeedPage';
 import { CourseReviewAdminDetail } from './pages/shared/CourseReviewAdminPages';
 import LogoThemeFilter from './components/LogoThemeFilter';
 import GoogleAuthComplete from './pages/auth/GoogleAuthComplete';
@@ -186,7 +188,7 @@ function RouteShell() {
             <Route path="courses" element={<AdminCoursesPage />} /><Route path="courses/:courseId/review" element={<CourseReviewAdminDetail />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="reports" element={<ReportsPage />} /><Route path="moderation" element={<ModerationQueuePage/>}/>
-            <Route path="announcements" element={<AnnouncementsPage />} />
+            <Route path="announcements" element={<AnnouncementsPage />} /><Route path="learner-reviews" element={<LearnerReviewModerationPage/>}/>
             <Route path="activity" element={<ActivityPage />} />
           </Route>
         </Route>
@@ -203,7 +205,7 @@ function RouteShell() {
             Public Pages
         ================================= */}
 
-        <Route path="/" element={<HomePage />} />
+        <Route path="/announcements" element={<AnnouncementsFeedPage/>}/><Route path="/announcements/:id" element={<AnnouncementsFeedPage/>}/><Route path="/" element={<HomePage />} />
 
         <Route path="/courses" element={<CoursesPage />} />
 

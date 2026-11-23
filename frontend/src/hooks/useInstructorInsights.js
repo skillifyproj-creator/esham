@@ -12,6 +12,7 @@ export default function useInstructorInsights(path, values = {}) {
     const controller = new AbortController();
     setState({ key, data: null, loading: true, error: '' });
     loadInstructorInsights(path, JSON.parse(query), controller.signal).then(data => {
+      if(data?.accountId&&data.accountId!==identity)throw new Error('account_changed');
       if (!controller.signal.aborted) setState({ key, data, loading: false, error: '' });
     }).catch(error => { if (!controller.signal.aborted) setState({ key, data: null, loading: false, error: error.message }); });
     return () => controller.abort();

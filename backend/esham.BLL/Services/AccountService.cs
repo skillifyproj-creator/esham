@@ -271,6 +271,7 @@ public sealed class AccountService : IAccountService
         if (userId is null) return new AccountResult(null, AccountFailure.Unauthenticated);
 
         AccountResult result;
+        string? committedStamp = null;
         try
         {
             result = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
@@ -286,6 +287,9 @@ public sealed class AccountService : IAccountService
                     : await _db.Users.SingleOrDefaultAsync(x => x.Id == userId);
                 if (user is null) return new AccountResult(null, AccountFailure.Unauthenticated);
                 if (await _userManager.IsLockedOutAsync(user)) return new AccountResult(null, AccountFailure.Unauthenticated);
+                var incomingStamp = principal.FindFirstValue(_userManager.Options.ClaimsIdentity.SecurityStampClaimType);
+                if (incomingStamp is not null && incomingStamp != user.SecurityStamp)
+                    return new AccountResult(null, AccountFailure.Unauthenticated);
                 var selections = await UserCategoryService.ReadSelectionsAsync(_db, user.Id);
                 // The legacy frontend has no trustworthy index-to-GUID mapping. Do not
                 // let a profile save silently replace authoritative GUID selections.
@@ -363,6 +367,7 @@ public sealed class AccountService : IAccountService
                     await _db.SaveChangesAsync();
                 }
                 await transaction.CommitAsync();
+                committedStamp = user.SecurityStamp;
                 return new AccountResult(await ToProfileAsync(user));
             });
         }
@@ -379,7 +384,10 @@ public sealed class AccountService : IAccountService
         if (result.Failure == AccountFailure.None)
         {
             var committedUser = await _userManager.FindByIdAsync(userId);
-            if (committedUser is not null) await _signInManager.RefreshSignInAsync(committedUser);
+            // Never refresh a stale profile operation using a newer password-reset/revocation stamp.
+            if (committedUser is not null && committedUser.SecurityStamp == committedStamp)
+                await _signInManager.RefreshSignInAsync(committedUser);
+            else return new AccountResult(null, AccountFailure.Unauthenticated);
         }
         // Cookie delivery cannot be committed atomically with SQL. A failed refresh can
         // be recovered by login/retrying; the committed welcome is never granted twice.
