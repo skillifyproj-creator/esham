@@ -8,14 +8,14 @@ export function safeAssistantSource(s) {
   if(s.source==='external'){try{const u=new URL(s.url);return u.protocol==='https:'&&u.hostname==='www.coursera.org'&&!u.username&&!u.password&&s.id.startsWith('coursera:');}catch{return false;}}
   return ['platform','platform-course'].includes(s.source)&&/^\/(courses(?:\/[a-zA-Z0-9_-]+)?|help\/(terms|privacy|guidelines|support))$/.test(s.url);
 }
-export async function assistantRequest(path,payload,{signal,base=assistantBase,fetcher=fetch}={}) {
+export async function assistantRequest(path,payload,{signal,accountId,base=assistantBase,fetcher=fetch}={}) {
   if(!base)throw new Error('assistant-unavailable');
   const controller=new AbortController(),abort=()=>controller.abort();
   signal?.addEventListener('abort',abort,{once:true});
   const timeout=setTimeout(()=>controller.abort(),95000);
   try{
     if(signal?.aborted)abort();
-    const response=await fetcher(`${base}${path}`,{method:'POST',credentials:'include',signal:controller.signal,headers:{'Content-Type':'application/json','X-AI-Request':'esham-assistant'},body:JSON.stringify(payload)});
+    const response=await fetcher(`${base}${path}`,{method:'POST',credentials:'include',signal:controller.signal,headers:{'Content-Type':'application/json','X-AI-Request':'esham-assistant',...(accountId ? {'X-Esham-Account-Id':accountId} : {})},body:JSON.stringify(payload)});
     let value;
     try { value=await response.json(); } catch { throw new Error('assistant-unavailable'); }
     if(!response.ok)throw new Error(/^assistant-[a-z-]+$/.test(value?.error)?value.error:'assistant-unavailable');

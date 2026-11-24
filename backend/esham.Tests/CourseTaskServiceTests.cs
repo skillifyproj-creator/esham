@@ -17,6 +17,7 @@ public sealed class CourseTaskServiceTests
         DescriptionEn: "Build a practical example", Instructions: new(null, "Follow the steps"), Requirements: [new(null, "Correct result")], DisplaySectionId: section);
     private static async Task<(Course Course, CourseVersion Draft, CourseSection Section)> Seed(AppDbContext db)
     {
+        await CurriculumIdentityFixture.EnsureInstructor(db, Owner.UserId);
         var course = new Course { OwnerUserId = Owner.UserId }; var draft = new CourseVersion { CourseId = course.Id };
         var section = new CourseSection { CourseVersionId = draft.Id, TitleEn = "Placement" }; course.DraftVersionId = draft.Id;
         db.AddRange(course, draft, section); await db.SaveChangesAsync(); return (course, draft, section);

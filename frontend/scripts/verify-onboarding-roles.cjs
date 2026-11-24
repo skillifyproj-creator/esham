@@ -66,7 +66,7 @@ const api = process.env.ESHAM_TEST_API || 'http://localhost:5216';
         }
         const capability = await context.request.get(`${api}/api/courses/mine`);
         assert.equal(capability.status(), persona === 'learner' ? 403 : 200);
-        assert.equal((await context.request.post(`${api}/auth/logout`)).status(), 204);
+        assert.equal((await context.request.post(`${api}/auth/logout`, {headers:{'X-Requested-With':'XMLHttpRequest'}})).status(), 204);
         await page.goto(`${origin}/login`);
         await page.locator('input[name="email"]').fill(email); await page.locator('input[name="password"]').fill(password);
         await page.locator('button[type="submit"]').click();

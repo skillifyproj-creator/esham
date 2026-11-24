@@ -68,7 +68,8 @@ public sealed class CourseReviewService(AppDbContext db, IMediaStorage storage) 
             actor.IsCategoryAdmin && course.OwnerUserId != actor.UserId && version.ReviewStatus == "pending"
                 && version.SubmittedAt != null && course.DraftVersionId == version.Id && await Assigned(actor, version.CategoryId, ct)));
     }
-    private async Task<ServiceResult<Guid>> Change(Guid courseId, Func<Course, Task<ServiceResult<Guid>>> action, CancellationToken ct)
+    private async Task<ServiceResult<Guid>> Change(Guid courseId, Func<Course, Task<ServiceResult<Guid>>> action, CancellationToken ct,
+        CourseActor? mutationActor = null, string requiredRole = "INSTRUCTOR")
     {
         return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -77,8 +78,25 @@ public sealed class CourseReviewService(AppDbContext db, IMediaStorage storage) 
             var query = db.Database.IsSqlServer()
                 ? db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {courseId}")
                 : db.Courses.AsQueryable();
-            var course = await query.Include(x => x.DraftVersion).SingleOrDefaultAsync(x => x.Id == courseId, ct);
+            // All three approved review mutations lock course -> acting user -> draft/children.
+            if (mutationActor is null) query = query.Include(x => x.DraftVersion);
+            var course = await query.SingleOrDefaultAsync(x => x.Id == courseId, ct);
             if (course == null) return Fail<Guid>(ServiceFailure.NotFound, "Course not found.");
+            if (mutationActor is { } actor)
+            {
+                if (string.IsNullOrWhiteSpace(actor.UserId)
+                    || requiredRole == "INSTRUCTOR" && (!actor.IsInstructor || course.OwnerUserId != actor.UserId)
+                    || requiredRole == "CATEGORYADMIN" && !actor.IsCategoryAdmin)
+                    return Fail<Guid>(ServiceFailure.Forbidden, "Current operation authority is required.");
+                var user = await (db.Database.IsSqlServer()
+                    ? db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id]={actor.UserId}")
+                    : db.Users).SingleOrDefaultAsync(x => x.Id == actor.UserId, ct);
+                if (user is null || user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow
+                    || !await (from membership in db.UserRoles join role in db.Roles on membership.RoleId equals role.Id
+                               where membership.UserId == actor.UserId && role.NormalizedName == requiredRole select membership).AnyAsync(ct))
+                    return Fail<Guid>(ServiceFailure.Forbidden, "Current role membership and an unlocked account are required.");
+                course.DraftVersion = await db.CourseVersions.SingleOrDefaultAsync(x => x.Id == course.DraftVersionId, ct);
+            }
             var result = await action(course);
             if (result.Failure != ServiceFailure.None) return result;
             course.UpdatedAt = DateTimeOffset.UtcNow;
@@ -119,7 +137,7 @@ public sealed class CourseReviewService(AppDbContext db, IMediaStorage storage) 
             draft.ReviewStatus = "pending"; draft.SubmittedAt = draft.UpdatedAt = DateTimeOffset.UtcNow;
             Log(course, draft, actor, "course.submitted", "draft");
             return ServiceResult<Guid>.Ok(draft.Id);
-        }, ct);
+        }, ct, actor);
     public Task<ServiceResult<Guid>> DecideAsync(Guid courseId, Guid versionId, CourseActor actor, ReviewDecisionRequest request, CancellationToken ct = default) =>
         Change(courseId, async course =>
         {
@@ -166,7 +184,7 @@ public sealed class CourseReviewService(AppDbContext db, IMediaStorage storage) 
             }
             Log(course, version, actor, "course." + request.Decision, "pending", request.Comment?.Trim());
             return ServiceResult<Guid>.Ok(version.Id);
-        }, ct);
+        }, ct, actor, "CATEGORYADMIN");
     public Task<ServiceResult<Guid>> ReviseAsync(Guid courseId, CourseActor actor, VersionActionRequest request, CancellationToken ct = default) =>
         Change(courseId, async course =>
         {
@@ -209,7 +227,7 @@ public sealed class CourseReviewService(AppDbContext db, IMediaStorage storage) 
             course.DraftVersionId = clone.Id;
             Log(course, clone, actor, "course.revision-created", source.ReviewStatus, "Source version: " + source.Id);
             return ServiceResult<Guid>.Ok(clone.Id);
-        }, ct);
+        }, ct, actor);
     public async Task<ServiceResult<(Stream Stream, string ContentType)>> OpenMediaAsync(Guid courseId, Guid versionId, Guid assetId, CourseActor actor, CancellationToken ct = default)
     {
         var snapshot = await GetAsync(courseId, versionId, actor, ct);

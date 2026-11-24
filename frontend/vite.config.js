@@ -1,13 +1,16 @@
 import { defineConfig } from 'vite';
 
 function aiProxy(port, prefix) {
+  const gatewayPort = process.env.ESHAM_AI_GATEWAY_PORT;
+  if (gatewayPort && !/^\d{1,5}$/.test(gatewayPort)) throw new Error('Invalid local AI gateway port');
   return {
-    target: `http://127.0.0.1:${port}`,
+    target: `http://127.0.0.1:${gatewayPort || port}`,
     changeOrigin: true,
-    rewrite: path => path.slice(prefix.length) || '/',
+    rewrite: path => gatewayPort ? path.slice('/ai'.length) : path.slice(prefix.length) || '/',
     configure(proxy) {
       // Requests stay on the website origin in the browser. Only Vite talks to local AI services.
-      proxy.on('proxyReq', request => request.setHeader('Origin', 'http://127.0.0.1:5174'));
+      // Gateway mode preserves the browser Origin for its actual website-origin validation.
+      if (!gatewayPort) proxy.on('proxyReq', request => request.setHeader('Origin', 'http://127.0.0.1:5174'));
     },
   };
 }

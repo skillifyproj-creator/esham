@@ -69,6 +69,7 @@ public sealed class DraftContentReadinessTests
         .ReplaceService<IDbContextTransactionManager, TestTransactionManager>().Options);
     private static async Task<(Course Course, CourseVersion Draft, CourseSection Section, Lesson Lesson, MediaAsset Asset)> Seed(AppDbContext db)
     {
+        await CurriculumIdentityFixture.EnsureInstructor(db, Owner.UserId);
         var course = new Course { OwnerUserId = Owner.UserId };
         var draft = new CourseVersion { CourseId = course.Id }; course.DraftVersionId = draft.Id;
         var section = new CourseSection { CourseVersionId = draft.Id, TitleAr = "قسم" };

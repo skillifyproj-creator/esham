@@ -52,7 +52,16 @@ public sealed class CourseService(AppDbContext db) : ICourseService
         {
             db.ChangeTracker.Clear();
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-            if (await db.Courses.AsNoTracking().AnyAsync(x => x.Id == courseId && x.OwnerUserId == actor.UserId && x.DraftVersionId == versionId, ct))
+            // No existing root exists: reserve this new ID's insertion range before the
+            // actor. Serializable absent-key probes otherwise acquire course-index locks
+            // after the user, inverting existing authoring's course -> user order.
+            // The creation gate serializes competing range reservations/conversions.
+            await CreationMutationAuthorization.SerializeAsync(db,CreationMutationAuthorization.Courses,ct);
+            var replay = await (db.Database.IsSqlServer()
+                ? db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={courseId}")
+                : db.Courses).AsNoTracking().SingleOrDefaultAsync(x=>x.Id==courseId,ct);
+            if(!await CreationMutationAuthorization.CurrentAsync(db,actor,"INSTRUCTOR",ct))return Denied<CourseDetailResponseDto>();
+            if (replay?.OwnerUserId == actor.UserId && replay.DraftVersionId == versionId)
                 return await GetAsync(courseId, actor, ct);
             var referenceError = await ValidateReferences(request, actor.UserId, ct);
             if (referenceError is not null) return ServiceResult<CourseDetailResponseDto>.Fail(ServiceFailure.Validation, referenceError);
@@ -97,10 +106,20 @@ public sealed class CourseService(AppDbContext db) : ICourseService
         {
             db.ChangeTracker.Clear();
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-            var course = await db.Courses.Include(x => x.DraftVersion).SingleOrDefaultAsync(x => x.Id == id, ct);
+            // Serialize course writers before actor authorization or draft/child reads.
+            var course = await (db.Database.IsSqlServer()
+                ? db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK, HOLDLOCK) WHERE [Id]={id}")
+                : db.Courses).SingleOrDefaultAsync(x => x.Id == id, ct);
             if (course is null) return ServiceResult<CourseVersionResponseDto>.Fail(ServiceFailure.NotFound, "Course not found.");
             if (course.OwnerUserId != actor.UserId) return ServiceResult<CourseVersionResponseDto>.Fail(ServiceFailure.Forbidden, "Only the course owner can edit its draft.");
-            var draft = course.DraftVersion;
+            var user = await (db.Database.IsSqlServer()
+                ? db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id]={actor.UserId}")
+                : db.Users).SingleOrDefaultAsync(x=>x.Id==actor.UserId,ct);
+            if (user is null || user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow
+                || !await (from membership in db.UserRoles join role in db.Roles on membership.RoleId equals role.Id
+                           where membership.UserId==actor.UserId && role.NormalizedName=="INSTRUCTOR" select membership).AnyAsync(ct))
+                return Denied<CourseVersionResponseDto>();
+            var draft = await db.CourseVersions.SingleOrDefaultAsync(x=>x.Id==course.DraftVersionId,ct);
             if (draft is null || draft.Id == course.PublishedVersionId || draft.ReviewStatus != CourseReviewStatuses.Draft)
                 return ServiceResult<CourseVersionResponseDto>.Fail(ServiceFailure.Conflict, "An editable draft is required. Pending/published versions cannot be edited; cloning or reopening is outside this phase.");
             if ((request.ProvidedFields.Contains(nameof(request.CategoryId)) && request.CategoryId is null)

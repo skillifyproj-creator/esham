@@ -25,6 +25,8 @@ public static class AccountEndpoints
             });
         })
         .AllowAnonymous()
+        .AddEndpointFilter<AdminMutationFilter>()
+        .RequireRateLimiting("authentication")
         .WithName("RegisterAccount");
 
         endpoints.MapPost("/auth/login", async (
@@ -42,6 +44,8 @@ public static class AccountEndpoints
             return Results.Ok(new AccountSessionResponse(ToResponse(result.Profile), result.OnboardingRequired));
         })
         .AllowAnonymous()
+        .AddEndpointFilter<AdminMutationFilter>()
+        .RequireRateLimiting("authentication")
         .WithName("LoginAccount");
 
         endpoints.MapPost("/auth/logout", async (IAccountService accountService) =>
@@ -49,6 +53,8 @@ public static class AccountEndpoints
             await accountService.SignOutAsync();
             return Results.NoContent();
         })
+        .AddEndpointFilter<AdminMutationFilter>()
+        .RequireRateLimiting("authentication")
         .WithName("LogoutAccount");
 
         endpoints.MapGet("/auth/session", async (IAccountService accountService, HttpContext context) =>
@@ -64,6 +70,7 @@ public static class AccountEndpoints
                 result.OnboardingRequired));
         })
         .RequireAuthorization()
+        .AddEndpointFilter<FinancialResponseFilter>()
         .WithName("GetCurrentAccountSession");
 
         endpoints.MapPatch("/me", async (

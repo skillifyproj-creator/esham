@@ -12,7 +12,7 @@ async function login(c,u){const r=await c.request.post(api+'/auth/login',{header
   const page=await context.newPage();await page.addInitScript(()=>localStorage.setItem('esham-language','en'));let release,captured;const hold=new Promise(r=>release=r),received=new Promise(r=>captured=r);
   await page.route(api+`/me/certificates/${cert.id}`,async route=>{const response=await route.fetch();assert.ok(!response.headers()['set-cookie'],'Passive response unexpectedly attempted cookie renewal');captured();await hold;await route.fulfill({response}).catch(()=>{});});
   await page.goto(web+`/learner/certificates/record/${cert.id}`);await received;
-  if(switchAccount)await login(context,f.otherLearner);else assert.equal((await context.request.post(api+'/auth/logout')).status(),204);
+  if(switchAccount)await login(context,f.otherLearner);else assert.equal((await context.request.post(api+'/auth/logout',{headers:{Origin:web,'X-Requested-With':'XMLHttpRequest'}})).status(),204);
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   if(switchAccount)await page.waitForFunction(id=>JSON.parse(localStorage.getItem('esham-account-profile-v1')||'{}').id===id,f.otherLearner.id);
   else await page.waitForURL(/login/, {waitUntil:'domcontentloaded'});

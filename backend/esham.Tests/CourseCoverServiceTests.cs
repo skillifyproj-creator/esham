@@ -18,6 +18,7 @@ public sealed class CourseCoverServiceTests
         .ReplaceService<IDbContextTransactionManager, TestTransactionManager>().Options);
     private static async Task<(Course Course, CourseVersion Draft)> Seed(AppDbContext db)
     {
+        await CurriculumIdentityFixture.EnsureInstructor(db, Owner.UserId);
         var course = new Course { OwnerUserId = Owner.UserId };
         var draft = new CourseVersion { CourseId = course.Id, TitleAr = "دورة", DescriptionEn = "Existing description", Objectives = [new("هدف", null)] };
         course.DraftVersionId = draft.Id; db.AddRange(course, draft); await db.SaveChangesAsync(); return (course, draft);

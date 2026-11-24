@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import "../../styles/esham-chatbot.css";
 import { usePreferences } from "../../context/PreferencesContext";
 import { assistantRequest, publicCatalog } from '../../services/learningAssistant';
-import useAccountProfile from '../../hooks/useAccountProfile';
+import { useAccountSession } from '../../context/AccountSessionContext';
+import { assistantScope } from '../../services/assistantScope';
 import { cleanSessions, loadSessions, saveSessions, sessionKey } from '../../services/assistantSessions';
 import { extractChatDocument, prepareChatImage } from '../../services/chatDocuments';
 import { usePublicCatalog } from '../../context/PublicCatalogContext';
@@ -231,11 +232,12 @@ function Icon({ children }) {
 }
 export default function EshamChatbot() {
   const { courses } = usePublicCatalog();
-  const profile = useAccountProfile();
-  const identity = String(profile.id || profile.username || 'guest');
-  return <ChatWorkspace key={identity} identity={identity} />;
+  const account = useAccountSession();
+  if (!['authenticated', 'anonymous'].includes(account.status)) return null;
+  const identity = account.session?.profile.id || 'guest';
+  return <ChatWorkspace key={`${identity}:${account.sessionGeneration}`} identity={identity} courses={courses} account={account} />;
 }
-function ChatWorkspace({identity}) {
+function ChatWorkspace({identity, courses, account}) {
   const { language: lang, toggleLanguage } = usePreferences();
   const { balance: walletBalance } = useLearnerWallet();
 
@@ -279,6 +281,8 @@ function ChatWorkspace({identity}) {
       (m) => m.kind === "lesson" || m.kind === "attachment",
     );
   async function answer(sent, kind) {
+    const scope = assistantScope(account);
+    if (!scope.current()) return;
     request.current?.abort();
     const controller = new AbortController(); request.current = controller;
     setBusy(true);
@@ -288,13 +292,13 @@ function ChatWorkspace({identity}) {
         if (!sent.file.raw) throw new Error('document-format');
         if (sent.file.type.startsWith('image/')) image = await prepareChatImage(sent.file.raw);
         else document = await extractChatDocument(sent.file.raw);
-        if(controller.signal.aborted)return;
+        if(controller.signal.aborted || !scope.current())return;
       }
       const history = messages.filter(m => !m.file && m.kind !== 'error').slice(-6).map(m => ({ role: m.role, text: m.text.slice(0, 4000) }));
-      const result = await assistantRequest('/chat', { message: sent.text, language: lang, history, document, image, catalog: publicCatalog(courses) }, { signal: controller.signal });
-      if (!controller.signal.aborted) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', kind: 'answer', text: result.answer, sources: result.sources, time: time(lang) }]);
+      const result = await assistantRequest('/chat', { message: sent.text, language: lang, history, document, image, catalog: publicCatalog(courses) }, { signal: controller.signal, accountId: scope.accountId });
+      if (!controller.signal.aborted && scope.current()) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', kind: 'answer', text: result.answer, sources: result.sources, time: time(lang) }]);
     } catch (cause) {
-      if (!controller.signal.aborted) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', kind: 'error', source: sent, error: cause.message, time: time(lang) }]);
+      if (!controller.signal.aborted && scope.current()) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', kind: 'error', source: sent, error: cause.message, time: time(lang) }]);
     } finally { if (request.current === controller && !controller.signal.aborted) setBusy(false); }
   }
   function send(value = draft, selected = file) {

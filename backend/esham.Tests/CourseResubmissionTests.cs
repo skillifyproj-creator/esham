@@ -11,28 +11,36 @@ namespace esham.Tests;
 public sealed class CourseResubmissionTests
 {
     private static readonly CourseActor Owner = new("owner",true,false), Reviewer = new("reviewer",false,false,true);
-    private static async Task<(Guid Course, Guid Reviewed, Guid Draft)> Revision(AppDbContext db)
+    private static async Task<(Guid Course, Guid Reviewed, Guid Draft)> Revision(AppDbContext db, CourseActor? actingOwner = null)
     {
-        var d=await Seed(db);var s=new CourseReviewService(db,new Store());
-        Assert.Equal(ServiceFailure.None,(await s.SubmitAsync(d.CourseId,Owner,new(d.VersionId))).Failure);
-        await s.DecideAsync(d.CourseId,d.VersionId,Reviewer,new("changes_requested","Improve the explanation"));
-        var draft=(await s.ReviseAsync(d.CourseId,Owner,new(d.VersionId))).Value;
+        var owner=actingOwner??Owner;
+        var reviewer=db.Database.IsSqlServer()?new CourseActor(Guid.NewGuid().ToString(),false,false,true):Reviewer;
+        var d=await Seed(db,owner.UserId,reviewer.UserId);var s=new CourseReviewService(db,new Store());
+        Assert.Equal(ServiceFailure.None,(await s.SubmitAsync(d.CourseId,owner,new(d.VersionId))).Failure);
+        await s.DecideAsync(d.CourseId,d.VersionId,reviewer,new("changes_requested","Improve the explanation"));
+        var draft=(await s.ReviseAsync(d.CourseId,owner,new(d.VersionId))).Value;
         return(d.CourseId,d.VersionId,draft);
     }
     [AccountSqlServerFact] public async Task Sql_comparison_survives_new_scope_and_serializes_with_content_edits()
     {
         using var provider=AccountFinalizationSqlServerTests.DatabaseServices();(Guid Course,Guid Reviewed,Guid Draft) d;
-        using(var setup=provider.CreateScope())d=await Revision(setup.ServiceProvider.GetRequiredService<AppDbContext>());
+        CourseActor actor;
+        using(var setup=provider.CreateScope()) {
+            var services=setup.ServiceProvider;var owner=await AccountFinalizationTests.Seed(services);
+            Assert.Equal(esham.BLL.Interfaces.AccountFailure.None,(await services.GetRequiredService<AccountService>().UpdateCurrentProfileAsync(
+                AccountFinalizationTests.Principal(owner),AccountFinalizationTests.Profile("instructor","p6ars_"+Guid.NewGuid().ToString("N")[..12]))).Failure);
+            actor=new(owner,true,false);d=await Revision(services.GetRequiredService<AppDbContext>(),actor);
+        }
         using(var fresh=provider.CreateScope()) {
             var db=fresh.ServiceProvider.GetRequiredService<AppDbContext>();
-            Assert.Equal(ServiceFailure.Validation,(await new CourseReviewService(db,new Store()).SubmitAsync(d.Course,Owner,new(d.Draft))).Failure);
+            Assert.Equal(ServiceFailure.Validation,(await new CourseReviewService(db,new Store()).SubmitAsync(d.Course,actor,new(d.Draft))).Failure);
         }
         using var edit=provider.CreateScope();var editing=edit.ServiceProvider.GetRequiredService<AppDbContext>();
         await editing.Database.CreateExecutionStrategy().ExecuteAsync(async () => {
         await using var tx=await editing.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         await editing.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={d.Course}").SingleAsync();
         var v=await editing.CourseVersions.SingleAsync(x=>x.Id==d.Draft);v.TitleEn="Concurrent meaningful update";
-        async Task<ServiceFailure> Submit() {using var scope=provider.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();return(await new CourseReviewService(db,new Store()).SubmitAsync(d.Course,Owner,new(d.Draft))).Failure;}
+        async Task<ServiceFailure> Submit() {using var scope=provider.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();return(await new CourseReviewService(db,new Store()).SubmitAsync(d.Course,actor,new(d.Draft))).Failure;}
         var submission=Submit();await editing.SaveChangesAsync();await tx.CommitAsync();
         Assert.Equal(ServiceFailure.None,await submission);
         });

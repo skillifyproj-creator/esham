@@ -18,7 +18,7 @@ test('gateway authenticates via the existing server session, forwarding only the
   assert.equal(await verifySession('unrelated=secret','https://backend/session',()=>assert.fail('must not fetch')),null);
   const result=await verifySession('Esham.Identity=abc; unrelated=secret','https://backend/session',async(url,options)=>{
     assert.equal(url,'https://backend/session');assert.equal(options.headers.Cookie,'Esham.Identity=abc');assert.equal(options.redirect,'error');
-    return new Response(JSON.stringify({profile:{id:'server-id',role:'learner',email:'not-returned'}}));
+    return new Response(JSON.stringify({profile:{id:'server-id',role:'instructor',roles:['Learner'],email:'not-returned'}}));
   });assert.deepEqual(result,{id:'server-id',role:'learner'});
   assert.equal(await verifySession('Esham.Identity=x','https://backend/session',async()=>new Response('',{status:401})),null);
 });
@@ -27,7 +27,7 @@ test('gateway allows website guests, denies anonymous files/forged origins and l
   const config={origin:'https://website.example',host:'website.example',sessionUrl:'https://account/session'};
   const server=await createGateway({config,
     authenticate:async cookie=>cookie==='instructor'?{id:'teacher',role:'instructor'}:cookie==='learner'?{id:'student',role:'learner'}:null,
-    catalog:[{id:'official',title:'Official course'}],
+    loadCatalog:async()=>[{id:'official',title:'Official course'}],
     assistantOptions:{apiKey:'test',answer:async(body)=>{chatCalls++;assert.equal(body.catalog[0].id,'official');return {answer:'test',sources:[],answerType:'general'};}},
     videoOptions:{apiKey:'test',review:async()=>{videoCalls++;return {status:'review'};}}});
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;config.host=new URL(base).host;
@@ -50,4 +50,30 @@ test('guest help answers website policy without invoking a paid general model',a
  assert.ok(guestHelp('كم تكلفة الدورة؟','ar').answer.includes('20'));
  assert.ok(guestHelp('What does a course cost?','en').sources.some(s=>s.id==='platform:points'));
  const general=guestHelp('What is photosynthesis?','en');assert.ok(general.answer.includes('Sign in'));assert.deepEqual(general.sources,[]);
+});
+
+test('session authorization follows actual memberships and fails closed for incomplete or absent roles',async()=>{
+ const check=profile=>verifySession('Esham.Identity=test','https://backend/session',async()=>new Response(JSON.stringify({profile})));
+ assert.deepEqual(await check({id:'A',role:'learner',roles:['Instructor']}),{id:'A',role:'instructor'});
+ assert.deepEqual(await check({id:'A',role:'instructor',roles:['Learner','Instructor']}),{id:'A',role:'both'});
+ assert.equal(await check({id:'A',role:'instructor'}),null);
+ assert.deepEqual(await check({id:'A',role:'instructor',roles:['GeneralAdmin']}),{id:'A',role:'account'});
+ assert.equal(await verifySession('Esham.Identity=x','https://backend/session',async()=>new Response(JSON.stringify({onboardingRequired:true,profile:{id:'A',roles:['Instructor']}}))),null);
+});
+
+test('gateway rejects switched accounts before provider calls and never forwards browser role or catalog authority',async()=>{
+ let calls=0;
+ const config={origin:'https://website.example',host:'website.example',sessionUrl:'https://backend/auth/session'};
+ const id='c6666666-1111-4444-8888-111111111111';
+ const server=await createGateway({config,authenticate:async cookie=>cookie==='B'?{id:'B',role:'learner'}:null,
+  loadCatalog:async()=>[{id,title:'Trusted course',status:'published'}],
+  assistantOptions:{apiKey:'synthetic',answer:async body=>{calls++;assert.equal(body.catalog[0].id,id);assert.equal(body.ownerUserId,undefined);assert.equal(body.role,undefined);return {answer:'ok',sources:[],answerType:'general'};}}});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;config.host=new URL(base).host;
+ const headers={Origin:config.origin,'Content-Type':'application/json','X-AI-Request':'esham-assistant',Cookie:'B','X-Esham-Account-Id':'A'};
+ const body=JSON.stringify({message:'hello',language:'en',role:'instructor',ownerUserId:'B',catalog:[{id:'invented'}]});
+ try {
+  assert.equal((await fetch(base+'/assistant/chat',{method:'POST',headers,body})).status,409);assert.equal(calls,0);
+  assert.equal((await fetch(base+'/assistant/chat',{method:'POST',headers:{...headers,'X-Esham-Account-Id':'B'},body})).status,200);assert.equal(calls,1);
+  assert.equal((await fetch(base+'/assistant/chat',{method:'POST',headers:{...headers,Cookie:'','X-Esham-Account-Id':'B'},body})).status,409);assert.equal(calls,1);
+ } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });

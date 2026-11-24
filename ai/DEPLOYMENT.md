@@ -9,7 +9,15 @@
 - `npm run serve` داخل ai يشغّل بوابة واحدة على 8080، والخدمتان خلفها على loopback بمنافذ داخلية عشوائية.
 - الزائر غير المسجل يحصل على إجابات معرفة إسهام العامة المملوكة للمشروع دون استدعاء نموذج مدفوع. يُطلب تسجيل الدخول للمحادثة العامة وتحليل المرفقات. الإجابات العامة للزائر محددة بموضوعات الموقع؛ ليست وكيل أعمال ولا بحث ويب.
 - التحقق من الجلسة عبر `GET BACKEND_SESSION_URL` الموجود في الباك. يرسل فقط كوكي `Esham.Identity` وأجزاءه، ولا يثق بهوية المتصفح أو دور localStorage. فحص الفيديو للمدرب أو الهايبرد فقط.
-- كتالوج المتصفح لا يعتمد كمصدر رسمي في البوابة؛ يستخدم ملف كتالوج عام موثوق من المشغّل عند ضبط `PLATFORM_CATALOG_FILE`، وإلا يبقى فارغًا. لا يتم اختلاق دورات محلية؛ تبقى معرفة الموقع ومراجع Coursera الخارجية متاحة.
+- البوابة لا تثق بكتالوج المتصفح. تجلب أول 200 سجل عام صالح بمعرّفات GUID من `/api/courses/public` على نفس أصل `BACKEND_SESSION_URL`، بقراءة متدفقة محدودة 2MiB ومهلة 5 ثوانٍ، دون كوكي أو تحويلات. تحدّث الذاكرة المؤقتة بعد30ثانية وتعود لقائمة فارغة عند الفشل مع مهلة إعادة5ثوانٍ. لا تفترض ترقيم صفحات غير موجود ولا تجلب بيانات خاصة. أزيل اعتماد التشغيل على `PLATFORM_CATALOG_FILE`. يظل الكتالوج الكبير الكامل وقابلية استعلامه من مسؤولية API القائم، ولا يعد هذا التحديث تحسينًا لاستعلام SQL الخاص به.
+
+## Phase 6A isolated verification and local gateway
+
+The existing provider adapters remain unchanged. Verification uses synthetic provider responses through the actual gateway, real isolated backend cookie sessions and backend public catalog. It does not prove live paid-provider delivery or production hosting. GeneralAdmin/CategoryAdmin memberships do not grant Instructor screening authority; actual backend `profile.roles` controls that decision. Supplied account preconditions must match the verified session.
+
+For a separately configured local test gateway on8002, set `ESHAM_AI_GATEWAY_PORT=8002` in the isolated Vite process (frontend5175, API5216). Vite preserves the browser Origin and forwards `/ai/assistant/*` as `/assistant/*`, and `/ai/video/*` as `/video/*`. Production gateway configuration still requires HTTPS PUBLIC_ORIGIN; no production setting or HTTP exception was added. Direct loopback provider adapters are development-only and are not session-authenticated deployment gateways.
+
+Recommendations are mounted on completed enrollment details. They use the actual public catalog, authenticated profile interests and owned enrollment exclusions. Account/generation changes discard pending results. If the service is unavailable or returns no usable platform matches, existing public-catalog ranking supplies a labeled fallback. Incomplete bounded enrollment exclusions fail closed. External Coursera suggestions require the existing processed dataset; when it is absent, that source is unavailable while platform suggestions remain usable. Phase6A does not download/provision the dataset or invent external courses.
 
 ## المطلوب من صاحب المشروع للنشر
 

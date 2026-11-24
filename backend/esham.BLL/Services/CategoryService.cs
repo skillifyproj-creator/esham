@@ -38,15 +38,15 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
         if (descriptionAr?.Length > 2000 || descriptionEn?.Length > 2000) return "Descriptions must not exceed 2000 characters.";
         return order < 0 ? "DisplayOrder cannot be negative." : null;
     }
-    public Task<ServiceResult<CategoryResponseDto>> CreateAsync(CreateCategoryRequest request, CancellationToken ct = default) =>
+    public Task<ServiceResult<CategoryResponseDto>> CreateAsync(CreateCategoryRequest request, CourseActor actor, CancellationToken ct = default) =>
         SaveAsync(Guid.NewGuid(), request.NameAr, request.NameEn, request.DescriptionAr, request.DescriptionEn,
-            request.ParentCategoryId, request.DisplayOrder, true, ct);
-    public Task<ServiceResult<CategoryResponseDto>> UpdateAsync(Guid id, UpdateCategoryRequest request, CancellationToken ct = default) =>
+            request.ParentCategoryId, request.DisplayOrder, true, actor, ct);
+    public Task<ServiceResult<CategoryResponseDto>> UpdateAsync(Guid id, UpdateCategoryRequest request, CourseActor actor, CancellationToken ct = default) =>
         SaveAsync(id, request.NameAr, request.NameEn, request.DescriptionAr, request.DescriptionEn,
-            request.ParentCategoryId, request.DisplayOrder, false, ct);
+            request.ParentCategoryId, request.DisplayOrder, false, actor, ct);
 
     private async Task<ServiceResult<CategoryResponseDto>> SaveAsync(Guid id, string? ar, string? en,
-        string? descriptionAr, string? descriptionEn, Guid? parentId, int order, bool create, CancellationToken ct)
+        string? descriptionAr, string? descriptionEn, Guid? parentId, int order, bool create, CourseActor actor, CancellationToken ct)
     {
         var error = Validate(ar, en, descriptionAr, descriptionEn, order);
         if (error is not null) return ServiceResult<CategoryResponseDto>.Fail(ServiceFailure.Validation, error);
@@ -56,6 +56,9 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
             db.ChangeTracker.Clear();
             // Serialize tree edits so concurrent valid-looking reparent operations cannot introduce a cycle.
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            await CreationMutationAuthorization.SerializeAsync(db,CreationMutationAuthorization.Categories,ct);
+            if(!await CreationMutationAuthorization.CurrentAsync(db,actor,"GENERALADMIN",ct))
+                return ServiceResult<CategoryResponseDto>.Fail(ServiceFailure.Forbidden,"Current GeneralAdmin membership and an unlocked account are required.");
             var category = await db.Categories.SingleOrDefaultAsync(x => x.Id == id, ct);
             if (!create && category is null) return ServiceResult<CategoryResponseDto>.Fail(ServiceFailure.NotFound, "Category not found.");
             // Idempotent result when a creation commit succeeded but its acknowledgement was lost.
@@ -83,12 +86,15 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
             return ServiceResult<CategoryResponseDto>.Ok(Map(category));
         });
     }
-    public async Task<ServiceResult<CategoryResponseDto>> ChangeStatusAsync(Guid id, bool isActive, CancellationToken ct = default)
+    public async Task<ServiceResult<CategoryResponseDto>> ChangeStatusAsync(Guid id, bool isActive, CourseActor actor, CancellationToken ct = default)
     {
         return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            await CreationMutationAuthorization.SerializeAsync(db,CreationMutationAuthorization.Categories,ct);
+            if(!await CreationMutationAuthorization.CurrentAsync(db,actor,"GENERALADMIN",ct))
+                return ServiceResult<CategoryResponseDto>.Fail(ServiceFailure.Forbidden,"Current GeneralAdmin membership and an unlocked account are required.");
             var category = await db.Categories.SingleOrDefaultAsync(x => x.Id == id, ct);
             if (category is null) return ServiceResult<CategoryResponseDto>.Fail(ServiceFailure.NotFound, "Category not found.");
             category.IsActive = isActive; category.UpdatedAt = DateTimeOffset.UtcNow;

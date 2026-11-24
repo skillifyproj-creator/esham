@@ -3,6 +3,7 @@ import {pathToFileURL} from 'node:url';
 import {chatAnswer} from './chat.mjs';
 import {recommendations,externalIndex} from './retrieval.mjs';
 import {ReviewError} from './gemini.mjs';
+import {backendCatalog} from './catalog.mjs';
 
 function validInput(body,chat){
   if(!body||typeof body!=='object'||!['ar','en'].includes(body.language))return false;
@@ -49,4 +50,11 @@ export function createAssistantServer({provider=process.env.CHAT_PROVIDER||'goog
     finally{clearTimeout(timeout);res.off('close',close);active--;}
   });server.requestTimeout=100000;server.headersTimeout=10000;return server;
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){const port=Number(process.env.ASSISTANT_PORT||8001);createAssistantServer().listen(port,'127.0.0.1',()=>console.log(`Learning assistant: http://127.0.0.1:${port}`));}
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
+  const port=Number(process.env.ASSISTANT_PORT||8001);
+  // Local provider adapter remains loopback-only; authenticated deployments use gateway.mjs.
+  const loadCatalog=process.env.BACKEND_SESSION_URL?backendCatalog(process.env.BACKEND_SESSION_URL):async()=>[];
+  createAssistantServer({answer:async(body,options)=>chatAnswer({...body,catalog:await loadCatalog()},options),
+    recommend:async body=>recommendations({...body,catalog:await loadCatalog()})})
+    .listen(port,'127.0.0.1',()=>console.log(`Learning assistant: http://127.0.0.1:${port}`));
+}

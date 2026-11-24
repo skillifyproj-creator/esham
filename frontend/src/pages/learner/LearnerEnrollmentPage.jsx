@@ -1,4 +1,6 @@
 import CompletionPanel from '../../components/CompletionPanel';
+import CourseRecommendations from '../../components/learner/CourseRecommendations';
+import { usePublicCatalog } from '../../context/PublicCatalogContext';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAccountSession } from '../../context/AccountSessionContext';
@@ -11,6 +13,7 @@ import { useLearning } from '../../context/LearningContext';
 export default function LearnerEnrollmentPage() {
   const { enrollmentId } = useParams(), account = useAccountSession(), { language } = usePreferences();
   const { summaries } = useLearning(), learning = summaries[enrollmentId];
+  const { courses } = usePublicCatalog();
   const id = account.session?.profile.id, [state, setState] = useState(null), [revision, reload] = useState(0);
   const t = (a, e) => language === 'ar' ? a : e;
   useEffect(() => {
@@ -38,5 +41,5 @@ export default function LearnerEnrollmentPage() {
       <Link className="button button-outline" to="/learner/points">{t('عرض المحفظة', 'View wallet')}</Link>
       {learning?.versionState.tasks.map(task=><Link key={task.taskId} className="button button-outline" to={`/learner/enrollments/${enrollmentId}/tasks/${task.taskId}`}>{language==='ar'?task.titleAr||task.titleEn:task.titleEn||task.titleAr}</Link>)}
       {e.isAvailable && <Link className="button button-outline" to={`/courses/${e.courseId}`}>{t('عرض الدورة', 'View course')}</Link>}
-    </section></div></main>;
+    </section>{e.status === 'completed' && courses.find(course => course.id === e.courseId) && <CourseRecommendations key={`${id}:${account.sessionGeneration}:${enrollmentId}`} course={courses.find(course => course.id === e.courseId)} />}</div></main>;
 }

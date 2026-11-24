@@ -2,7 +2,7 @@
 
 منصة لتعلّم ومشاركة المهارات، بواجهات للمتعلّم والمعلّم والحساب الذي يجمع الدورين، إضافة إلى الإدارة العامة وإدارة التصنيفات.
 
-هذا الملف يصف نسخة الفرونت بتاريخ **13 أكتوبر 2026**. التسجيل المحلي للفيديو والتحرير والشهادات يعمل داخل المتصفح؛ بيانات الأعمال الحالية محفوظة على الجهاز. المصادقة والصلاحيات والتخزين المشترك والنشر الفعلي تحتاج خدمات الباك الموضحة أدناه.
+تحديث 23 نوفمبر 2026: الحسابات والفئات والكتالوج والتسجيل والمحفظة والتقدم والتسليمات والتقييمات والإكمال والشهادات مرتبطة بالباك وفق تقارير المراحل 1–5. المتصفح لا يقرر الرصيد أو الإكمال أو إصدار الشهادة. تصدير PDF يستخدم بيانات الشهادة الثابتة من الخادم. بعض الشروحات القديمة أدناه تخص أدوات تسجيل وتحرير الفيديو المحلية؛ تقارير المراحل هي مرجع حالة التكامل الحالية.
 
 لشرح المشروع في المناقشة، راجع [الملخص والتفاصيل التقنية في README الرئيسي](../README.md) و[دليل المناقشة والأسئلة المتوقعة](../docs/project-discussion.md).
 
@@ -15,7 +15,9 @@ npm install
 npm run dev
 ```
 
-افتح رابط Local الظاهر في التيرمنال؛ قد يكون المنفذ `5173` أو `5174`. يستخدم المشروع React 19 وVite 8؛ يلزم إصدار Node.js متوافق مع Vite 8.
+المنفذ الافتراضي ثابت `5174`. للاختبار المعزول فقط استخدم `5175` مع `VITE_API_BASE_URL=http://localhost:5216` في بيئة العملية المنفصلة، دون استبدال إعداد التشغيل المشترك. يستخدم المشروع React 19 وVite 8 وإصدار Node.js الموجود والمتوافق مع المشروع.
+
+For an already configured isolated AI gateway, set the process-only `ESHAM_AI_GATEWAY_PORT=8002` before starting isolated Vite. The proxy then preserves the real browser Origin and routes both assistant/video requests to the gateway. Its backend session/catalog must target isolated API 5216 for verification. With this setting absent, existing loopback provider-adapter proxies remain available for development; they are not authenticated deployment substitutes. Never place provider keys in VITE variables.
 
 ```bash
 npm test

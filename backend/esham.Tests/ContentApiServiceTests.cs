@@ -26,7 +26,7 @@ public sealed class ContentApiServiceTests
         course.DraftVersionId = draft.Id; course.PublishedVersionId = published.Id;
         db.Users.Add(new ApplicationUser { Id = Owner.UserId, Name = "Teacher" });
         db.Categories.Add(category); db.Courses.Add(course); db.CourseVersions.AddRange(draft, published);
-        await db.SaveChangesAsync(); return (category, course, draft, published);
+        await db.SaveChangesAsync(); await CurriculumIdentityFixture.EnsureInstructor(db,Owner.UserId); return (category, course, draft, published);
     }
     [Fact] public async Task Public_reads_only_the_approved_version_and_card_previews()
     {
@@ -92,9 +92,11 @@ public sealed class ContentApiServiceTests
     [Fact] public async Task Create_rejects_inactive_category_and_another_users_cover()
     {
         await using var db = Context(); var data = await Seed(db); var service = new CourseService(db);
-        data.Category.IsActive = false; await db.SaveChangesAsync();
+        (await db.Categories.SingleAsync(x => x.Id == data.Category.Id)).IsActive = false; await db.SaveChangesAsync();
         Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(Owner, new(data.Category.Id, null, null, null, null, []))).Failure);
-        data.Category.IsActive = true; db.Categories.Update(data.Category);
+        // Creation clears tracking for retries and now loads the current actor. Reload
+        // this fixture row rather than attaching its old graph (including that actor).
+        (await db.Categories.SingleAsync(x => x.Id == data.Category.Id)).IsActive = true;
         var asset = new MediaAsset { OwnerUserId = "other", MediaType = "image", MimeType = "image/jpeg", SizeBytes = 10,
             ContentHash = "hash", StorageKey = "image" }; db.MediaAssets.Add(asset); await db.SaveChangesAsync();
         Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(Owner, new(data.Category.Id, null, null, null, null, [], CoverMediaAssetId: asset.Id))).Failure);
@@ -103,21 +105,21 @@ public sealed class ContentApiServiceTests
     {
         await using var db = Context(); var parent = new Category { NameAr = "أ", NameEn = "A" };
         var child = new Category { NameAr = "ب", NameEn = "B", ParentCategoryId = parent.Id };
-        db.Categories.AddRange(parent, child); await db.SaveChangesAsync(); var service = new CategoryService(db);
-        Assert.Equal(ServiceFailure.Validation, (await service.UpdateAsync(parent.Id, new("أ", "A", null, null, parent.Id, 0))).Failure);
-        Assert.Equal(ServiceFailure.Validation, (await service.UpdateAsync(parent.Id, new("أ", "A", null, null, child.Id, 0))).Failure);
+        db.Categories.AddRange(parent, child); await db.SaveChangesAsync(); await CurriculumIdentityFixture.EnsureRole(db, Owner.UserId, "GeneralAdmin"); var admin = Owner with { IsGeneralAdmin = true }; var service = new CategoryService(db);
+        Assert.Equal(ServiceFailure.Validation, (await service.UpdateAsync(parent.Id, new("أ", "A", null, null, parent.Id, 0), admin)).Failure);
+        Assert.Equal(ServiceFailure.Validation, (await service.UpdateAsync(parent.Id, new("أ", "A", null, null, child.Id, 0), admin)).Failure);
     }
     [Fact] public async Task Category_validation_missing_parent_and_status_reads()
     {
-        await using var db = Context(); var service = new CategoryService(db);
-        Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(new("أ", "A", null, null, null, -1))).Failure);
-        Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(new("أ", null, null, null, null, 0))).Failure);
-        Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(new("أ", "A", null, null, Guid.NewGuid(), 0))).Failure);
-        Assert.Equal(ServiceFailure.NotFound, (await service.UpdateAsync(Guid.NewGuid(), new("أ", "A", null, null, null, 0))).Failure);
-        var created = await service.CreateAsync(new("أ", "A", null, null, null, 0)); Assert.Equal(ServiceFailure.None, created.Failure);
-        Assert.Single(await service.GetActiveAsync()); await service.ChangeStatusAsync(created.Value!.Id, false);
+        await using var db = Context(); await CurriculumIdentityFixture.EnsureRole(db, Owner.UserId, "GeneralAdmin"); var admin = Owner with { IsGeneralAdmin = true }; var service = new CategoryService(db);
+        Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(new("أ", "A", null, null, null, -1), admin)).Failure);
+        Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(new("أ", null, null, null, null, 0), admin)).Failure);
+        Assert.Equal(ServiceFailure.Validation, (await service.CreateAsync(new("أ", "A", null, null, Guid.NewGuid(), 0), admin)).Failure);
+        Assert.Equal(ServiceFailure.NotFound, (await service.UpdateAsync(Guid.NewGuid(), new("أ", "A", null, null, null, 0), admin)).Failure);
+        var created = await service.CreateAsync(new("أ", "A", null, null, null, 0), admin); Assert.Equal(ServiceFailure.None, created.Failure);
+        Assert.Single(await service.GetActiveAsync()); await service.ChangeStatusAsync(created.Value!.Id, false, admin);
         Assert.Empty(await service.GetActiveAsync()); Assert.Equal(ServiceFailure.NotFound, (await service.GetAsync(created.Value.Id)).Failure);
-        Assert.Equal(ServiceFailure.None, (await service.ChangeStatusAsync(created.Value.Id, true)).Failure);
+        Assert.Equal(ServiceFailure.None, (await service.ChangeStatusAsync(created.Value.Id, true, admin)).Failure);
     }
     [Fact] public void Patch_rejects_server_controlled_fields_and_tracks_nullable_cover()
     {

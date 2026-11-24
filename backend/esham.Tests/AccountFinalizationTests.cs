@@ -7,6 +7,7 @@ using esham.PL.Development;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -26,7 +27,9 @@ public sealed class AccountFinalizationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDataProtection();
+        // These service tests assert Identity behavior without persisting machine keys.
+        // The application host keeps its normal production key-ring configuration.
+        services.AddDataProtection().UseEphemeralDataProtectionProvider();
         var database = Guid.NewGuid().ToString();
         services.AddDbContext<AppDbContext>(options =>
         {

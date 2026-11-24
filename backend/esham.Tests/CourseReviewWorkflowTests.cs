@@ -21,10 +21,20 @@ public sealed class CourseReviewWorkflowTests
     }
     internal static async Task<(Guid CourseId, Guid VersionId, Guid CategoryId)> Seed(AppDbContext db, string owner = "owner", string reviewer = "reviewer")
     {
+        var newOwner = !await db.Users.AnyAsync(x=>x.Id==owner);
+        var newReviewer = !await db.Users.AnyAsync(x=>x.Id==reviewer);
         foreach(var id in new[]{owner,reviewer}) if(!await db.Users.AnyAsync(x=>x.Id==id)) db.Users.Add(new(){Id=id,UserName=id,Name=id});
         var category=new Category {NameAr="Review category",NameEn="Review category",IsActive=true};
         var cover=new MediaAsset {OwnerUserId=owner,MediaType="image",MimeType="image/png",SizeBytes=100,StorageKey="review-cover-"+Guid.NewGuid(),ContentHash=Guid.NewGuid().ToString()};
         db.AddRange(category,cover);await db.SaveChangesAsync();
+        if (db.Database.IsInMemory()) {await CurriculumIdentityFixture.EnsureInstructor(db, owner);await CurriculumIdentityFixture.EnsureRole(db,reviewer,"CategoryAdmin");}
+        else if (newOwner)
+        {
+            // Only the synthetic owner created above, never an existing account (including negative role fixtures).
+            var role=await db.Roles.SingleAsync(x=>x.NormalizedName=="INSTRUCTOR");
+            db.UserRoles.Add(new(){UserId=owner,RoleId=role.Id});await db.SaveChangesAsync();
+        }
+        if(db.Database.IsSqlServer()&&newReviewer){var role=await db.Roles.SingleAsync(x=>x.NormalizedName=="CATEGORYADMIN");db.UserRoles.Add(new(){UserId=reviewer,RoleId=role.Id});await db.SaveChangesAsync();}
         var course=new Course {OwnerUserId=owner};db.Courses.Add(course);await db.SaveChangesAsync();
         var version=new CourseVersion {CourseId=course.Id,CategoryId=category.Id,VersionNumber=1,TitleEn="Temporary review test",DescriptionEn="A complete educational course description",
             Objectives=[new(null,"Course objective")],CoverMediaAssetId=cover.Id};

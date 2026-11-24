@@ -24,10 +24,22 @@ public sealed class CurriculumService(AppDbContext db) : ICurriculumService
             var courses = write && db.Database.IsSqlServer()
                 ? db.Courses.FromSqlInterpolated($"SELECT * FROM [Courses] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {courseId}")
                 : db.Courses.AsQueryable();
-            var course = await courses.Include(x => x.DraftVersion).SingleOrDefaultAsync(x => x.Id == courseId, ct);
+            var course = await courses.SingleOrDefaultAsync(x => x.Id == courseId, ct);
             if (course is null) return Fail<T>(ServiceFailure.NotFound, "Course not found.");
             if (course.OwnerUserId != actor.UserId) return Fail<T>(ServiceFailure.Forbidden, "Only the course owner can manage its curriculum.");
-            var draft = course.DraftVersion;
+            if (write)
+            {
+                // Course -> actor user -> memberships -> draft children. A request-time actor
+                // cannot retain Instructor authority after waiting for another course writer.
+                var user = await (db.Database.IsSqlServer()
+                    ? db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id]={actor.UserId}")
+                    : db.Users).SingleOrDefaultAsync(x => x.Id == actor.UserId, ct);
+                if (user is null || user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow
+                    || !await (from membership in db.UserRoles join role in db.Roles on membership.RoleId equals role.Id
+                               where membership.UserId == actor.UserId && role.NormalizedName == "INSTRUCTOR" select membership).AnyAsync(ct))
+                    return Fail<T>(ServiceFailure.Forbidden, "Current Instructor membership and an unlocked account are required.");
+            }
+            var draft = await db.CourseVersions.SingleOrDefaultAsync(x => x.Id == course.DraftVersionId, ct);
             if (draft is null || draft.CourseId != course.Id || draft.Id == course.PublishedVersionId
                 || draft.ReviewStatus != CourseReviewStatuses.Draft || draft.ApprovedAt != null)
                 return Fail<T>(ServiceFailure.Conflict, "An editable current draft is required.");

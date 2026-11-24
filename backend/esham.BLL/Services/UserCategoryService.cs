@@ -44,7 +44,7 @@ public sealed class UserCategoryService(AppDbContext db, UserManager<Application
                 var user = db.Database.IsSqlServer()
                     ? await db.Users.FromSqlInterpolated($"SELECT * FROM [AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}").SingleOrDefaultAsync(ct)
                     : await db.Users.SingleOrDefaultAsync(x => x.Id == id, ct);
-                if (user is null) return Forbidden();
+                if (user is null || await users.IsLockedOutAsync(user)) return Forbidden();
                 var memberships = await users.GetRolesAsync(user);
                 var requiredRole = kind == "learning" ? "Learner" : "Instructor";
                 if (!memberships.Contains(requiredRole, StringComparer.OrdinalIgnoreCase)) return Forbidden();

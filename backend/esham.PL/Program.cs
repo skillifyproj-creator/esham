@@ -60,6 +60,9 @@ builder.Services.AddScoped<CertificateService>();
 builder.Services.AddHostedService<esham.PL.Services.CompletionRecoveryService>();
 builder.Services.AddRateLimiter(options => {
     options.RejectionStatusCode = 429;
+    options.AddPolicy("authentication", c => RateLimitPartition.GetFixedWindowLimiter(
+        c.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions {
+            PermitLimit=60, Window=TimeSpan.FromMinutes(1), QueueLimit=0, AutoReplenishment=true }));
     options.AddPolicy("account-security", c => RateLimitPartition.GetFixedWindowLimiter(
         c.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions {
             PermitLimit=10, Window=TimeSpan.FromMinutes(15), QueueLimit=0, AutoReplenishment=true }));
@@ -153,19 +156,15 @@ if (args.Contains("--reconcile-submission-uploads", StringComparer.Ordinal)) {
 }
 if (await DevelopmentIdentityRoles.RunCommandAsync(app, args)) return;
 
-if (app.Environment.IsDevelopment() && app.Configuration.GetValue("SeedData:Enabled", true))
-{
-    await using var scope = app.Services.CreateAsyncScope();
-    await DevelopmentIdentityRoles.SeedAsync(
-        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
-}
-
-if (app.Configuration.GetValue("SeedData:Enabled", true))
+if (StartupSeedingPolicy.Requested(app.Configuration))
 await using (var catalogScope = app.Services.CreateAsyncScope())
 {
+    StartupSeedingPolicy.ValidateTarget(app.Environment.IsDevelopment(), connectionString);
     var db = catalogScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await StartupSeedingPolicy.VerifyIdentityAsync(db);
+    await DevelopmentIdentityRoles.SeedAsync(catalogScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
     var categories = await DefaultCategorySeeder.SeedAsync(db);
-    if (app.Environment.IsDevelopment() && app.Configuration.GetValue("SeedData:DemoCourses", true))
+    if (StartupSeedingPolicy.DemoRequested(app.Configuration))
         await DemoCourseSeeder.SeedAsync(db,
             catalogScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
             catalogScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(), categories);
@@ -183,6 +182,14 @@ if (app.Environment.IsDevelopment())
 app.UseCors("Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.Use(async (context, next) => {
+    if (context.User.Identity?.IsAuthenticated == true || context.Request.Path.StartsWithSegments("/auth")) {
+        context.Response.Headers.CacheControl = "private, no-store";
+        context.Response.Headers.Pragma = "no-cache";
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    }
+    await next(context);
+});
 app.UseAuthorization();
 app.UseRateLimiter();
 

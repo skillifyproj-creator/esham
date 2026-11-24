@@ -34,7 +34,7 @@ public sealed class AccountFinalizationSqlServerTests
         if (!parsed.InitialCatalog.StartsWith("Esham_AccountTests_", StringComparison.Ordinal))
             throw new InvalidOperationException("Refusing a database without the isolated account-test name prefix.");
         return Services(options => options.UseSqlServer(connection, sql => sql.EnableRetryOnFailure(3, TimeSpan.Zero, null))
-            .AddInterceptors(interceptors));
+            .AddInterceptors(interceptors).AddInterceptors(Phase6ASqlDiagnostics.Interceptors));
     }
 
     private static async Task<string> CreateUser(ServiceProvider provider)

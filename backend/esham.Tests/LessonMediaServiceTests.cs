@@ -18,6 +18,7 @@ public sealed class LessonMediaServiceTests
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).ReplaceService<IDbContextTransactionManager, TestTransactionManager>().Options);
     private static async Task<(Course Course, CourseVersion Draft, CourseSection Section, Lesson Lesson)> Seed(AppDbContext db)
     {
+        await CurriculumIdentityFixture.EnsureInstructor(db, Owner.UserId);
         var course = new Course { OwnerUserId = Owner.UserId };
         var version = new CourseVersion { CourseId = course.Id };
         var section = new CourseSection { CourseVersionId = version.Id, TitleEn = "Section" };
